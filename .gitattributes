@@ -1,0 +1,4 @@
+docs/** filter=git-crypt diff=git-crypt
+corporate-identity/** filter=git-crypt diff=git-crypt
+visitenkarte/** filter=git-crypt diff=git-crypt
+.gitattributes !filter !diff
