@@ -1,0 +1,27 @@
+name: CI/CD
+on: push
+
+jobs:
+  Build_Deploy:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    # peaceiris/actions-hugo is where the magic happens!
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@v2
+      with:
+        hugo-version: '0.69.0'
+
+    - name: Build
+      run: hugo --minify
+
+    - name: Deploy to S3
+      run: hugo deploy
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
