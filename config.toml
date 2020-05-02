@@ -1,4 +1,4 @@
-baseURL = "http://fonzerelly.github.io/christianhoerauf_de/"
+baseURL = "https://fonzerelly.github.io/christianhoerauf_de/"
 languageCode = "en-us"
 title = "Hi, I am Chris"
 theme = "hyde-hyde"
