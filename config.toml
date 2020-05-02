@@ -1,7 +1,8 @@
-baseURL = "http://example.org/"
+baseURL = "http://fonzerelly.github.io/christianhoerauf_de/"
 languageCode = "en-us"
 title = "Hi, I am Chris"
 theme = "hyde-hyde"
+canonifyURLS = true
 
 ## Hugo Built-in Features
 # disqusShortname = "draptik"
