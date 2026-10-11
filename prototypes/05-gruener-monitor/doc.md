@@ -143,7 +143,13 @@ Der Trennstrich liegt in der mittleren Zeile und reicht nicht bis zur Verbindung
 Ein Wegpunkt `[x, y, HOP]` heißt: ohne Spur dorthin. Der Lichtpunkt hüpft also ohne Spur
 hinauf, zieht den Strich und hüpft ohne Spur wieder hinunter.
 
-Getrennt wird rein nach Platz, nicht nach Silben („HÖRA-UF"). Jedes Stück füllt die
+## Fragezeichen
+
+Das Fragezeichen nutzt beide Markierungen: Der Punkt unten ist ein `DOT` gleich am
+Einstieg, von dort hüpft der Lichtpunkt ohne Spur zum Haken, zieht ihn von unten nach
+oben und hüpft per `HOP` ohne Spur zurück in die unterste Zeile.
+
+Getrennt wird beim Umbruch rein nach Platz, nicht nach Silben („HÖRA-UF"). Jedes Stück füllt die
 Zeile; der Rest hat immer mindestens zwei Buchstaben.
 
 ## Zwei Geschwindigkeiten
@@ -201,9 +207,9 @@ Flimmern → Glasscheibe.
 
 | Name | Was es tut |
 |---|---|
-| `GLYPHS` | Pro Zeichen die Liste der Wegpunkte `[x, y]` (oder `[x, y, DOT]` bzw. `[x, y, HOP]`) im 3×5-Kästchen. Der Punkt läuft sie der Reihe nach geradlinig ab. Erster und letzter Wegpunkt liegen in der untersten Zeile. **Neu:** der Trennstrich `-`. |
+| `GLYPHS` | Pro Zeichen die Liste der Wegpunkte `[x, y]` (oder `[x, y, DOT]` bzw. `[x, y, HOP]`) im 3×5-Kästchen. Der Punkt läuft sie der Reihe nach geradlinig ab. Erster und letzter Wegpunkt liegen in der untersten Zeile. **Neu:** der Trennstrich `-` und das Fragezeichen `?`. |
 | `DOT`, `HOP` | Markierungen an Wegpunkten: `DOT` = ohne Spur hin, Punkt hinterlassen, ohne Spur zurück; `HOP` = ohne Spur hin. **`HOP` ist neu.** |
-| `normalizeText(text)` | Wandelt die Eingabe in darstellbaren Text: Großbuchstaben, ß wird SS, unbekannte Zeichen entfernt, Mehrfach-Leerzeichen zusammengefasst. Umlaute und Bindestriche bleiben. |
+| `normalizeText(text)` | Wandelt die Eingabe in darstellbaren Text: Großbuchstaben, ß wird SS, unbekannte Zeichen entfernt, Mehrfach-Leerzeichen zusammengefasst. Umlaute, Bindestriche und Fragezeichen bleiben. |
 | `hyphenate(word, maxCharsPerLine)` | Zerteilt ein zu langes Wort in Stücke mit Trennstrich. Ist die Zeile für Buchstaben plus Strich zu kurz (unter 3 Zeichen), wird ohne Strich zerteilt. **Neu.** |
 | `avoidLonelyCharacters(lines, maxCharsPerLine)` | Steht ein einzelnes Zeichen allein in einer Zeile, rutscht das letzte Wort der Zeile davor mit hinunter, wenn es dort Platz hat. **Neu.** |
 | `wrapText(text, maxCharsPerLine)` | Bricht an Wortgrenzen in Zeilen um. Zu lange Wörter werden mit Trennstrich zerteilt, einsame Zeichen vermieden. |

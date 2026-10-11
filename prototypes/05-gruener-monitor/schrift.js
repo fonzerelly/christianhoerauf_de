@@ -56,6 +56,8 @@ const GLYPHS = {
   Ö: [[0, 4], [0, 1], [0, 0, DOT], [0, 1], [2, 1], [2, 0, DOT], [2, 1], [2, 4], [0, 4]],
   Ü: [[0, 4], [0, 1], [0, 0, DOT], [0, 1], [0, 4], [2, 4], [2, 1], [2, 0, DOT], [2, 1], [2, 4]],
   "-": [[0, 4], [0, 2, HOP], [2, 2], [2, 4, HOP]],
+  // Fragezeichen: erst der Punkt unten, dann von unten nach oben der Haken, zuletzt ohne Spur zurück nach unten
+  "?": [[1, 4, DOT], [1, 3], [1, 2], [2, 2], [2, 0], [0, 0], [0, 1], [0, 4, HOP]],
   0: [[0, 4], [0, 0], [2, 0], [2, 4], [0, 4]],
   1: [[2, 4], [2, 0], [1, 0], [2, 0], [2, 4]],
   2: [[0, 4], [2, 4], [0, 4], [0, 2], [2, 2], [2, 0], [0, 0], [2, 0], [2, 2], [0, 2], [0, 4]],
@@ -69,7 +71,7 @@ const GLYPHS = {
 };
 
 // Macht aus beliebiger Eingabe einen Text, den die Schrift darstellen kann:
-// Großbuchstaben (Umlaute und Bindestriche bleiben erhalten), alles Unbekannte entfernt.
+// Großbuchstaben (Umlaute, Bindestriche und Fragezeichen bleiben erhalten), alles Unbekannte entfernt.
 function normalizeText(text) {
   return text
     .toUpperCase() // macht aus "ß" bereits "SS"
