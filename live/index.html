@@ -1,0 +1,2558 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Christian Hörauf</title>
+  <meta name="description" content="Hier entsteht die Internetpräsenz von Christian Hörauf.">
+  <!-- Kein Symbolbild: verhindert, dass der Browser vergeblich nach favicon.ico fragt. -->
+  <link rel="icon" href="data:,">
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    /* Für Screenreader und Suchmaschinen lesbar, auf dem Bildschirm unsichtbar. */
+    .visuallyHidden {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+    }
+    /* Hinweis, falls der Browser keine Skripte ausführt (nur in der Besucherfassung). */
+    .noscriptHint { grid-area: stage; align-self: center; padding: 24px; text-align: center; font-size: 18px; color: #33ff66; }
+
+    /* Die Seite ist genau so hoch wie das Fenster und scrollt nie. Weil nichts scrollt,
+       fährt am Handy auch die Adressleiste nicht ein und aus. */
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    @supports (height: 100dvh) { body { height: 100dvh; } }
+
+    /* Aufteilung: links oben das Labyrinth, darunter das Fragefeld, rechts die Regler. */
+    body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-areas: "stage controls" "ask controls";
+      font: 14px/1.4 ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+      color: #7fdc97;
+      background: #020a04;
+      touch-action: manipulation; /* kein Zoomen durch doppeltes Tippen */
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* Das Canvas hat eine feste Größe in Pixeln (setzt seite.js). Schrumpft die Bühne,
+       weil die Bildschirmtastatur aufgeht, wird es nur unten abgeschnitten statt verzerrt. */
+    #stage { grid-area: stage; position: relative; overflow: hidden; min-width: 0; min-height: 0; }
+    #maze { position: absolute; left: 0; top: 0; display: block; }
+
+    #answerText {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 12px 16px; text-align: center;
+      font-size: 18px; letter-spacing: 0.06em; color: #33ff66;
+      text-shadow: 0 0 8px #2bdc5a;
+      background: rgba(2, 10, 4, 0.85); border-top: 1px solid #14502a;
+    }
+
+    /* Das Fragefeld: Schrift mindestens 16 px, sonst zoomt iOS beim Antippen hinein. */
+    #askForm {
+      grid-area: ask; display: flex; gap: 8px;
+      padding: 8px; padding-bottom: max(8px, env(safe-area-inset-bottom));
+      background: #04140a; border-top: 1px solid #14502a;
+    }
+    #question {
+      flex: 1; min-width: 0; height: 48px; padding: 0 12px; margin: 0;
+      font: inherit; font-size: 18px; color: #33ff66; caret-color: #ff2a2a;
+      background: #020a04; border: 1px solid #1f7a40; border-radius: 2px;
+    }
+    #question::placeholder { color: #2f8f4d; opacity: 1; }
+    #question:focus { outline: none; border-color: #33ff66; box-shadow: 0 0 10px rgba(43, 220, 90, 0.5); }
+    #askForm button { width: auto; height: 48px; margin: 0; padding: 0 14px; font-size: 16px; }
+    #send { color: #03140a; background: #2bdc5a; border-color: #2bdc5a; font-weight: 600; }
+    #send:hover { background: #33ff66; }
+    #toggleControls[aria-expanded="true"] { background: #14502a; }
+
+    /* Die Regler-Leiste */
+    #controls {
+      grid-area: controls; width: 310px; overflow-y: auto;
+      background: #04140a; border-left: 1px solid #14502a;
+    }
+    #controlsHead {
+      position: sticky; top: 0; z-index: 1; display: flex; gap: 8px; align-items: center;
+      padding: 10px 16px; background: #062010; border-bottom: 1px solid #14502a;
+    }
+    #controlsHead div { flex: 1; min-width: 0; }
+    #controlsHead button { width: auto; margin: 0; padding: 8px 12px; }
+    #frameRate { color: #33ff66; font-weight: 600; }
+    #frameRateDetail, #profileInfo { font-size: 12px; opacity: 0.7; }
+    #controlsBody { padding: 16px; }
+    #controls h2 {
+      margin: 20px 0 8px; font-size: 12px; letter-spacing: 0.08em;
+      text-transform: uppercase; opacity: 0.6;
+    }
+    #controls h2:first-child { margin-top: 0; }
+    label { display: block; margin-bottom: 10px; }
+    label span { float: right; opacity: 0.6; }
+    .hint { font-size: 12px; opacity: 0.7; margin: 0 0 10px; }
+
+    /* Alle Eingabefelder mit 16 px Schrift (iOS-Zoom, siehe oben) */
+    input[type=text], input[type=number], select, textarea {
+      width: 100%; padding: 8px; margin-top: 4px;
+      font: inherit; font-size: 16px; color: inherit;
+      background: #020a04; border: 1px solid #14502a; border-radius: 2px;
+    }
+    textarea { font-size: 12px; white-space: pre; }
+    input[type=range] { width: 100%; margin: 4px 0 0; accent-color: #33ff66; }
+    input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; accent-color: #33ff66; }
+    input[type=color] { float: right; width: 44px; height: 24px; padding: 0; border: none; background: none; }
+    button {
+      width: 100%; padding: 10px; margin-bottom: 6px;
+      font: inherit; color: inherit; cursor: pointer;
+      background: #0a2a15; border: 1px solid #14502a; border-radius: 2px;
+    }
+    button:hover { background: #0f3d1f; }
+    #pageStatus { font-size: 16px; font-weight: 600; color: #33ff66; }
+    #status, #exchange { font-size: 12px; opacity: 0.7; margin-bottom: 10px; }
+
+    /* Handy: Labyrinth über die ganze Breite, darunter das Fragefeld. Die Regler liegen als
+       Blatt über dem unteren Teil des Labyrinths - in derselben Rasterzelle wie die Bühne,
+       damit sich deren Größe beim Auf- und Zuklappen nicht ändert (sonst entstünde ein neues Labyrinth). */
+    body[data-profile="handy"] {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "stage" "ask";
+    }
+    body[data-profile="handy"] #controls {
+      grid-area: stage; align-self: end; z-index: 2;
+      width: auto; max-height: 58%;
+      border-left: none; border-top: 1px solid #1f7a40;
+      background: rgba(4, 20, 10, 0.95);
+    }
+    body[data-profile="handy"] #answerText { font-size: 16px; }
+    body[data-profile="handy"] #askForm button { padding: 0 10px; }
+    /* größere Tippflächen */
+    body[data-profile="handy"] input[type=range] { height: 34px; }
+    body[data-profile="handy"] button { min-height: 46px; }
+    body[data-profile="handy"] label { margin-bottom: 14px; }
+    body[data-profile="handy"] input[type=color] { width: 56px; height: 34px; }
+  </style>
+</head>
+<body>
+  <!-- Der Text steckt sonst nur im Canvas. Hier steht er für Screenreader und Suchmaschinen. -->
+  <h1 class="visuallyHidden">Hier entsteht die Internetpräsenz von Christian Hörauf</h1>
+  <noscript>
+    <p class="noscriptHint">Hier entsteht die Internetpräsenz von Christian Hörauf.<br>
+      Für die Darstellung dieser Seite wird JavaScript benötigt.</p>
+  </noscript>
+  <div id="stage">
+    <canvas id="maze" aria-hidden="true"></canvas>
+    <div id="answerText" hidden></div>
+    <!-- Screenreader sehen das Canvas nicht: hier steht jede Antwort zusätzlich als Text. -->
+    <div id="spokenAnswer" class="visuallyHidden" aria-live="polite"></div>
+  </div>
+
+  <form id="askForm" autocomplete="off">
+    <input type="text" id="question" placeholder="Deine Frage …" aria-label="Deine Frage"
+           maxlength="200" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button type="submit" id="send">Senden</button>
+    <button type="button" id="replayAnswer" title="Das zuletzt Geschriebene nochmal schreiben"
+            aria-label="Das zuletzt Geschriebene nochmal schreiben" hidden>Nochmal</button>
+    <button type="button" id="toggleControls" aria-controls="controls" aria-expanded="false">Regler</button>
+  </form>
+
+  <div id="controls" hidden>
+    <div id="controlsHead">
+      <div>
+        <div id="frameRate">– Bilder pro Sekunde</div>
+        <div id="frameRateDetail"></div>
+      </div>
+      <button type="button" id="closeControls">Schließen</button>
+    </div>
+
+    <div id="controlsBody">
+      <h2>Frage und Antwort</h2>
+      <div id="pageStatus"></div>
+      <div id="exchange"></div>
+      <div id="status"></div>
+      <p class="hint">Testhilfe: Beginnt die Frage mit <b>=</b>, wird der Rest wörtlich geschrieben,
+        z. B. <b>=HALLO WELT</b>. Erlaubt sind A–Z, ÄÖÜ, 0–9, Bindestrich, Punkt und Fragezeichen.
+        Ein <b>|</b> markiert eine Trennstelle: <b>=INTER|NET|PRÄ|SENZ</b>.</p>
+      <button type="button" id="replay">Antwort nochmal abspielen</button>
+      <button type="button" id="skipPage">Diese Seite überspringen</button>
+      <label>
+        <input type="checkbox" id="showAnswerAsText"> Antwort am Ende zusätzlich als Text zeigen
+      </label>
+      <label>
+        <input type="checkbox" id="blurInputAfterSending"> Nach dem Senden die Tastatur schließen
+      </label>
+      <label>Neue Frage mitten im Schreiben: Rest so viel mal schneller <span data-for="rushFactor"></span>
+        <input type="range" id="rushFactor" min="1" max="20">
+      </label>
+
+      <h2>Geräteprofil</h2>
+      <div id="profileInfo" class="hint"></div>
+      <label>Regler füllen mit den Werten von
+        <select id="profile"></select>
+      </label>
+      <button type="button" id="showConfig">Aktuelle Werte als Config anzeigen und kopieren</button>
+      <div id="configStatus" class="hint"></div>
+      <textarea id="configText" rows="12" readonly hidden></textarea>
+
+      <h2>Tempo</h2>
+      <label>Tempo in Buchstaben (Zellen pro Sekunde) <span data-for="speed"></span>
+        <input type="range" id="speed" min="5" max="200">
+      </label>
+      <label>Auf Verbindungswegen so viel mal schneller <span data-for="connectorSpeedFactor"></span>
+        <input type="range" id="connectorSpeedFactor" min="1" max="8" step="0.5">
+      </label>
+
+      <h2>Leuchtspur (Nachleuchten)</h2>
+      <label>Leuchtet voll für (Sekunden) <span data-for="holdSeconds"></span>
+        <input type="range" id="holdSeconds" min="0" max="10" step="0.1">
+      </label>
+      <label>Blendet danach aus innerhalb von (Sekunden) <span data-for="fadeSeconds"></span>
+        <input type="range" id="fadeSeconds" min="0" max="10" step="0.1">
+      </label>
+      <label>Rest-Helligkeit danach (%, 100 = Text bleibt stehen) <span data-for="restBrightness"></span>
+        <input type="range" id="restBrightness" min="0" max="100">
+      </label>
+
+      <h2>Zeilenwechsel</h2>
+      <label>Höhe des Bands für den Rückweg (1 = gerade wie in Prototyp 5) <span data-for="returnBandRows"></span>
+        <input type="range" id="returnBandRows" min="1" max="4">
+      </label>
+      <label>Windungen des Rückwegs <span data-for="returnWindiness"></span>
+        <input type="range" id="returnWindiness" min="0" max="100">
+      </label>
+      <label>Gerade Wand darunter höchstens so viele Zellen lang (0 = nicht unterbrechen) <span data-for="maxWallRun"></span>
+        <input type="range" id="maxWallRun" min="0" max="12">
+      </label>
+
+      <h2>Labyrinth</h2>
+      <label>Zufalls-Startwert (bestimmt nur die Form des Labyrinths)
+        <input type="number" id="seed">
+      </label>
+      <button type="button" id="newSeed">Neues Labyrinth (neuer Startwert)</button>
+      <label>Feste Spaltenzahl (0 = Zellgröße gilt) <span data-for="cellColumns"></span>
+        <input type="range" id="cellColumns" min="0" max="80">
+      </label>
+      <label>Zellgröße (nur bei Spaltenzahl 0) <span data-for="cellSize"></span>
+        <input type="range" id="cellSize" min="8" max="48">
+      </label>
+      <label>Gewundenheit der Gänge <span data-for="windiness"></span>
+        <input type="range" id="windiness" min="0" max="100">
+      </label>
+      <label>Wandstärke <span data-for="wallWidth"></span>
+        <input type="range" id="wallWidth" min="0.5" max="12" step="0.5">
+      </label>
+
+      <h2>Lichtpunkt und Spur</h2>
+      <label>Sichtbarkeit der Verbindungswege (%) <span data-for="connectorOpacity"></span>
+        <input type="range" id="connectorOpacity" min="0" max="100">
+      </label>
+      <label>Spurstärke <span data-for="trailWidth"></span>
+        <input type="range" id="trailWidth" min="1" max="16" step="0.5">
+      </label>
+      <label>Leuchten der Spur <span data-for="glow"></span>
+        <input type="range" id="glow" min="0" max="40">
+      </label>
+      <label>
+        <input type="checkbox" id="showPlannedPath"> Geplanten Weg gestrichelt zeigen
+      </label>
+
+      <h2>Monitor</h2>
+      <label>Überstrahlen: Reichweite <span data-for="bloomRadius"></span>
+        <input type="range" id="bloomRadius" min="0" max="24">
+      </label>
+      <label>Überstrahlen: Stärke (%) <span data-for="bloomStrength"></span>
+        <input type="range" id="bloomStrength" min="0" max="100">
+      </label>
+      <label>Zeilenraster (%) <span data-for="scanlineStrength"></span>
+        <input type="range" id="scanlineStrength" min="0" max="100">
+      </label>
+      <label>Dunkle Ecken (%) <span data-for="vignetteStrength"></span>
+        <input type="range" id="vignetteStrength" min="0" max="100">
+      </label>
+      <label>Flimmern (%) <span data-for="flickerStrength"></span>
+        <input type="range" id="flickerStrength" min="0" max="100">
+      </label>
+      <label>Bildstörungen pro Minute <span data-for="glitchesPerMinute"></span>
+        <input type="range" id="glitchesPerMinute" min="0" max="60">
+      </label>
+      <label>Stärke der Störung (Versatz in Pixeln) <span data-for="glitchStrength"></span>
+        <input type="range" id="glitchStrength" min="0" max="60">
+      </label>
+      <button type="button" id="glitchNow">Störung jetzt auslösen</button>
+
+      <h2>Seiten</h2>
+      <label>Höchstens Zeilen pro Seite <span data-for="maxLinesPerPage"></span>
+        <input type="range" id="maxLinesPerPage" min="1" max="12">
+      </label>
+      <label>Dauer des Weiterschiebens (Sekunden) <span data-for="scrollSeconds"></span>
+        <input type="range" id="scrollSeconds" min="0" max="4" step="0.1">
+      </label>
+
+      <h2>Eingang und Ausgang</h2>
+      <label>Lichtpunkt kommt nach dem Laden von
+        <select id="entranceSide">
+          <option value="random">zufällig</option>
+          <option value="left">links</option>
+          <option value="top">oben</option>
+          <option value="bottom">unten</option>
+        </select>
+      </label>
+      <label>Lichtpunkt verlässt jede Seite nach
+        <select id="exitSide">
+          <option value="random">zufällig</option>
+          <option value="right">rechts</option>
+          <option value="top">oben</option>
+          <option value="bottom">unten</option>
+        </select>
+      </label>
+      <label>Umwege bei An- und Ablauf <span data-for="detour"></span>
+        <input type="range" id="detour" min="0" max="100">
+      </label>
+
+      <h2>Farben</h2>
+      <label>Hintergrund <input type="color" id="backgroundColor"></label>
+      <label>Wände <input type="color" id="wallColor"></label>
+      <label>Spur <input type="color" id="trailColor"></label>
+      <label>Lichtpunkt <input type="color" id="dotColor"></label>
+
+      <h2>Leistung</h2>
+      <label>Höchste Pixeldichte (kleiner = unschärfer, aber schneller) <span data-for="maxPixelRatio"></span>
+        <input type="range" id="maxPixelRatio" min="1" max="4" step="0.5">
+      </label>
+    </div>
+  </div>
+
+  <script>
+// ===== config.js =====
+// Die Config: alles, was Christian ohne Programmieren ändern können soll.
+//
+//   1. die Antwort-Tabelle (Platzhalter!)
+//   2. die Grundwerte aller Regler (base)
+//   3. die Geräteprofile (profiles): jedes überschreibt einzelne Grundwerte
+//
+// Welches Profil gilt, entscheidet beim Laden die Fensterbreite (desktopFromWidth).
+// Die Regler auf der Seite starten mit den Werten des aktiven Profils. Der Knopf
+// "Aktuelle Werte als Config anzeigen und kopieren" liefert den fertigen Text für
+// einen Profil-Block, der hier unten eingefügt werden kann.
+
+const CONFIG = {
+  // Ab dieser Fensterbreite (in Pixeln) gilt das Profil "desktop", darunter "handy".
+  desktopFromWidth: 700,
+
+  // Gibt es den Knopf "Regler" und die Regler-Leiste? Die Besucherfassung schaltet beides ab
+  // (siehe besucher/config-besucher.js); dann gelten einfach die Werte des Geräteprofils.
+  showControls: true,
+
+  // Gibt es neben dem Fragefeld den Knopf "Nochmal", der das zuletzt Geschriebene noch
+  // einmal schreibt? Hier aus, weil die Regler-Leiste dafür schon einen Knopf hat und am
+  // Handy sonst kaum Platz für das Fragefeld bleibt.
+  showReplayButton: false,
+
+  // Testhilfe: Beginnt die Frage mit "=", wird der Rest wörtlich geschrieben.
+  allowLiteralAnswers: true,
+
+  // -------------------------------------------------------------------------
+  // PLATZHALTER-ANTWORTEN
+  //
+  // Diese Texte sind frei erfunden und sagen bewusst NICHTS über Christians
+  // Lebenslauf. Später antwortet hier ein Sprachmodell. Bis dahin dient die
+  // Tabelle nur dazu, den Ablauf Frage -> Antwort auszuprobieren.
+  //
+  // Abgleich: Die Frage wird in Kleinbuchstaben und einzelne Wörter zerlegt.
+  // Ein Eintrag passt, wenn eines seiner Stichwörter als ganzes Wort (oder als
+  // ganze Wortfolge) in der Frage vorkommt. Der erste passende Eintrag gewinnt.
+  //
+  // Trennstellen: Ein "|" in einem Text markiert, wo ein Wort getrennt werden darf, wenn
+  // es nicht in eine Zeile passt ("INTER|NET|PRÄ|SENZ"). Das Zeichen wird nie angezeigt.
+  // Ohne passende Trennstelle wird nach Platz getrennt.
+  // Erlaubte Zeichen: A-Z, ÄÖÜ, 0-9, Bindestrich, Punkt, Fragezeichen. ß wird zu SS.
+  // -------------------------------------------------------------------------
+
+  // Schreibt der Lichtpunkt beim Laden der Seite.
+  greeting: "HALLO FRAG MICH ETWAS",
+
+  // Schreibt der Lichtpunkt, wenn kein Stichwort passt.
+  unknownAnswer: "WEISS ICH NICHT",
+
+  answers: [
+    { keywords: ["wer bist du", "wie heißt du", "wie heisst du", "dein name", "name"], answer: "CHRISTIAN HÖRAUF" },
+    { keywords: ["hallo", "hi", "hey", "moin", "servus", "guten tag", "guten morgen", "guten abend"], answer: "HALLO" },
+    { keywords: ["wie geht es dir", "wie gehts", "wie geht's"], answer: "GUT UND DIR?" },
+    { keywords: ["danke", "dankeschön", "vielen dank"], answer: "GERN GESCHEHEN" },
+    { keywords: ["tschüss", "tschüs", "ciao", "auf wiedersehen", "bis bald"], answer: "BIS BALD" },
+    // Zum Ausprobieren mehrerer Seiten:
+    { keywords: ["lang", "lange", "langer", "seiten"], answer: "DAS IST EIN LANGER PLATZHALTER-TEXT ZUM AUSPROBIEREN MEHRERER SEITEN" },
+  ],
+
+  // -------------------------------------------------------------------------
+  // GRUNDWERTE
+  //
+  // Jeder Name ist zugleich die id eines Reglers in index.html (Ausnahme: controlsOpen).
+  // Die Einheiten sind die der Regler, Prozentwerte stehen also als 0 bis 100 da.
+  // -------------------------------------------------------------------------
+  base: {
+    // Frage und Antwort
+    showAnswerAsText: false, // Antwort nach dem Ende der Animation zusätzlich als normalen Text zeigen
+    rushFactor: 6, // kommt eine neue Frage mitten im Schreiben: so viel mal schneller läuft der Punkt den Rest hinaus
+    blurInputAfterSending: false, // nach dem Senden das Fragefeld verlassen (schließt am Handy die Tastatur)
+    controlsOpen: false, // ist die Regler-Leiste beim Laden aufgeklappt?
+
+    // Tempo
+    speed: 60, // Zellen pro Sekunde in Buchstaben
+    connectorSpeedFactor: 3, // auf Verbindungswegen so viel mal schneller
+
+    // Leuchtspur (Nachleuchten)
+    holdSeconds: 0.6, // leuchtet voll für ... Sekunden
+    fadeSeconds: 0.8, // blendet danach aus innerhalb von ... Sekunden
+    restBrightness: 0, // Rest-Helligkeit danach in % (100 = Text bleibt stehen)
+
+    // Monitor
+    bloomRadius: 7, // Überstrahlen: Reichweite
+    bloomStrength: 80, // Überstrahlen: Stärke in %
+    scanlineStrength: 35, // Zeilenraster in %
+    vignetteStrength: 55, // dunkle Ecken in %
+    flickerStrength: 25, // Flimmern in %
+    glitchesPerMinute: 8, // Bildstörungen pro Minute
+    glitchStrength: 14, // Versatz der Störung in Pixeln
+
+    // Seiten
+    maxLinesPerPage: 12, // höchstens so viele Textzeilen pro Seite
+    scrollSeconds: 1.2, // Dauer des Weiterschiebens
+
+    // Zeilenwechsel
+    returnBandRows: 2, // Höhe des Bands, in dem der Punkt zum Zeilenanfang zurückläuft (1 = gerade wie in Prototyp 5)
+    returnWindiness: 50, // wie stark sich der Rückweg im Band windet (0 bis 100)
+    maxWallRun: 4, // längstes gerades Wandstück unter Verbindungsspur und Rückweg in Zellen (0 = Wände nicht unterbrechen)
+
+    // Eingang und Ausgang
+    entranceSide: "random", // "random", "left", "top" oder "bottom" (gilt für die erste Seite nach dem Laden)
+    exitSide: "random", // "random", "right", "top" oder "bottom"
+    detour: 30, // Umwege bei An- und Ablauf (0 bis 100)
+
+    // Labyrinth
+    seed: 1, // Zufalls-Startwert
+    cellColumns: 0, // feste Anzahl Spalten; 0 = die Zellgröße bestimmt die Spaltenzahl
+    cellSize: 24, // Zellgröße in Pixeln (gilt nur bei cellColumns: 0)
+    windiness: 70, // Gewundenheit der Füll-Gänge (0 bis 100)
+    wallWidth: 3, // Wandstärke in Pixeln
+
+    // Lichtpunkt und Spur
+    connectorOpacity: 25, // Sichtbarkeit der Verbindungswege in %
+    trailWidth: 5, // Spurstärke in Pixeln
+    glow: 16, // Leuchten der Spur
+    showPlannedPath: false, // geplanten Weg gestrichelt zeigen
+
+    // Farben
+    backgroundColor: "#03140a",
+    wallColor: "#2bdc5a",
+    trailColor: "#ff2a2a",
+    dotColor: "#ff2a2a",
+
+    // Leistung
+    maxPixelRatio: 3, // höchste Pixeldichte des Bildes; kleiner = unschärfer, aber schneller
+  },
+
+  // -------------------------------------------------------------------------
+  // GERÄTEPROFILE: nur die Werte, die von den Grundwerten abweichen.
+  // Die Werte sind geschätzt und von Christian noch nicht bestätigt.
+  // -------------------------------------------------------------------------
+  profiles: {
+    desktop: {
+      controlsOpen: true,
+    },
+
+    // Kleine Zellen: 34 Spalten ergeben 7 Zeichen pro Zeile (bei 375 px Breite rund 11 px je Zelle).
+    // Wände, Spur und Leuchten sind auf diese Zellgröße heruntergerechnet.
+    handy: {
+      blurInputAfterSending: true,
+      cellColumns: 34,
+      wallWidth: 1.5,
+      bloomRadius: 3,
+      bloomStrength: 70,
+      trailWidth: 3,
+      glow: 7,
+      glitchStrength: 8,
+      scrollSeconds: 1,
+      maxPixelRatio: 2,
+    },
+  },
+};
+  </script>
+  <script>
+// ===== config-besucher.js =====
+// Die Besucherfassung für christianhoerauf.de.
+//
+// Diese Datei wird NUR in live/index.html eingebaut (siehe baue-einzeldatei.sh), und zwar
+// direkt hinter config.js. Sie überschreibt dort einzelne Werte; alles andere - auch die
+// Geräteprofile - bleibt, wie es in config.js steht.
+//
+// Ein "|" markiert eine Trennstelle für lange Wörter und wird nie angezeigt.
+
+Object.assign(CONFIG, {
+  // Besucher bekommen keine Regler und keine Testhilfe, dafür den Knopf "Nochmal".
+  showControls: false,
+  showReplayButton: true,
+  allowLiteralAnswers: false,
+
+  // Schreibt der Lichtpunkt beim Laden. Derselbe Satz steht für Screenreader und
+  // Suchmaschinen noch einmal in besucher/inhalt.html - bei Änderungen beide anpassen.
+  greeting: "Hier ent|steht die Inter|net|prä|senz von Chris|tian Hör|auf",
+
+  // Die Antwort auf jede Frage: Es gibt keine Stichwörter, also passt nie eines.
+  answers: [],
+  unknownAnswer: "Ich bin noch ein Pro|to|typ. Ich kann noch nicht ant|wor|ten.",
+});
+  </script>
+  <script>
+// ===== schrift.js =====
+// Die Schrift: jeder Buchstabe ist der Weg, den der Lichtpunkt läuft, um ihn zu "schreiben".
+//
+// Ein Buchstabe lebt in einem Kästchen aus 3 x 5 Zellen. x läuft von 0 (links) bis 2 (rechts),
+// y von 0 (oben) bis 4 (unten). Der Weg ist eine Liste von Wegpunkten [x, y]; zwischen zwei
+// Wegpunkten läuft der Punkt geradeaus (nur waagrecht oder senkrecht, nie schräg).
+//
+// Regeln für jeden Weg:
+//  - Erster und letzter Wegpunkt liegen in der untersten Zeile (y = 4), denn dort
+//    steigt der Punkt aus der Verbindungsspur ein und wieder aus.
+//  - Ein Stück doppelt zu laufen ist erlaubt (z. B. beim H den linken Balken hoch und halb zurück).
+//  - Schrägen gibt es im Raster nicht. K, N, R, X behelfen sich mit Treppenstufen,
+//    B und D haben ihren senkrechten Balken in der Mitte, damit sie nicht wie 8 und O aussehen.
+//
+// Umlaute: Ä, Ö, Ü sind eine Zeile niedriger (y = 1 bis 4), damit in der obersten Zeile
+// Platz für die beiden Punkte bleibt. Ein Wegpunkt mit der Markierung DOT bedeutet:
+// der Lichtpunkt hüpft ohne Leuchtspur dorthin, hinterlässt einen Punkt und hüpft
+// ohne Leuchtspur wieder weg.
+
+const DOT = "dot";
+// Ein Wegpunkt mit der Markierung HOP bedeutet: der Lichtpunkt hüpft ohne Leuchtspur dorthin.
+// So entstehen Zeichen, die nicht bis zur untersten Zeile reichen (der Trennstrich).
+const HOP = "hop";
+
+// Das Trennstellen-Zeichen: Es markiert in einem Text, wo ein Wort bevorzugt getrennt werden
+// soll ("INTER|NET|PRÄ|SENZ"). Es wird nie angezeigt und zählt nicht als Buchstabe.
+const BREAK_MARK = "|";
+
+const GLYPH_HEIGHT = 5;
+const CHAR_ADVANCE = 4; // 3 Zellen Buchstabe + 1 Zelle Abstand
+const LANE_HEIGHT = 1; // die Verbindungsspur unter den Buchstaben
+
+// Wie viele Rasterzeilen eine Textzeile belegt: Buchstaben, Verbindungsspur und darunter
+// das Band, in dem der Lichtpunkt zum Anfang der nächsten Zeile zurückläuft.
+// returnBandRows ist die Höhe dieses Bands (1 = gerader Rückweg wie in Prototyp 5).
+function lineAdvanceOf(returnBandRows) {
+  return GLYPH_HEIGHT + LANE_HEIGHT + returnBandRows;
+}
+
+const GLYPHS = {
+  A: [[0, 4], [0, 0], [2, 0], [2, 2], [0, 2], [2, 2], [2, 4]],
+  B: [[0, 4], [2, 4], [2, 2], [1, 2], [2, 2], [2, 0], [0, 0], [1, 0], [1, 4]],
+  C: [[0, 4], [0, 0], [2, 0], [0, 0], [0, 4], [2, 4]],
+  D: [[0, 4], [2, 4], [2, 0], [0, 0], [1, 0], [1, 4]],
+  E: [[0, 4], [0, 0], [2, 0], [0, 0], [0, 2], [1, 2], [0, 2], [0, 4], [2, 4]],
+  F: [[0, 4], [0, 0], [2, 0], [0, 0], [0, 2], [1, 2], [0, 2], [0, 4]],
+  G: [[0, 4], [0, 0], [2, 0], [0, 0], [0, 4], [2, 4], [2, 2], [1, 2], [2, 2], [2, 4]],
+  H: [[0, 4], [0, 0], [0, 2], [2, 2], [2, 0], [2, 4]],
+  I: [[0, 4], [2, 4], [1, 4], [1, 0], [0, 0], [2, 0], [1, 0], [1, 4]],
+  J: [[0, 4], [0, 3], [0, 4], [2, 4], [2, 0], [2, 4]],
+  K: [[0, 4], [0, 0], [0, 2], [1, 2], [1, 1], [2, 1], [2, 0], [2, 1], [1, 1], [1, 2], [1, 3], [2, 3], [2, 4]],
+  L: [[0, 4], [0, 0], [0, 4], [2, 4]],
+  M: [[0, 4], [0, 0], [1, 0], [1, 2], [1, 0], [2, 0], [2, 4]],
+  N: [[0, 4], [0, 0], [0, 1], [1, 1], [1, 3], [2, 3], [2, 0], [2, 4]],
+  O: [[0, 4], [0, 0], [2, 0], [2, 4], [0, 4]],
+  P: [[0, 4], [0, 0], [2, 0], [2, 2], [0, 2], [0, 4]],
+  Q: [[0, 4], [0, 0], [2, 0], [2, 4], [1, 4], [1, 3], [1, 4], [0, 4]],
+  R: [[0, 4], [0, 0], [2, 0], [2, 2], [0, 2], [1, 2], [1, 3], [2, 3], [2, 4]],
+  S: [[0, 4], [2, 4], [2, 2], [0, 2], [0, 0], [2, 0], [0, 0], [0, 2], [2, 2], [2, 4]],
+  T: [[1, 4], [1, 0], [0, 0], [2, 0], [1, 0], [1, 4]],
+  U: [[0, 4], [0, 0], [0, 4], [2, 4], [2, 0], [2, 4]],
+  V: [[1, 4], [1, 3], [0, 3], [0, 0], [0, 3], [2, 3], [2, 0], [2, 3], [1, 3], [1, 4]],
+  W: [[0, 4], [0, 0], [0, 4], [1, 4], [1, 2], [1, 4], [2, 4], [2, 0], [2, 4]],
+  X: [[0, 4], [0, 3], [1, 3], [1, 1], [0, 1], [0, 0], [0, 1], [2, 1], [2, 0], [2, 1], [1, 1], [1, 3], [2, 3], [2, 4]],
+  Y: [[1, 4], [1, 2], [0, 2], [0, 0], [0, 2], [2, 2], [2, 0], [2, 2], [1, 2], [1, 4]],
+  Z: [[0, 4], [2, 4], [0, 4], [0, 2], [2, 2], [2, 0], [0, 0], [2, 0], [2, 2], [0, 2], [0, 4]],
+  Ä: [[0, 4], [0, 1], [0, 0, DOT], [0, 1], [2, 1], [2, 0, DOT], [2, 1], [2, 3], [0, 3], [2, 3], [2, 4]],
+  Ö: [[0, 4], [0, 1], [0, 0, DOT], [0, 1], [2, 1], [2, 0, DOT], [2, 1], [2, 4], [0, 4]],
+  Ü: [[0, 4], [0, 1], [0, 0, DOT], [0, 1], [0, 4], [2, 4], [2, 1], [2, 0, DOT], [2, 1], [2, 4]],
+  "-": [[0, 4], [0, 2, HOP], [2, 2], [2, 4, HOP]],
+  // Satzpunkt: ohne Spur in die unterste Zeile, dort einen Punkt hinterlassen
+  ".": [[0, 4, DOT]],
+  // Fragezeichen: erst der Punkt unten, dann von unten nach oben der Haken, zuletzt ohne Spur zurück nach unten
+  "?": [[1, 4, DOT], [1, 3], [1, 2], [2, 2], [2, 0], [0, 0], [0, 1], [0, 4, HOP]],
+  0: [[0, 4], [0, 0], [2, 0], [2, 4], [0, 4]],
+  1: [[2, 4], [2, 0], [1, 0], [2, 0], [2, 4]],
+  2: [[0, 4], [2, 4], [0, 4], [0, 2], [2, 2], [2, 0], [0, 0], [2, 0], [2, 2], [0, 2], [0, 4]],
+  3: [[0, 4], [2, 4], [2, 2], [1, 2], [2, 2], [2, 0], [0, 0], [2, 0], [2, 4]],
+  4: [[2, 4], [2, 0], [2, 2], [0, 2], [0, 0], [0, 2], [2, 2], [2, 4]],
+  5: [[0, 4], [2, 4], [2, 2], [0, 2], [0, 0], [2, 0], [0, 0], [0, 2], [2, 2], [2, 4]],
+  6: [[0, 4], [0, 0], [2, 0], [0, 0], [0, 2], [2, 2], [2, 4], [0, 4]],
+  7: [[2, 4], [2, 0], [0, 0], [2, 0], [2, 4]],
+  8: [[0, 4], [0, 0], [2, 0], [2, 2], [0, 2], [2, 2], [2, 4], [0, 4]],
+  9: [[0, 4], [2, 4], [2, 0], [0, 0], [0, 2], [2, 2], [2, 4]],
+};
+
+// Macht aus beliebiger Eingabe einen Text, den die Schrift darstellen kann:
+// Großbuchstaben (Umlaute, Bindestriche, Punkte und Fragezeichen bleiben erhalten), alles
+// Unbekannte entfernt. Trennstellen-Zeichen bleiben stehen; sie verschwinden erst beim Umbruch.
+function normalizeText(text) {
+  return text
+    .toUpperCase() // macht aus "ß" bereits "SS"
+    .split("")
+    .filter((char) => char === " " || char === BREAK_MARK || GLYPHS[char])
+    .join("")
+    .replace(/ +/g, " ")
+    .trim();
+}
+
+// Entfernt alle Trennstellen-Zeichen: aus "PRO|TO|TYP" wird "PROTOTYP".
+function withoutBreakMarks(text) {
+  return text.split(BREAK_MARK).join("");
+}
+
+// Liest die Trennstellen eines Worts aus. Aus "PRO|TO|TYP" wird
+//   letters: "PROTOTYP"       - das Wort ohne Trennstellen-Zeichen
+//   breakPositions: [3, 5]    - vor dem wievielten Buchstaben getrennt werden darf
+function readBreakMarks(word) {
+  const breakPositions = [];
+  let letters = "";
+  for (const char of word) {
+    if (char === BREAK_MARK) breakPositions.push(letters.length);
+    else letters += char;
+  }
+  return { letters, breakPositions };
+}
+
+// Zerteilt ein Wort, das länger ist als eine Zeile, in Stücke mit Trennstrich.
+//
+// Getrennt wird bevorzugt an einer markierten Trennstelle - und zwar an der spätesten,
+// bei der das Stück samt Trennstrich noch in die Zeile passt. Gibt es keine solche,
+// wird wie bisher nach Platz getrennt: das Stück füllt die Zeile aus.
+// Ist die Zeile für zwei Buchstaben plus Strich zu kurz, wird ohne Strich zerteilt.
+function hyphenate(word, maxCharsPerLine) {
+  const { letters, breakPositions } = readBreakMarks(word);
+  const lettersBesideHyphen = maxCharsPerLine - 1;
+  const hasRoomForHyphen = lettersBesideHyphen >= 2;
+
+  const pieces = [];
+  let pieceStart = 0;
+  while (letters.length - pieceStart > maxCharsPerLine) {
+    const fittingBreaks = breakPositions.filter(
+      (position) => position > pieceStart && position - pieceStart <= lettersBesideHyphen
+    );
+    const breakBySpace = pieceStart + (hasRoomForHyphen ? lettersBesideHyphen : maxCharsPerLine);
+    const pieceEnd = hasRoomForHyphen && fittingBreaks.length > 0 ? Math.max(...fittingBreaks) : breakBySpace;
+
+    pieces.push(letters.slice(pieceStart, pieceEnd) + (hasRoomForHyphen ? "-" : ""));
+    pieceStart = pieceEnd;
+  }
+  pieces.push(letters.slice(pieceStart));
+  return pieces;
+}
+
+// Verhindert Zeilen, die nur aus einem einzelnen Zeichen bestehen (z. B. die "8" von
+// "8 JAHRE"): das letzte Wort der Zeile davor rutscht mit hinunter, wenn es dort Platz hat.
+function avoidLonelyCharacters(lines, maxCharsPerLine) {
+  for (let index = 1; index < lines.length; index++) {
+    const wordsBefore = lines[index - 1].split(" ");
+    const isLonely = lines[index].length === 1;
+    const candidate = wordsBefore[wordsBefore.length - 1] + " " + lines[index];
+    const canBorrowWord =
+      wordsBefore.length >= 2 && !lines[index - 1].endsWith("-") && candidate.length <= maxCharsPerLine;
+
+    if (isLonely && canBorrowWord) {
+      lines[index - 1] = wordsBefore.slice(0, -1).join(" ");
+      lines[index] = candidate;
+    }
+  }
+  return lines;
+}
+
+// Bricht den Text an Wortgrenzen in Zeilen um. Ein Wort, das länger ist als eine Zeile,
+// wird mit Trennstrich zerteilt (siehe hyphenate). Wörter, die in eine Zeile passen, werden
+// nie getrennt. Die fertigen Zeilen enthalten keine Trennstellen-Zeichen mehr.
+function wrapText(text, maxCharsPerLine) {
+  const lines = [];
+  let currentLine = "";
+
+  const words = text.split(" ").filter((word) => withoutBreakMarks(word).length > 0);
+  for (const markedWord of words) {
+    let word = withoutBreakMarks(markedWord);
+    if (word.length > maxCharsPerLine) {
+      const pieces = hyphenate(markedWord, maxCharsPerLine);
+      if (currentLine) lines.push(currentLine);
+      lines.push(...pieces.slice(0, -1));
+      word = pieces[pieces.length - 1];
+      currentLine = "";
+    }
+    const candidate = currentLine ? currentLine + " " + word : word;
+    if (candidate.length <= maxCharsPerLine) {
+      currentLine = candidate;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  return avoidLonelyCharacters(lines, maxCharsPerLine);
+}
+  </script>
+  <script>
+// ===== labyrinth.js =====
+// Das Labyrinth mit versteckter Nachricht.
+//
+// Grundidee: Wir suchen NICHT nach einem Labyrinth, das zufällig die Nachricht enthält.
+// Wir legen zuerst den Weg des Lichtpunkts fest (die Route durch alle Buchstaben) und
+// lassen danach das restliche Labyrinth um diesen Weg herum wachsen.
+//
+// Die Route besteht aus drei Teilen:
+//   1. Anlauf:  vom Eingang am Rand in Windungen bis links neben den Text
+//   2. Text:    durch alle Buchstaben
+//   3. Ablauf:  von rechts neben dem Text in Windungen zum Ausgang am Rand
+//
+// Passt der Text nicht in ein Raster, entstehen mehrere Seiten - jede ein eigenes
+// Labyrinth. Der Eingang einer Folgeseite liegt dem Ausgang der vorigen genau gegenüber.
+// Dasselbe gilt für die nächste Antwort: ihre erste Seite schließt an den Ausgang der
+// letzten Seite der vorigen Antwort an.
+
+// Arten von Wegstücken. Sie entscheiden, wie die Leuchtspur gezeichnet wird.
+const LETTER = "letter"; // gehört zu einem Buchstaben: leuchtet kräftig
+const CONNECTOR = "connector"; // verbindet nur: blass
+const SILENT = "silent"; // Hüpfer zu einem Umlaut-Punkt oder Trennstrich: gar keine Spur
+
+// Wie viele Zellen der Lichtpunkt vor dem Eingang startet und hinter dem Ausgang verschwindet.
+const STEPS_OUTSIDE = 2;
+
+const OUTWARD = {
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+  top: { x: 0, y: -1 },
+  bottom: { x: 0, y: 1 },
+};
+
+const OPPOSITE_SIDE = { left: "right", right: "left", top: "bottom", bottom: "top" };
+
+// Wie viel Platz rund um den Textblock mindestens frei bleibt.
+// Neben dem Text: eine Spalte für die Zeilenwechsel, eine für das Tor, eine Luft zum Rand.
+// Über und unter dem Text: zwei Zeilen, durch die An- und Ablauf am Text vorbeikommen.
+const FREE_COLS_BESIDE_TEXT = 3;
+const FREE_ROWS_AROUND_TEXT = 2;
+
+// Zufallsgenerator mit Startwert (Mulberry32): gleicher Seed -> gleiche Zahlenfolge
+// -> gleiches Labyrinth. Die Bit-Operationen sind der Algorithmus selbst und
+// deshalb nicht lesbarer zu bekommen.
+function createRandom(seed) {
+  let state = seed >>> 0;
+  return function random() {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let mixed = state;
+    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
+    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pickRandom(list, random) {
+  return list[Math.floor(random() * list.length)];
+}
+
+function randomBetween(min, max, random) {
+  return min + Math.floor(random() * (max - min + 1));
+}
+
+// Ein Labyrinth, in dem noch jede Zelle rundum zugemauert ist.
+// openRight[y][x]: Durchgang von Zelle (x, y) nach rechts, openDown[y][x]: nach unten.
+function createEmptyMaze(cols, rows) {
+  const emptyGrid = () => Array.from({ length: rows }, () => new Array(cols).fill(false));
+  return {
+    cols,
+    rows,
+    openRight: emptyGrid(),
+    openDown: emptyGrid(),
+    visited: emptyGrid(),
+  };
+}
+
+function isInside(maze, cell) {
+  return cell.x >= 0 && cell.x < maze.cols && cell.y >= 0 && cell.y < maze.rows;
+}
+
+// Bricht die Wand zwischen zwei benachbarten Zellen heraus.
+function carvePassage(maze, from, to) {
+  if (to.x === from.x + 1) maze.openRight[from.y][from.x] = true;
+  if (to.x === from.x - 1) maze.openRight[to.y][to.x] = true;
+  if (to.y === from.y + 1) maze.openDown[from.y][from.x] = true;
+  if (to.y === from.y - 1) maze.openDown[to.y][to.x] = true;
+  maze.visited[from.y][from.x] = true;
+  maze.visited[to.y][to.x] = true;
+}
+
+function neighboursOf(cell) {
+  return [
+    { x: cell.x + 1, y: cell.y },
+    { x: cell.x - 1, y: cell.y },
+    { x: cell.x, y: cell.y + 1 },
+    { x: cell.x, y: cell.y - 1 },
+  ];
+}
+
+function unvisitedNeighbours(maze, cell) {
+  return neighboursOf(cell).filter((n) => isInside(maze, n) && !maze.visited[n.y][n.x]);
+}
+
+// Die Nachbarzellen, zu denen es einen offenen Durchgang gibt.
+function connectedNeighbours(maze, cell) {
+  return neighboursOf(cell).filter((n) => {
+    if (!isInside(maze, n)) return false;
+    if (n.x === cell.x + 1) return maze.openRight[cell.y][cell.x];
+    if (n.x === cell.x - 1) return maze.openRight[n.y][n.x];
+    if (n.y === cell.y + 1) return maze.openDown[cell.y][cell.x];
+    return maze.openDown[n.y][n.x];
+  });
+}
+
+function visitedCells(maze) {
+  const cells = [];
+  for (let y = 0; y < maze.rows; y++) {
+    for (let x = 0; x < maze.cols; x++) {
+      if (maze.visited[y][x]) cells.push({ x, y });
+    }
+  }
+  return cells;
+}
+
+function shuffle(list, random) {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+// Lässt von den Startzellen aus Gänge in alle noch unberührten Zellen wachsen
+// ("Growing Tree"-Algorithmus).
+//
+// Wiederholt wird eine schon erschlossene Zelle gewählt und von ihr aus ein Gang
+// in eine noch unberührte Nachbarzelle gebrochen. Weil nur in unberührte Zellen
+// gegraben wird, entstehen keine Rundwege und keine Abkürzungen.
+//
+// windiness (0..1) bestimmt den Charakter:
+//   nahe 1 -> meist die zuletzt erschlossene Zelle: lange, gewundene Gänge
+//   nahe 0 -> meist eine zufällige Zelle: viele kurze Sackgassen
+function growMaze(maze, startCells, random, windiness) {
+  const active = shuffle([...startCells], random);
+
+  while (active.length > 0) {
+    const takeNewest = random() < windiness;
+    const index = takeNewest ? active.length - 1 : Math.floor(random() * active.length);
+    const cell = active[index];
+
+    const freeNeighbours = unvisitedNeighbours(maze, cell);
+    if (freeNeighbours.length === 0) {
+      active.splice(index, 1);
+      continue;
+    }
+
+    const next = pickRandom(freeNeighbours, random);
+    carvePassage(maze, cell, next);
+    active.push(next);
+  }
+}
+
+// Sucht den Weg durch die offenen Gänge eines Labyrinths (Breitensuche).
+// Liefert die Zellen von `from` bis `to`, beide eingeschlossen.
+function findPathThroughMaze(maze, from, to) {
+  const keyOf = (cell) => cell.y * maze.cols + cell.x;
+  const cameFrom = new Map([[keyOf(from), null]]);
+  const queue = [from];
+
+  while (queue.length > 0 && !cameFrom.has(keyOf(to))) {
+    const cell = queue.shift();
+    for (const neighbour of connectedNeighbours(maze, cell)) {
+      if (cameFrom.has(keyOf(neighbour))) continue;
+      cameFrom.set(keyOf(neighbour), cell);
+      queue.push(neighbour);
+    }
+  }
+
+  const path = [];
+  for (let cell = to; cell; cell = cameFrom.get(keyOf(cell))) {
+    path.unshift(cell);
+  }
+  return path;
+}
+
+// Erfindet einen gewundenen Weg von `from` nach `to`, der nur erlaubte Zellen benutzt.
+//
+// Trick: In einem Wegwerf-Labyrinth über den erlaubten Zellen gibt es zwischen zwei
+// Zellen genau einen Weg - und der sieht von selbst nach Labyrinth aus.
+// detour (0..1): nahe 0 eher direkt, nahe 1 lange Umwege.
+function findWindingPath(cols, rows, isAllowed, from, to, random, detour) {
+  const scratchMaze = createEmptyMaze(cols, rows);
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (!isAllowed({ x, y })) scratchMaze.visited[y][x] = true; // gilt damit als belegt
+    }
+  }
+  scratchMaze.visited[from.y][from.x] = true;
+  growMaze(scratchMaze, [from], random, detour);
+  return findPathThroughMaze(scratchMaze, from, to);
+}
+
+// Wie viele Zeichen in eine Zeile und wie viele Zeilen auf eine Seite passen.
+// maxLinesPerPage ist die Obergrenze aus dem Regler (zum Ausprobieren der Mehrseitigkeit),
+// returnBandRows die Höhe des Bands für den Zeilenwechsel.
+function textCapacity(cols, rows, maxLinesPerPage, returnBandRows) {
+  const usableCols = cols - 2 * FREE_COLS_BESIDE_TEXT;
+  const usableRows = rows - 2 * FREE_ROWS_AROUND_TEXT;
+  // "+ 1": hinter dem letzten Buchstaben entfällt der Abstand
+  const charsPerLine = Math.max(1, Math.floor((usableCols + 1) / CHAR_ADVANCE));
+  // "+ returnBandRows": unter der letzten Zeile entfällt das Band für den Zeilenwechsel
+  const fittingLines = Math.max(1, Math.floor((usableRows + returnBandRows) / lineAdvanceOf(returnBandRows)));
+  return { charsPerLine, linesPerPage: Math.max(1, Math.min(fittingLines, maxLinesPerPage)) };
+}
+
+// Verteilt die Textzeilen auf Seiten. Ein leerer Text ergibt eine Seite mit einer leeren Zeile.
+function splitIntoPages(lines, linesPerPage) {
+  const pages = [];
+  for (let first = 0; first < lines.length; first += linesPerPage) {
+    pages.push(lines.slice(first, first + linesPerPage));
+  }
+  return pages.length > 0 ? pages : [[" "]];
+}
+
+// Berechnet, wo der Textblock im Raster liegt (zentriert).
+// left/right/top/bottom sind die äußersten Zellen des Blocks.
+function layoutTextBlock(lines, cols, rows, returnBandRows) {
+  const longestLine = Math.max(...lines.map((line) => line.length));
+  const width = longestLine * CHAR_ADVANCE - 1;
+  // unter der letzten Zeile entfällt das Band für den Zeilenwechsel
+  const height = lines.length * lineAdvanceOf(returnBandRows) - returnBandRows;
+  const left = Math.floor((cols - width) / 2);
+  const top = Math.floor((rows - height) / 2);
+  return { left, right: left + width - 1, top, bottom: top + height - 1 };
+}
+
+// Verlängert die Route Zelle für Zelle in gerader Linie bis zum Ziel.
+// Das Ziel muss in derselben Zeile oder Spalte liegen wie das aktuelle Routenende.
+function walkTo(route, targetX, targetY, kind) {
+  let { x, y } = route[route.length - 1];
+  while (x !== targetX || y !== targetY) {
+    x += Math.sign(targetX - x);
+    y += Math.sign(targetY - y);
+    route.push({ x, y, kind });
+  }
+}
+
+// Hängt den Weg durch einen Buchstaben an. Die Route steht dabei schon in der
+// Verbindungsspur genau unter dem ersten Wegpunkt.
+function appendGlyph(route, waypoints, glyphLeft, glyphTop) {
+  waypoints.forEach(([x, y, marker], index) => {
+    const isStepUpFromLane = index === 0;
+    const leadsToDot = marker === DOT;
+    const comesFromDot = index > 0 && waypoints[index - 1][2] === DOT;
+
+    let kind = LETTER;
+    if (isStepUpFromLane) kind = CONNECTOR;
+    if (leadsToDot || comesFromDot || marker === HOP) kind = SILENT;
+
+    walkTo(route, glyphLeft + x, glyphTop + y, kind);
+    if (leadsToDot) route[route.length - 1].isDot = true;
+  });
+}
+
+// Hängt den Zeilenwechsel an: vom Ende einer Textzeile zurück nach links zum Anfang
+// der nächsten. Die Route steht dabei in der Verbindungsspur der fertigen Zeile.
+//
+// Der Rückweg windet sich durch das Band zwischen den beiden Textzeilen, statt wie in
+// Prototyp 5 schnurgerade nach links zu laufen. Ein langer gerader Gang quer über die
+// ganze Seite würde den Zeilenwechsel (und damit den versteckten Text) sofort verraten.
+// Die Zellen des Bands, die der Rückweg nicht braucht, füllt später growMaze mit
+// gewöhnlichen Gängen.
+//
+// band: { left, right, top, bottom } - die äußersten Zellen des Bands
+// descentCol: die Spalte links neben der nächsten Zeile, in der es zu ihr hinuntergeht
+function appendLineChange(route, band, descentCol, nextLaneRow, grid, random, windiness) {
+  const lineEnd = route[route.length - 1];
+  const intoBand = { x: lineEnd.x, y: band.top };
+  const outOfBand = { x: descentCol, y: band.bottom };
+  const isInBand = ({ x, y }) => x >= band.left && x <= band.right && y >= band.top && y <= band.bottom;
+
+  const wayBack = findWindingPath(grid.cols, grid.rows, isInBand, intoBand, outOfBand, random, windiness);
+  wayBack.forEach((cell) => route.push({ x: cell.x, y: cell.y, kind: CONNECTOR }));
+  walkTo(route, descentCol, nextLaneRow, CONNECTOR);
+}
+
+// Hängt den Weg durch den ganzen Text an. Die Route muss am "Tor" links neben
+// dem Text enden und endet danach am Tor rechts neben dem Text.
+//
+// Aufbau einer Textzeile (von oben nach unten):
+//   5 Zeilen Buchstaben
+//   1 Zeile Verbindungsspur: hier läuft der Punkt von Buchstabe zu Buchstabe
+//   Band für den Zeilenwechsel (returnBandRows Zeilen hoch): hier windet er sich
+//   nach links zurück zum Anfang der nächsten Textzeile
+//
+// grid: { cols, rows }, options: returnBandRows, returnWindiness
+function appendTextRoute(route, lines, grid, block, random, options) {
+  const lineAdvance = lineAdvanceOf(options.returnBandRows);
+  const laneRowOf = (lineIndex) => block.top + lineIndex * lineAdvance + GLYPH_HEIGHT;
+  const currentX = () => route[route.length - 1].x;
+
+  lines.forEach((line, lineIndex) => {
+    const lineWidth = line.length * CHAR_ADVANCE - 1;
+    const lineLeft = Math.floor((grid.cols - lineWidth) / 2);
+    const glyphTop = block.top + lineIndex * lineAdvance;
+    const laneRow = laneRowOf(lineIndex);
+
+    if (lineIndex > 0) {
+      const laneRowAbove = laneRowOf(lineIndex - 1);
+      const band = {
+        left: block.left - 1,
+        right: block.right + 1,
+        top: laneRowAbove + 1,
+        bottom: laneRowAbove + options.returnBandRows,
+      };
+      appendLineChange(route, band, lineLeft - 1, laneRow, grid, random, options.returnWindiness);
+    }
+
+    line.split("").forEach((char, charIndex) => {
+      const waypoints = GLYPHS[char];
+      if (!waypoints) return; // Leerzeichen: die Spur läuft einfach weiter
+
+      const glyphLeft = lineLeft + charIndex * CHAR_ADVANCE;
+      walkTo(route, glyphLeft + waypoints[0][0], laneRow, CONNECTOR);
+      appendGlyph(route, waypoints, glyphLeft, glyphTop);
+      walkTo(route, currentX(), laneRow, CONNECTOR);
+    });
+  });
+
+  walkTo(route, block.right + 2, laneRowOf(lines.length - 1), CONNECTOR);
+}
+
+// Wählt eine Zelle am gewünschten Rand. Bei oben/unten nur innerhalb des Spaltenbereichs.
+function pickBorderCell(side, cols, rows, columnRange, random) {
+  const column = randomBetween(columnRange.min, columnRange.max, random);
+  const row = randomBetween(0, rows - 1, random);
+  if (side === "left") return { x: 0, y: row };
+  if (side === "right") return { x: cols - 1, y: row };
+  if (side === "top") return { x: column, y: 0 };
+  return { x: column, y: rows - 1 };
+}
+
+// Die Zelle, die `distance` Schritte außerhalb des Rasters vor einer Randzelle liegt.
+function cellOutside(borderCell, side, distance) {
+  return {
+    x: borderCell.x + OUTWARD[side].x * distance,
+    y: borderCell.y + OUTWARD[side].y * distance,
+  };
+}
+
+// Der Eingang der allerersten Seite: links, oben oder unten - oben/unten in der linken Hälfte.
+function pickFirstEntrance(sideWish, cols, rows, random) {
+  const side = sideWish === "random" ? pickRandom(["left", "top", "bottom"], random) : sideWish;
+  const leftHalf = { min: 1, max: Math.floor(cols / 2) - 1 };
+  return { cell: pickBorderCell(side, cols, rows, leftHalf, random), side };
+}
+
+// Der Eingang einer Folgeseite: am gegenüberliegenden Rand genau dort, wo der Lichtpunkt
+// die vorige Seite verlassen hat (gleiche Zeile bzw. gleiche Spalte). So wirkt der
+// Seitenwechsel wie ein durchgehender Weg.
+function entranceOppositeOf(exit, cols, rows) {
+  const side = OPPOSITE_SIDE[exit.side];
+  const cell = { x: exit.cell.x, y: exit.cell.y };
+  if (side === "left") cell.x = 0;
+  if (side === "right") cell.x = cols - 1;
+  if (side === "top") cell.y = 0;
+  if (side === "bottom") cell.y = rows - 1;
+  return { cell, side };
+}
+
+// In welchen Spalten ein Ausgang oben oder unten liegen darf: in der rechten Hälfte
+// (Leserichtung) und - falls der Eingang am selben Rand liegt - rechts vom Eingang,
+// sonst müssten sich An- und Ablauf kreuzen. Die Eckspalten bleiben frei, damit der
+// passende Eingang der nächsten Seite auf jeden Fall noch ein Anlauf-Revier bekommt.
+// Ist min größer als max, gibt es an diesem Rand keinen möglichen Ausgang.
+function exitColumnRange(side, entrance, cols) {
+  const range = { min: Math.floor(cols / 2), max: cols - 2 };
+  if (entrance.side === side) range.min = Math.max(range.min, entrance.cell.x + 1);
+  return range;
+}
+
+// Wählt Rand und Zelle des Ausgangs. Ein gewünschter Rand, an dem (wegen des Eingangs)
+// kein Platz ist, wird übergangen; rechts geht immer.
+function pickExit(sideWish, entrance, cols, rows, random) {
+  const hasRoom = (side) => {
+    const range = exitColumnRange(side, entrance, cols);
+    return side === "right" || range.min <= range.max;
+  };
+  const wishedSides = sideWish === "random" ? ["right", "top", "bottom"] : [sideWish];
+  const possibleSides = wishedSides.filter(hasRoom);
+  const side = possibleSides.length > 0 ? pickRandom(possibleSides, random) : "right";
+  return { cell: pickBorderCell(side, cols, rows, exitColumnRange(side, entrance, cols), random), side };
+}
+
+// Die Trennspalte im Streifen über (side = "top") oder unter (side = "bottom") dem Text:
+// links von ihr gehört der Streifen dem Anlauf, ab ihr dem Ablauf.
+//
+// Normalerweise ist das die Mitte. Liegt der Eingang an diesem Rand, weicht die
+// Trennspalte nach rechts aus, bis er im Anlauf-Revier liegt; liegt der Ausgang an
+// diesem Rand, weicht sie nach links aus. Beides zugleich geht, weil exitColumnRange
+// den Ausgang immer rechts vom Eingang hält.
+function dividingColumn(side, entrance, exit, cols) {
+  let column = Math.floor(cols / 2);
+  if (entrance.side === side) column = Math.max(column, entrance.cell.x + 1);
+  if (exit.side === side) column = Math.min(column, exit.cell.x);
+  return column;
+}
+
+// Teilt alle Zellen in drei Reviere, damit sich Anlauf, Text und Ablauf nie kreuzen.
+//
+//   +-------------------+---------------+
+//   |  Anlauf           |      Ablauf   |   Streifen über dem Text, geteilt an dividingColumn("top")
+//   |      +---------------------+      |
+//   |      |       T E X T       |      |   links vom Text: Anlauf, rechts vom Text: Ablauf
+//   |      +---------------------+      |
+//   |  Anlauf                |  Ablauf  |   Streifen unter dem Text, geteilt an dividingColumn("bottom")
+//   +------------------------+----------+
+//
+// Das Text-Revier ist der Textblock plus je eine Spalte Rand (für die Zeilenwechsel).
+// Die Bänder zwischen den Textzeilen liegen vollständig im Text-Revier.
+// Beide äußeren Reviere hängen in sich zusammen: das Anlauf-Revier über die Spalte ganz
+// links, das Ablauf-Revier über die Spalte ganz rechts. Deshalb gibt es in jedem immer einen Weg.
+function createTerritories(block, cols, entrance, exit) {
+  const dividingColumnAbove = dividingColumn("top", entrance, exit, cols);
+  const dividingColumnBelow = dividingColumn("bottom", entrance, exit, cols);
+
+  const isText = ({ x, y }) =>
+    x >= block.left - 1 && x <= block.right + 1 && y >= block.top && y <= block.bottom;
+  const isLeftOfDivide = ({ x, y }) => {
+    if (y < block.top) return x < dividingColumnAbove;
+    if (y > block.bottom) return x < dividingColumnBelow;
+    return x < block.left;
+  };
+
+  return {
+    isText,
+    isApproach: (cell) => !isText(cell) && isLeftOfDivide(cell),
+    isLeave: (cell) => !isText(cell) && !isLeftOfDivide(cell),
+  };
+}
+
+// Baut den kompletten Weg des Lichtpunkts über eine Seite: von außerhalb durch den Eingang,
+// in Windungen zum Text, durch alle Buchstaben, in Windungen zum Ausgang und hinaus.
+// entrance und exit sind { cell, side }.
+// block ist die Lage des Textblocks (siehe layoutTextBlock).
+// options: detour (Umwege bei An- und Ablauf), returnBandRows und returnWindiness (Zeilenwechsel)
+function buildRoute(lines, block, cols, rows, entrance, exit, random, options) {
+  const firstLaneRow = block.top + GLYPH_HEIGHT;
+  const lastLaneRow = block.bottom;
+  const gateIn = { x: block.left - 2, y: firstLaneRow };
+  const gateOut = { x: block.right + 2, y: lastLaneRow };
+
+  const territories = createTerritories(block, cols, entrance, exit);
+  const approach = findWindingPath(cols, rows, territories.isApproach, entrance.cell, gateIn, random, options.detour);
+  const leave = findWindingPath(cols, rows, territories.isLeave, gateOut, exit.cell, random, options.detour);
+
+  const route = [];
+  const addConnector = (cell) => route.push({ x: cell.x, y: cell.y, kind: CONNECTOR });
+
+  for (let distance = STEPS_OUTSIDE; distance >= 1; distance--) {
+    addConnector(cellOutside(entrance.cell, entrance.side, distance));
+  }
+  approach.forEach(addConnector);
+  appendTextRoute(route, lines, { cols, rows }, block, random, options);
+  leave.slice(1).forEach(addConnector); // das Tor selbst ist schon das Routenende
+  for (let distance = 1; distance <= STEPS_OUTSIDE; distance++) {
+    addConnector(cellOutside(exit.cell, exit.side, distance));
+  }
+
+  return route;
+}
+
+// Bricht entlang der Route alle Wände heraus. Die Schritte außerhalb des Rasters
+// (vor dem Eingang, hinter dem Ausgang) haben keine Wände.
+function carveRoute(maze, route) {
+  for (let step = 1; step < route.length; step++) {
+    const from = route[step - 1];
+    const to = route[step];
+    if (isInside(maze, from) && isInside(maze, to)) carvePassage(maze, from, to);
+  }
+}
+
+// Die Rasterzeilen, in denen der Lichtpunkt lange Strecken waagrecht läuft: unter jeder
+// Textzeile die Verbindungsspur und - außer unter der letzten - das Band für den Zeilenwechsel.
+function rowsOfLanesAndBands(lineCount, block, returnBandRows) {
+  const rows = [];
+  for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
+    const laneRow = block.top + lineIndex * lineAdvanceOf(returnBandRows) + GLYPH_HEIGHT;
+    const isLastLine = lineIndex === lineCount - 1;
+    const bandRowsBelow = isLastLine ? 0 : returnBandRows;
+    for (let offset = 0; offset <= bandRowsBelow; offset++) rows.push(laneRow + offset);
+  }
+  return rows;
+}
+
+// Unterbricht lange gerade Wände unter der Verbindungsspur und entlang des Rückwegs.
+//
+// Die Verbindungsspur läuft unter einer Textzeile schnurgerade von Buchstabe zu Buchstabe.
+// Ihre untere Wand wäre deshalb eine durchgehende Linie über die ganze Zeile - und genau
+// solche Linien verraten, wo Text steht. Deshalb bekommt diese Wand nach jeweils wenigen
+// Zellen eine Lücke; die Länge der Stücke wird gewürfelt (höchstens options.maxWallRun).
+// Dasselbe gilt für die waagrechten Wände im Band, an denen der Rückweg entlangläuft.
+//
+// Geprüft wird jeweils die Wand UNTER einer Rasterzeile. Sie zählt, wenn auf einer ihrer
+// beiden Seiten die Route verläuft.
+//
+// Liegt hinter der Lücke eine noch unberührte Zelle, entsteht dort einfach ein Abzweig.
+// Liegt dort ein anderes Stück der Route (z. B. der Rückweg), entsteht ein Rundweg im
+// Labyrinth. Das ist in Kauf genommen: Der Lichtpunkt läuft ohnehin seine feste Route,
+// und Buchstaben wie O oder A bilden schon selbst Rundwege.
+//
+// Muss vor growMaze laufen: bis dahin sind genau die Zellen der Route erschlossen.
+function breakUpLongWalls(maze, route, lineCount, block, random, options) {
+  if (options.maxWallRun === 0) return; // abgeschaltet: Wände bleiben wie in Prototyp 5
+
+  const keyOf = (x, y) => y * maze.cols + x;
+  const routeCells = new Set(route.filter((cell) => isInside(maze, cell)).map((cell) => keyOf(cell.x, cell.y)));
+  const shortestRun = Math.ceil(options.maxWallRun / 2);
+  const pickRunLength = () => randomBetween(shortestRun, options.maxWallRun, random);
+
+  for (const y of rowsOfLanesAndBands(lineCount, block, options.returnBandRows)) {
+    let runLength = 0;
+    let allowedRunLength = pickRunLength();
+
+    for (let x = block.left - 1; x <= block.right + 1; x++) {
+      const touchesRoute = routeCells.has(keyOf(x, y)) || routeCells.has(keyOf(x, y + 1));
+      const isWallAlongRoute = touchesRoute && !maze.openDown[y][x];
+      runLength = isWallAlongRoute ? runLength + 1 : 0;
+
+      if (runLength > allowedRunLength) {
+        carvePassage(maze, { x, y }, { x, y: y + 1 });
+        runLength = 0;
+        allowedRunLength = pickRunLength();
+      }
+    }
+  }
+}
+
+// Erzeugt eine Labyrinth-Seite für die übergebenen Textzeilen: Ausgang wählen,
+// Route bauen, freibrechen, lange Wände unterbrechen, den Rest wachsen lassen.
+function generatePage(lines, cols, rows, entrance, random, options) {
+  const exit = pickExit(options.exitSide, entrance, cols, rows, random);
+  const block = layoutTextBlock(lines, cols, rows, options.returnBandRows);
+  const route = buildRoute(lines, block, cols, rows, entrance, exit, random, options);
+
+  const maze = createEmptyMaze(cols, rows);
+  carveRoute(maze, route);
+  breakUpLongWalls(maze, route, lines.length, block, random, options);
+  growMaze(maze, visitedCells(maze), random, options.windiness);
+
+  return { maze, route, entrance, exit, lines };
+}
+
+// Der Einstieg: erzeugt für einen Text so viele Labyrinth-Seiten, wie er braucht.
+//
+// options: windiness (Charakter der Füll-Gänge), detour (Umwege bei An- und Ablauf),
+//          entranceSide: "left" | "top" | "bottom" | "random"   (gilt für die erste Seite)
+//          exitSide: "right" | "top" | "bottom" | "random"      (gilt für jede Seite)
+//          maxLinesPerPage: Obergrenze für die Zeilen einer Seite
+//          returnBandRows: Höhe des Bands für den Zeilenwechsel
+//          returnWindiness: wie stark sich der Rückweg im Band windet (0..1)
+//          maxWallRun: längstes gerades Wandstück unter Verbindungsspur und Rückweg (0 = nicht unterbrechen)
+//
+// exitBefore (darf fehlen): der Ausgang { cell, side }, durch den der Lichtpunkt das
+// vorige Labyrinth verlassen hat. Dann liegt der Eingang der ersten Seite genau gegenüber
+// und options.entranceSide wird nicht beachtet. So schließt eine neue Antwort an die alte an.
+//
+// Jede Folgeseite beginnt dort, wo die vorige aufgehört hat: ihr Eingang liegt dem
+// Ausgang der vorigen Seite genau gegenüber.
+// Liefert eine Liste von Seiten { maze, route, entrance, exit, lines }.
+function generateMessagePages(text, cols, rows, seed, options, exitBefore) {
+  const random = createRandom(seed);
+  const capacity = textCapacity(cols, rows, options.maxLinesPerPage, options.returnBandRows);
+  const allLines = wrapText(normalizeText(text), capacity.charsPerLine);
+
+  const pages = [];
+  let previousExit = exitBefore;
+  for (const lines of splitIntoPages(allLines, capacity.linesPerPage)) {
+    const entrance = previousExit
+      ? entranceOppositeOf(previousExit, cols, rows)
+      : pickFirstEntrance(options.entranceSide, cols, rows, random);
+    const page = generatePage(lines, cols, rows, entrance, random, options);
+    pages.push(page);
+    previousExit = page.exit;
+  }
+  return pages;
+}
+  </script>
+  <script>
+// ===== antworten.js =====
+// Die Antworten: wählt zu einer Frage die Antwort aus der Platzhalter-Tabelle in config.js.
+//
+// Das ist bewusst simpel. Später steht an dieser Stelle der Aufruf des Sprachmodells;
+// der Rest des Prototyps braucht von hier nur die Funktion findAnswer.
+
+// Beginnt die Eingabe mit diesem Zeichen, wird der Rest wörtlich geschrieben (Testhilfe).
+// Die Testhilfe gibt es nur, wenn die Config sie erlaubt (allowLiteralAnswers).
+const LITERAL_PREFIX = "=";
+
+// Vereinfacht einen Text für den Abgleich: Kleinbuchstaben, alles außer Buchstaben und
+// Ziffern wird zu Leerzeichen, vorn und hinten steht genau ein Leerzeichen.
+// Aus "Wer bist du?" wird " wer bist du ". Die Leerzeichen am Rand sorgen dafür,
+// dass nur ganze Wörter gefunden werden ("hi" passt dann nicht auf "Schiff").
+function simplifyForMatching(text) {
+  const words = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return " " + words + " ";
+}
+
+// Kommt das Stichwort als ganzes Wort (oder als ganze Wortfolge) in der Frage vor?
+function containsKeyword(question, keyword) {
+  return simplifyForMatching(question).includes(simplifyForMatching(keyword));
+}
+
+// Liefert den Text, den der Lichtpunkt als Antwort schreiben soll.
+//   "=BELIEBIG"            -> "BELIEBIG" (wörtlich, zum Ausprobieren; nur wenn erlaubt)
+//   Frage mit Stichwort    -> die Antwort des ersten passenden Eintrags der Tabelle
+//   alles andere           -> die "weiß ich nicht"-Antwort
+function findAnswer(question, config) {
+  const isLiteral = config.allowLiteralAnswers && question.startsWith(LITERAL_PREFIX);
+  if (isLiteral) return question.slice(LITERAL_PREFIX.length);
+
+  const matchingEntry = config.answers.find((entry) =>
+    entry.keywords.some((keyword) => containsKeyword(question, keyword))
+  );
+  return matchingEntry ? matchingEntry.answer : config.unknownAnswer;
+}
+  </script>
+  <script>
+// ===== einstellungen.js =====
+// Die Einstellungen: wählt das Geräteprofil aus config.js, füllt damit die Regler,
+// liest die Regler wieder aus und gibt ihre Werte als Config-Text zurück.
+//
+// Grundsatz: Jeder Name in CONFIG.base ist zugleich die id eines Reglers in index.html.
+// Deshalb kommen Befüllen und Auslesen ohne eine zweite Liste aus.
+
+// Mit "?profil=handy" in der Adresse lässt sich ein Profil erzwingen (zum Ausprobieren am Rechner).
+const PROFILE_URL_PARAMETER = "profil";
+
+// Der Name des Profils, mit dessen Werten die Regler zuletzt gefüllt wurden.
+let activeProfileName = "";
+
+// Welches Profil zur Fensterbreite passt.
+function profileNameForWidth(config, windowWidth) {
+  return windowWidth >= config.desktopFromWidth ? "desktop" : "handy";
+}
+
+// Das in der Adresse gewünschte Profil - oder null, wenn dort keines (oder ein unbekanntes) steht.
+function profileNameFromUrl(config) {
+  const wished = new URLSearchParams(window.location.search).get(PROFILE_URL_PARAMETER);
+  return config.profiles[wished] ? wished : null;
+}
+
+// Alle Werte eines Profils: die Grundwerte, überschrieben mit den Abweichungen des Profils.
+function valuesOfProfile(config, profileName) {
+  return { ...config.base, ...config.profiles[profileName] };
+}
+
+// Setzt einen Regler auf einen Wert. Ankreuzfelder bekommen wahr/falsch, alle anderen den Wert als Text.
+function setControlValue(control, value) {
+  if (control.type === "checkbox") control.checked = Boolean(value);
+  else control.value = String(value);
+}
+
+// Liest einen Regler im passenden Typ aus: Ankreuzfeld -> wahr/falsch,
+// Schieberegler und Zahlenfeld -> Zahl, alles andere -> Text.
+function controlValue(control) {
+  if (control.type === "checkbox") return control.checked;
+  if (control.type === "range" || control.type === "number") return Number(control.value);
+  return control.value;
+}
+
+// Macht ein Profil zum aktiven: füllt alle Regler mit seinen Werten und merkt sich den
+// Namen. Das Layout richtet sich über body[data-profile] ebenfalls nach dem Profil.
+function applyProfile(config, profileName) {
+  activeProfileName = profileName;
+  document.body.dataset.profile = profileName;
+
+  for (const [name, value] of Object.entries(valuesOfProfile(config, profileName))) {
+    const control = document.getElementById(name);
+    if (control) setControlValue(control, value);
+  }
+}
+
+// Die Werte, wie sie jetzt gerade gelten: für jeden Namen aus CONFIG.base der Stand
+// seines Reglers. Namen ohne Regler (controlsOpen) behalten den Wert aus dem aktiven Profil.
+function currentValues(config) {
+  const values = valuesOfProfile(config, activeProfileName);
+  for (const name of Object.keys(config.base)) {
+    const control = document.getElementById(name);
+    if (control) values[name] = controlValue(control);
+  }
+  return values;
+}
+
+// Liest alle Regler in das Objekt, mit dem Labyrinth und Zeichnung arbeiten.
+// Prozentwerte der Regler (0 bis 100) werden dabei zu Anteilen (0 bis 1).
+function readSettings() {
+  const values = currentValues(CONFIG);
+  const asFraction = [
+    "windiness", "detour", "returnWindiness", "restBrightness", "connectorOpacity",
+    "bloomStrength", "scanlineStrength", "vignetteStrength", "flickerStrength",
+  ];
+  for (const name of asFraction) values[name] = values[name] / 100;
+  return values;
+}
+
+// Schreibt die Werte als fertigen Profil-Block für config.js auf. Aufgeführt werden nur
+// die Werte, die von den Grundwerten abweichen - genau so sind die Profile dort notiert.
+// `note` ist eine Kommentarzeile, die über dem Block steht (z. B. Datum und Bildschirmgröße).
+function configTextOf(config, profileName, values, note) {
+  const differingLines = Object.keys(config.base)
+    .filter((name) => values[name] !== config.base[name])
+    .map((name) => `      ${name}: ${JSON.stringify(values[name])},`);
+
+  return [`    // ${note}`, `    ${profileName}: {`, ...differingLines, `    },`].join("\n");
+}
+
+// Kopiert über den alten Weg: Text im Textfeld markieren und den Browser "kopieren" lassen.
+// Liefert, ob das geklappt hat.
+function copyBySelection(textarea) {
+  textarea.focus();
+  textarea.select();
+  try {
+    return document.execCommand("copy");
+  } catch (error) {
+    return false;
+  }
+}
+
+// Kopiert den Inhalt des Textfelds in die Zwischenablage. Erst über die moderne
+// Schnittstelle; die gibt es nicht überall (z. B. nicht bei jeder lokal geöffneten Datei),
+// dann über das Markieren. Liefert ein Versprechen mit wahr/falsch: hat es geklappt?
+function copyToClipboard(textarea) {
+  const hasClipboard = navigator.clipboard && navigator.clipboard.writeText;
+  if (!hasClipboard) return Promise.resolve(copyBySelection(textarea));
+
+  return navigator.clipboard.writeText(textarea.value).then(
+    () => true,
+    () => copyBySelection(textarea)
+  );
+}
+  </script>
+  <script>
+// ===== seite.js =====
+// Die Seite: nimmt Fragen entgegen, erzeugt zu jeder Antwort die Labyrinth-Seiten
+// und zeichnet die Animation.
+
+const stage = document.getElementById("stage");
+const canvas = document.getElementById("maze");
+const ctx = canvas.getContext("2d");
+
+// Die Abschnitte der Animation. Sie wiederholen sich für jede Labyrinth-Seite.
+const WRITING = "writing"; // der Lichtpunkt läuft und schreibt
+const FADING = "fading"; // der Lichtpunkt ist draußen, die Spur verglimmt noch
+const SCROLLING = "scrolling"; // das Bild schiebt weiter zur nächsten Seite
+const FINISHED = "finished"; // Antwort fertig geschrieben und verglommen: warten auf die nächste Frage
+
+// Kleiner darf das Raster nicht werden: so viel braucht ein einzelnes Zeichen samt freien Rändern.
+const MIN_COLS = 10;
+const MIN_ROWS = 10;
+
+// So lange muss die Fenstergröße ruhig bleiben, bevor auf eine Änderung reagiert wird.
+// Beim Aus- und Einfahren der Bildschirmtastatur ändert sie sich oft mehrmals hintereinander.
+const RESIZE_SETTLE_MILLIS = 300;
+
+// Verhindert einen Riesensprung der Animation, wenn der Tab im Hintergrund war.
+const LONGEST_PAUSE_SECONDS = 0.1;
+
+// Alles, was sich zwischen zwei Bildern merken muss.
+const scene = {
+  answer: null, // die zuletzt verlangte Antwort: { text, question, number, pageCount }
+  answerCount: 0, // wie viele Antworten schon verlangt wurden (jede bekommt ein anderes Labyrinth)
+  pages: [], // die Seiten ab der aktuellen: { maze, route, entrance, exit, lines, answer, numberInAnswer }
+  pageIndex: 0, // die Seite, auf der der Lichtpunkt gerade unterwegs ist
+  phase: WRITING,
+  phaseStartedAt: 0, // Stand der Uhr, als der aktuelle Abschnitt begann
+  viewWidth: 0, // Größe der Bühne in Pixeln, für die das Labyrinth gebaut wurde
+  viewHeight: 0,
+  cols: 0, // Größe des Rasters; gilt für alle Seiten, bis sich die Bühne ändert
+  rows: 0,
+  cellSize: 24,
+  offsetX: 0, // Abstand des Labyrinths vom linken Canvas-Rand (zum Zentrieren)
+  offsetY: 0,
+  progress: 0, // wie viele Routen-Schritte der Lichtpunkt auf dieser Seite schon gelaufen ist (mit Nachkommastellen)
+  clock: 0, // Sekunden, die die Animation insgesamt schon läuft
+  walkedAt: [], // walkedAt[schritt]: Stand der Uhr, als dieser Schritt fertig gelaufen war
+  wallImages: new Map(), // Seite -> { image, padding, look }: vorab gezeichnete Wände
+  screenOverlay: null, // { image, look }: vorab gezeichnetes Zeilenraster samt dunklen Ecken
+  glitch: null, // die gerade laufende Bildstörung (siehe startGlitch) oder null
+  lastFrameTime: null,
+  needsRedraw: true,
+};
+
+// Die Reglerwerte, mit denen gerade gearbeitet wird. Sie werden nur neu gelesen, wenn ein
+// Regler bewegt wurde - in jedem Bild über dreißig Eingabefelder abzufragen wäre am Handy
+// unnötige Arbeit.
+let currentSettings = null;
+
+// Regler, die neue Labyrinthe verlangen. Alle anderen ändern nur das Aussehen.
+const REGENERATING_CONTROLS = [
+  "seed", "cellColumns", "cellSize", "windiness", "detour", "entranceSide", "exitSide",
+  "maxLinesPerPage", "returnBandRows", "returnWindiness", "maxWallRun", "maxPixelRatio",
+];
+
+// Die Helligkeit der Spur wird in so viele Stufen eingeteilt. Wegstücke gleicher
+// Stufe werden in einem Rutsch gezeichnet - jedes Stück einzeln wäre zu langsam.
+const BRIGHTNESS_LEVELS = 16;
+
+// ---------------------------------------------------------------------------
+// Bühne und Raster
+// ---------------------------------------------------------------------------
+
+// Mit wie vielen Geräte-Pixeln pro Pixel gezeichnet wird. Handys haben oft 3; der Regler
+// "Höchste Pixeldichte" deckelt das, weil jedes Bild sonst neunmal so viele Pixel hat.
+function pixelRatioOf(settings) {
+  return Math.min(window.devicePixelRatio || 1, settings.maxPixelRatio);
+}
+
+// Legt die Größe des Canvas fest: so groß wie die Bühne in diesem Augenblick.
+//
+// Die Größe wird als feste Pixelzahl eingetragen und folgt der Bühne danach NICHT mehr von
+// selbst. Geht am Handy die Bildschirmtastatur auf, schrumpft zwar die Bühne, das Bild
+// bleibt aber unverzerrt stehen und wird nur unten abgeschnitten.
+function fitCanvasToStage(settings) {
+  const pixelRatio = pixelRatioOf(settings);
+  scene.viewWidth = stage.clientWidth;
+  scene.viewHeight = stage.clientHeight;
+
+  canvas.style.width = scene.viewWidth + "px";
+  canvas.style.height = scene.viewHeight + "px";
+  canvas.width = Math.round(scene.viewWidth * pixelRatio);
+  canvas.height = Math.round(scene.viewHeight * pixelRatio);
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+}
+
+// Die Zellgröße in Pixeln. Bei fester Spaltenzahl ergibt sie sich aus der Breite der Bühne -
+// abgerundet auf ganze Geräte-Pixel, damit alle Wände gleich scharf werden.
+function cellSizeFor(settings) {
+  if (settings.cellColumns === 0) return settings.cellSize;
+  const pixelRatio = pixelRatioOf(settings);
+  return Math.floor((scene.viewWidth * pixelRatio) / settings.cellColumns) / pixelRatio;
+}
+
+// Teilt die Bühne in das Raster ein: Zellgröße, Spalten, Zeilen und der Rand zum Zentrieren.
+function layoutGrid(settings) {
+  scene.cellSize = cellSizeFor(settings);
+  const fittingCols = settings.cellColumns || Math.floor(scene.viewWidth / scene.cellSize);
+  const fittingRows = Math.floor(scene.viewHeight / scene.cellSize);
+  scene.cols = Math.max(MIN_COLS, fittingCols);
+  scene.rows = Math.max(MIN_ROWS, fittingRows);
+  // Auf ganze Pixel gerundet, damit das vorab gezeichnete Wandbild scharf bleibt
+  scene.offsetX = Math.floor((scene.viewWidth - scene.cols * scene.cellSize) / 2);
+  scene.offsetY = Math.floor((scene.viewHeight - scene.rows * scene.cellSize) / 2);
+}
+
+// ---------------------------------------------------------------------------
+// Frage und Antwort
+// ---------------------------------------------------------------------------
+
+// Legt eine neue Antwort an. Die laufende Nummer sorgt dafür, dass jede Antwort
+// ein anderes Labyrinth bekommt, auch wenn der Text derselbe ist.
+function createAnswer(text, question) {
+  const answer = { text, question, number: scene.answerCount, pageCount: 0 };
+  scene.answerCount++;
+  return answer;
+}
+
+// Erzeugt die Labyrinth-Seiten einer Antwort und merkt an jeder Seite, zu welcher
+// Antwort sie gehört. exitBefore: der Ausgang, durch den der Lichtpunkt das vorige
+// Labyrinth verlassen hat (fehlt beim allerersten Labyrinth).
+function buildAnswerPages(answer, exitBefore, settings) {
+  const seed = settings.seed + answer.number;
+  const pages = generateMessagePages(answer.text, scene.cols, scene.rows, seed, settings, exitBefore);
+
+  answer.pageCount = pages.length;
+  pages.forEach((page, index) => {
+    page.answer = answer;
+    page.numberInAnswer = index + 1;
+  });
+  return pages;
+}
+
+// Gehört die Seite zu einer Antwort, die inzwischen von einer neueren Frage überholt wurde?
+function isSuperseded(page) {
+  return page.answer !== scene.answer;
+}
+
+// Nimmt eine neue Antwort in die Animation auf.
+//
+// Der Lichtpunkt hat das aktuelle Labyrinth an einem Rand verlassen (oder tut es gleich).
+// Die Seiten der neuen Antwort werden so erzeugt, dass ihr Eingang diesem Ausgang gegenüber
+// liegt, und hinten angehängt. Den Rest erledigt der gewohnte Seitenwechsel: das Bild
+// schiebt in die Richtung weiter, in die der Punkt verschwunden ist.
+//
+// Kommt die Frage, während noch geschrieben wird, gilt:
+//   - Seiten der alten Antwort, die noch gar nicht zu sehen sind, entfallen.
+//   - Die sichtbare Seite läuft der Punkt im Schnelldurchlauf zu Ende (siehe paceOf),
+//     dann wird ohne Warten weitergeschoben.
+//   - Rollt gerade schon die nächste alte Seite herein, wird auch sie noch durcheilt -
+//     sonst müsste das Bild mitten im Schieben springen.
+function showAnswer(text, question) {
+  const settings = currentSettings;
+  const lastVisiblePage = scene.phase === SCROLLING ? scene.pageIndex + 1 : scene.pageIndex;
+  const pagesToKeep = scene.pages.slice(scene.pageIndex, lastVisiblePage + 1);
+  const exitBefore = pagesToKeep[pagesToKeep.length - 1].exit;
+
+  scene.answer = createAnswer(text, question);
+  scene.pages = pagesToKeep.concat(buildAnswerPages(scene.answer, exitBefore, settings));
+  scene.pageIndex = 0;
+
+  if (scene.phase === FINISHED) enterPhase(SCROLLING);
+  prepareNextWallImage(settings);
+  resetFrameMeter();
+  speakAnswer(scene.answer);
+  showPageStatus();
+  showStatus(settings);
+}
+
+// Der Knopf "Nochmal" neben dem Fragefeld: schreibt das zuletzt Geschriebene noch einmal -
+// die Begrüßung, solange noch keine Frage gestellt wurde, danach die letzte Antwort.
+//
+// Der Text wird dabei wie eine neue Antwort behandelt: Das Bild schiebt weiter zu einem
+// frischen Labyrinth, in dem er von vorn geschrieben wird. Wird noch geschrieben, läuft der
+// Punkt den Rest erst im Schnelldurchlauf hinaus (siehe showAnswer). So gibt es nie einen
+// harten Schnitt im Bild - anders als bei "Antwort nochmal abspielen" in der Regler-Leiste,
+// das dasselbe Labyrinth sofort neu aufbaut.
+function replayLastAnswer() {
+  showAnswer(scene.answer.text, scene.answer.question);
+}
+
+// Das Fragefeld wurde abgeschickt (Enter oder Senden-Knopf).
+function onQuestionSubmitted(event) {
+  event.preventDefault(); // sonst lädt der Browser die Seite neu
+  const field = document.getElementById("question");
+  const question = field.value.trim();
+  if (question === "") return;
+
+  showAnswer(findAnswer(question, CONFIG), question);
+  field.value = "";
+  if (currentSettings.blurInputAfterSending) field.blur();
+}
+
+// Legt die Antwort als unsichtbaren Text ab, den ein Screenreader vorliest - das Canvas
+// selbst ist für ihn leer. Der Text steht dort so, wie er in der Config steht, nur ohne
+// Trennstellen-Zeichen.
+function speakAnswer(answer) {
+  document.getElementById("spokenAnswer").textContent = withoutBreakMarks(answer.text);
+}
+
+// Der Text einer Antwort, wie die Schrift ihn schreibt, in einer Zeile:
+// Großbuchstaben, ohne unbekannte Zeichen und ohne Trennstellen-Zeichen.
+function writtenTextOf(answer) {
+  return withoutBreakMarks(normalizeText(answer.text));
+}
+
+// Zeigt die Antwort als normalen Text unter dem Labyrinth - aber nur, wenn der Schalter
+// dafür an ist und die Animation fertig ist. Sonst ist der Text versteckt.
+function showAnswerTextIfWanted(settings) {
+  const answerText = document.getElementById("answerText");
+  const isWanted = settings.showAnswerAsText && scene.phase === FINISHED;
+  answerText.hidden = !isWanted;
+  if (isWanted) answerText.textContent = writtenTextOf(scene.answer);
+}
+
+// ---------------------------------------------------------------------------
+// Ablauf der Animation
+// ---------------------------------------------------------------------------
+
+function currentPage() {
+  return scene.pages[scene.pageIndex];
+}
+
+function hasNextPage() {
+  return scene.pageIndex < scene.pages.length - 1;
+}
+
+// Beginnt einen neuen Abschnitt der Animation und merkt sich, wann.
+function enterPhase(phase) {
+  scene.phase = phase;
+  scene.phaseStartedAt = scene.clock;
+  scene.needsRedraw = true;
+  showAnswerTextIfWanted(currentSettings);
+}
+
+// Setzt den Lichtpunkt an den Anfang der angegebenen Seite und vergisst die Spur.
+function startPage(pageIndex) {
+  scene.pageIndex = pageIndex;
+  scene.progress = 0;
+  scene.walkedAt = [];
+  enterPhase(WRITING);
+  forgetUnneededWallImages();
+  showPageStatus();
+}
+
+// Baut die aktuelle Antwort von vorn auf: misst die Bühne, teilt das Raster ein, erzeugt
+// die Seiten neu und startet die Animation bei Seite 1. Nötig beim Laden, bei "nochmal
+// abspielen", wenn sich die Bühne ändert und wenn ein Regler ein anderes Labyrinth verlangt.
+function regenerate() {
+  const settings = currentSettings;
+  fitCanvasToStage(settings);
+  layoutGrid(settings);
+
+  scene.pages = buildAnswerPages(scene.answer, undefined, settings);
+  scene.wallImages.clear();
+  startPage(0);
+  showStatus(settings);
+}
+
+// Wie viele Zellen pro Sekunde der Lichtpunkt auf einem Wegstück dieser Art läuft:
+// in Buchstaben das eingestellte Tempo, überall sonst ein Vielfaches davon.
+// Auf Seiten einer überholten Antwort kommt der Schnelldurchlauf dazu.
+function paceOf(kind, page, settings) {
+  const normalPace = kind === LETTER ? settings.speed : settings.speed * settings.connectorSpeedFactor;
+  return isSuperseded(page) ? normalPace * settings.rushFactor : normalPace;
+}
+
+// Wie lange der Lichtpunkt für alle noch anstehenden Seiten zusammen unterwegs ist
+// (ohne Verglimmen und Weiterschieben).
+function walkingSecondsOfAllPages(settings) {
+  let seconds = 0;
+  for (const page of scene.pages) {
+    for (let step = 1; step < page.route.length; step++) {
+      seconds += 1 / paceOf(page.route[step].kind, page, settings);
+    }
+  }
+  return seconds;
+}
+
+// Schreibt "Seite x von y" in die Regler-Leiste, bezogen auf die Antwort, zu der die Seite gehört.
+function showPageStatus() {
+  const page = currentPage();
+  const rushNote = isSuperseded(page) ? " (alte Antwort im Schnelldurchlauf)" : "";
+  document.getElementById("pageStatus").textContent =
+    `Seite ${page.numberInAnswer} von ${page.answer.pageCount}${rushNote}`;
+}
+
+// Schreibt in die Regler-Leiste, welche Frage zu welcher Antwort geführt hat und wie
+// das Raster gerade aussieht.
+function showStatus(settings) {
+  const { answer } = scene;
+  const asked = answer.question ? `Frage „${answer.question}“ → ` : "Begrüßung: ";
+  document.getElementById("exchange").textContent = `${asked}„${writtenTextOf(answer)}“`;
+
+  const capacity = textCapacity(scene.cols, scene.rows, settings.maxLinesPerPage, settings.returnBandRows);
+  const cellSize = Math.round(scene.cellSize * 10) / 10;
+  document.getElementById("status").textContent =
+    `${scene.cols} × ${scene.rows} Zellen zu ${cellSize} px · ` +
+    `je Seite ${capacity.linesPerPage} Zeilen zu ${capacity.charsPerLine} Zeichen · ` +
+    `ca. ${Math.round(walkingSecondsOfAllPages(settings))} s reine Laufzeit`;
+}
+
+// Mittelpunkt einer Zelle in Canvas-Koordinaten. Funktioniert auch für
+// "krumme" Zellen wie x = 3.4 (Punkt auf dem Weg zwischen zwei Zellen).
+function centerOf(cell) {
+  return {
+    x: scene.offsetX + (cell.x + 0.5) * scene.cellSize,
+    y: scene.offsetY + (cell.y + 0.5) * scene.cellSize,
+  };
+}
+
+// Wo auf der Route der aktuellen Seite man nach `progress` Schritten steht.
+function positionAt(progress) {
+  const route = currentPage().route;
+  const stepsDone = Math.min(Math.floor(progress), route.length - 1);
+  const from = route[stepsDone];
+  const to = route[Math.min(stepsDone + 1, route.length - 1)];
+  const partOfStep = progress - stepsDone;
+  return {
+    x: from.x + (to.x - from.x) * partOfStep,
+    y: from.y + (to.y - from.y) * partOfStep,
+  };
+}
+
+// Bewegt den Lichtpunkt um `steps` Schritte weiter und merkt sich für jeden
+// dabei fertig gelaufenen Schritt die Uhrzeit (daraus ergibt sich das Verglimmen).
+// Wird nur für "Diese Seite überspringen" gebraucht; im Normalbetrieb läuft walkFor.
+function advanceDot(steps) {
+  const lastStep = currentPage().route.length - 1;
+  const stepsDoneBefore = Math.floor(scene.progress);
+  scene.progress = Math.min(lastStep, scene.progress + steps);
+  rememberWalkedSteps(stepsDoneBefore);
+}
+
+// Merkt sich für alle Schritte, die seit `stepsDoneBefore` fertig gelaufen wurden, die Uhrzeit.
+function rememberWalkedSteps(stepsDoneBefore) {
+  for (let step = stepsDoneBefore + 1; step <= Math.floor(scene.progress); step++) {
+    scene.walkedAt[step] = scene.clock;
+  }
+}
+
+// Lässt den Lichtpunkt `seconds` lang laufen. Weil er auf Verbindungswegen schneller ist
+// als in Buchstaben, wird Schritt für Schritt abgerechnet: jeder Schritt verbraucht so
+// viel von der Zeit, wie er bei seinem Tempo dauert.
+function walkFor(seconds, settings) {
+  const page = currentPage();
+  const lastStep = page.route.length - 1;
+  const stepsDoneBefore = Math.floor(scene.progress);
+  let secondsLeft = seconds;
+
+  while (secondsLeft > 0 && scene.progress < lastStep) {
+    const nextStep = Math.floor(scene.progress) + 1;
+    const pace = paceOf(page.route[nextStep].kind, page, settings);
+    const secondsToFinishStep = (nextStep - scene.progress) / pace;
+
+    if (secondsLeft >= secondsToFinishStep) {
+      scene.progress = nextStep;
+      secondsLeft -= secondsToFinishStep;
+    } else {
+      scene.progress += secondsLeft * pace;
+      secondsLeft = 0;
+    }
+  }
+  rememberWalkedSteps(stepsDoneBefore);
+}
+
+// Wie viele Sekunden ein Wegstück nach dem Laufen noch zu sehen ist:
+// erst volle Helligkeit, dann Ausblenden.
+function trailLifetime(settings) {
+  return settings.holdSeconds + settings.fadeSeconds;
+}
+
+// Stellt die Uhr um `seconds` weiter und führt die Animation fort:
+//   Schreiben -> (Punkt ist draußen) Verglimmen -> Weiterschieben -> nächste Seite schreiben ...
+// Nach der letzten Seite wird gewartet, bis showAnswer neue Seiten anhängt.
+function stepAnimation(seconds, settings) {
+  scene.clock += seconds;
+  const secondsInPhase = scene.clock - scene.phaseStartedAt;
+
+  if (scene.phase === WRITING) {
+    walkFor(seconds, settings);
+    const hasLeftThePage = scene.progress >= currentPage().route.length - 1;
+    if (hasLeftThePage) {
+      enterPhase(FADING);
+      prepareNextWallImage(settings);
+    }
+  } else if (scene.phase === FADING) {
+    // Eine überholte Antwort wartet das Verglimmen nicht ab: ihre Spur verglimmt beim Weiterschieben.
+    const trailIsGone = secondsInPhase >= trailLifetime(settings) || isSuperseded(currentPage());
+    if (trailIsGone) enterPhase(hasNextPage() ? SCROLLING : FINISHED);
+  } else if (scene.phase === SCROLLING) {
+    const hasArrived = secondsInPhase >= settings.scrollSeconds;
+    if (hasArrived) startPage(scene.pageIndex + 1);
+  }
+}
+
+// Sanftes Anfahren und Abbremsen: bildet 0..1 auf 0..1 ab.
+function easeInOut(part) {
+  return part * part * (3 - 2 * part);
+}
+
+// Um wie viele Pixel die Seiten gerade verschoben sind.
+//
+// Das Bild schiebt in die Richtung weiter, in die der Lichtpunkt verschwunden ist:
+// die alte Seite (outgoing) wandert entgegengesetzt hinaus, die neue (incoming) rückt
+// von dort herein, wohin der Punkt gegangen ist. Beide liegen genau eine Labyrinth-Breite
+// bzw. -Höhe auseinander - so treffen Ausgang und Eingang nahtlos aufeinander.
+function scrollShifts(settings) {
+  const page = currentPage();
+  const direction = OUTWARD[page.exit.side];
+  const distanceX = direction.x * page.maze.cols * scene.cellSize;
+  const distanceY = direction.y * page.maze.rows * scene.cellSize;
+
+  let part = 0;
+  if (scene.phase === SCROLLING) {
+    const secondsInPhase = scene.clock - scene.phaseStartedAt;
+    part = settings.scrollSeconds > 0 ? easeInOut(Math.min(1, secondsInPhase / settings.scrollSeconds)) : 1;
+  }
+
+  // Auf ganze Pixel gerundet, damit die Wände beim Schieben nicht flimmern
+  const outgoing = { x: Math.round(-distanceX * part), y: Math.round(-distanceY * part) };
+  const incoming = { x: outgoing.x + distanceX, y: outgoing.y + distanceY };
+  return { outgoing, incoming };
+}
+
+// ---------------------------------------------------------------------------
+// Wände
+// ---------------------------------------------------------------------------
+
+// Legt alle Wände einer Seite als Linien in den Pfad von `context`
+// (Ursprung = linke obere Ecke des Labyrinths), mit Lücken an Eingang und Ausgang.
+function traceWalls(context, page) {
+  const { maze } = page;
+  const { cellSize } = scene;
+
+  const isOpening = (x, y, side) =>
+    [page.entrance, page.exit].some(
+      (opening) => opening.side === side && opening.cell.x === x && opening.cell.y === y
+    );
+  const wall = (x1, y1, x2, y2) => {
+    context.moveTo(x1 * cellSize, y1 * cellSize);
+    context.lineTo(x2 * cellSize, y2 * cellSize);
+  };
+
+  context.beginPath();
+  for (let y = 0; y < maze.rows; y++) {
+    for (let x = 0; x < maze.cols; x++) {
+      const isLastCol = x === maze.cols - 1;
+      const isLastRow = y === maze.rows - 1;
+      const hasRightWall = isLastCol ? !isOpening(x, y, "right") : !maze.openRight[y][x];
+      const hasBottomWall = isLastRow ? !isOpening(x, y, "bottom") : !maze.openDown[y][x];
+
+      if (hasRightWall) wall(x + 1, y, x + 1, y + 1);
+      if (hasBottomWall) wall(x, y + 1, x + 1, y + 1);
+      if (x === 0 && !isOpening(x, y, "left")) wall(0, y, 0, y + 1);
+      if (y === 0 && !isOpening(x, y, "top")) wall(x, 0, x + 1, 0);
+    }
+  }
+}
+
+// Alles, was das Aussehen der Wände bestimmt, als ein Text. Ändert sich dieser Text,
+// muss das Wandbild neu gezeichnet werden.
+function wallLookOf(settings) {
+  return [
+    settings.wallWidth, settings.wallColor, settings.bloomRadius, settings.bloomStrength,
+    scene.cellSize, pixelRatioOf(settings),
+  ].join("|");
+}
+
+// Zeichnet die Wände einer Seite als leuchtende Linien auf ein eigenes, unsichtbares Canvas.
+//
+// Nachgeahmt wird ein alter Röhrenmonitor: Wo der Elektronenstrahl den Leuchtschirm trifft,
+// leuchtet nicht nur der getroffene Punkt, sondern auch seine Umgebung schwach mit
+// ("Überstrahlen"). Die Wände entstehen deshalb in drei Schichten, von unten nach oben:
+//   1. ein weicher Lichthof um jede Linie          -> das Überstrahlen
+//   2. die Linie selbst in der Wandfarbe
+//   3. ein schmaler, fast weißer Kern in der Mitte -> die Linie wirkt überhell
+//
+// Warum der Umweg über ein eigenes Canvas: Der Lichthof über tausende Wandstücke ist die
+// mit Abstand teuerste Zeichenoperation. Sie passiert so nur einmal pro Seite (und wenn
+// ein Wand-Regler bewegt wird) statt 60-mal pro Sekunde.
+//
+// Das Bild ist ringsum um `padding` größer als das Labyrinth, damit der Lichthof der
+// Außenwand nicht abgeschnitten wird.
+function renderWallImage(page, settings) {
+  const pixelRatio = pixelRatioOf(settings);
+  const padding = Math.ceil(settings.wallWidth + 2 * settings.bloomRadius);
+
+  const image = document.createElement("canvas");
+  image.width = Math.ceil((page.maze.cols * scene.cellSize + 2 * padding) * pixelRatio);
+  image.height = Math.ceil((page.maze.rows * scene.cellSize + 2 * padding) * pixelRatio);
+  const context = image.getContext("2d");
+  context.scale(pixelRatio, pixelRatio);
+  context.translate(padding, padding);
+  context.lineCap = "square";
+  traceWalls(context, page);
+
+  // 1. Lichthof: der "Schatten" der Linie in ihrer eigenen Farbe, ohne Versatz.
+  //    Zweimal übereinander, sonst ist er zu schwach, um als Leuchten zu wirken.
+  context.save();
+  context.strokeStyle = settings.wallColor;
+  context.lineWidth = settings.wallWidth;
+  context.shadowColor = settings.wallColor;
+  // Schatten-Angaben rechnet der Browser in Geräte-Pixeln, deshalb von Hand mit pixelRatio malnehmen.
+  context.shadowBlur = settings.bloomRadius * pixelRatio;
+  context.globalAlpha = settings.bloomStrength;
+  context.stroke();
+  context.stroke();
+  context.restore();
+
+  // 2. die Linie selbst
+  context.strokeStyle = settings.wallColor;
+  context.lineWidth = settings.wallWidth;
+  context.stroke();
+
+  // 3. der überhelle Kern
+  context.strokeStyle = "#ffffff";
+  context.globalAlpha = 0.55;
+  context.lineWidth = settings.wallWidth / 3;
+  context.stroke();
+
+  // Breite und Höhe in Pixeln der Seite: genau so groß wird das Bild später gezeichnet
+  return {
+    image,
+    padding,
+    width: image.width / pixelRatio,
+    height: image.height / pixelRatio,
+    look: wallLookOf(settings),
+  };
+}
+
+// Das fertige Wandbild einer Seite. Wird beim ersten Mal gezeichnet und dann aufgehoben,
+// bis sich das Aussehen der Wände ändert.
+function wallImageOf(page, settings) {
+  const cached = scene.wallImages.get(page);
+  if (cached && cached.look === wallLookOf(settings)) return cached;
+
+  const fresh = renderWallImage(page, settings);
+  scene.wallImages.set(page, fresh);
+  return fresh;
+}
+
+// Zeichnet das Wandbild der nächsten Seite schon vorab. Das dauert einige Hundertstel-
+// sekunden; erst beim Seitenwechsel erledigt, würde dessen erstes Bild ruckeln.
+function prepareNextWallImage(settings) {
+  if (hasNextPage()) wallImageOf(scene.pages[scene.pageIndex + 1], settings);
+}
+
+// Wirft die Wandbilder von Seiten weg, die nicht mehr zu sehen sind (spart Speicher:
+// jedes Bild ist so groß wie der Bildschirm). Gebraucht werden die aktuelle und die nächste Seite.
+function forgetUnneededWallImages() {
+  const neededPages = [currentPage(), scene.pages[scene.pageIndex + 1]];
+  for (const page of scene.wallImages.keys()) {
+    if (!neededPages.includes(page)) scene.wallImages.delete(page);
+  }
+}
+
+function drawWalls(page, settings) {
+  const { image, padding, width, height } = wallImageOf(page, settings);
+  ctx.drawImage(image, scene.offsetX - padding, scene.offsetY - padding, width, height);
+}
+
+// ---------------------------------------------------------------------------
+// Leuchtspur und Lichtpunkt
+// ---------------------------------------------------------------------------
+
+// Wie hell ein gelaufener Schritt gerade noch leuchtet, als Stufe von 0 bis BRIGHTNESS_LEVELS.
+// Frisch gelaufen leuchtet er `holdSeconds` lang voll, danach fällt die Helligkeit
+// über `fadeSeconds` auf die Rest-Helligkeit.
+function brightnessLevelOf(step, settings) {
+  const walkedAt = scene.walkedAt[step];
+  const isStillBeingWalked = walkedAt === undefined;
+  if (isStillBeingWalked) return BRIGHTNESS_LEVELS;
+
+  const secondsFading = scene.clock - walkedAt - settings.holdSeconds;
+  let brightness = 1;
+  if (secondsFading > 0) {
+    const fadedPart = settings.fadeSeconds > 0 ? secondsFading / settings.fadeSeconds : 1;
+    brightness = Math.max(settings.restBrightness, 1 - fadedPart);
+  }
+  return Math.ceil(brightness * BRIGHTNESS_LEVELS);
+}
+
+// Der erste Schritt der Route, der noch leuchtet. Alle Schritte davor sind schon ganz
+// verglommen und müssen beim Zeichnen gar nicht erst angesehen werden - das spart am Handy
+// den größten Teil der Arbeit an der Spur. Bleibt eine Rest-Helligkeit stehen, leuchtet alles.
+function firstGlowingStep(settings) {
+  if (settings.restBrightness > 0) return 1;
+
+  const lifetime = trailLifetime(settings);
+  const stepsDone = Math.floor(scene.progress);
+  let step = 1;
+  while (step <= stepsDone && scene.clock - scene.walkedAt[step] > lifetime) step++;
+  return step;
+}
+
+// Zeichnet von der schon gelaufenen Route die Wegstücke einer Art und einer Helligkeitsstufe.
+// steps: { first, last } - nur dieser Abschnitt der Route leuchtet noch.
+//
+// Jedes Wegstück wird um eine halbe Spurbreite gegen die Laufrichtung versetzt gezeichnet
+// (mit stumpfen Enden). So schließen aufeinanderfolgende Stücke lückenlos und ohne
+// Überlappung aneinander an, auch um die Ecke. Würden sie sich überlappen, entstünden
+// beim Ausblenden an jedem Stufenwechsel dunklere Knoten (halbdurchsichtig auf halbdurchsichtig).
+function strokeWalkedSegments(kind, level, levelOfStep, steps, settings) {
+  const route = currentPage().route;
+  const halfWidthInCells = settings.trailWidth / 2 / scene.cellSize;
+  let hasSegments = false;
+
+  ctx.beginPath();
+  for (let step = steps.first; step <= steps.last; step++) {
+    if (route[step].kind !== kind || levelOfStep[step] !== level) continue;
+    const start = route[step - 1];
+    const isStillWalking = step > scene.progress;
+    const end = isStillWalking ? positionAt(scene.progress) : route[step];
+    const backX = (route[step].x - start.x) * halfWidthInCells;
+    const backY = (route[step].y - start.y) * halfWidthInCells;
+
+    const from = centerOf({ x: start.x - backX, y: start.y - backY });
+    const to = centerOf({ x: end.x - backX, y: end.y - backY });
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    hasSegments = true;
+  }
+  // Ein leerer Pfad mit Leuchten kostet den Browser trotzdem Zeit, deshalb nur zeichnen, wenn etwas da ist
+  if (hasSegments) ctx.stroke();
+}
+
+// Zeichnet die Umlaut-Punkte einer Helligkeitsstufe, bei denen der Lichtpunkt schon war.
+function fillUmlautDots(level, levelOfStep, steps, settings) {
+  const route = currentPage().route;
+  const lastFinishedStep = Math.min(steps.last, Math.floor(scene.progress));
+  let hasDots = false;
+
+  ctx.beginPath();
+  for (let step = steps.first; step <= lastFinishedStep; step++) {
+    if (!route[step].isDot || levelOfStep[step] !== level) continue;
+    const center = centerOf(route[step]);
+    ctx.moveTo(center.x, center.y);
+    ctx.arc(center.x, center.y, settings.trailWidth * 0.8, 0, 2 * Math.PI);
+    hasDots = true;
+  }
+  if (hasDots) ctx.fill();
+}
+
+function drawTrail(settings) {
+  const route = currentPage().route;
+  const steps = {
+    first: firstGlowingStep(settings),
+    last: Math.min(Math.ceil(scene.progress), route.length - 1),
+  };
+  const levelOfStep = [];
+  for (let step = steps.first; step <= steps.last; step++) {
+    levelOfStep[step] = brightnessLevelOf(step, settings);
+  }
+
+  ctx.save();
+  ctx.strokeStyle = settings.trailColor;
+  ctx.fillStyle = settings.trailColor;
+  ctx.lineWidth = settings.trailWidth;
+  ctx.lineCap = "butt";
+
+  // Verbindungen zuerst, damit die Buchstaben darüber liegen
+  for (let level = 1; level <= BRIGHTNESS_LEVELS; level++) {
+    ctx.globalAlpha = (level / BRIGHTNESS_LEVELS) * settings.connectorOpacity;
+    strokeWalkedSegments(CONNECTOR, level, levelOfStep, steps, settings);
+  }
+
+  ctx.shadowColor = settings.trailColor;
+  ctx.shadowBlur = settings.glow * pixelRatioOf(settings);
+  for (let level = 1; level <= BRIGHTNESS_LEVELS; level++) {
+    ctx.globalAlpha = level / BRIGHTNESS_LEVELS;
+    strokeWalkedSegments(LETTER, level, levelOfStep, steps, settings);
+    fillUmlautDots(level, levelOfStep, steps, settings);
+  }
+  ctx.restore();
+}
+
+// Der Weg, der noch vor dem Lichtpunkt liegt (wie die gestrichelte Linie in der Skizze).
+function drawPlannedPath(settings) {
+  const route = currentPage().route;
+  const here = centerOf(positionAt(scene.progress));
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(here.x, here.y);
+  for (let step = Math.floor(scene.progress) + 1; step < route.length; step++) {
+    const point = centerOf(route[step]);
+    ctx.lineTo(point.x, point.y);
+  }
+  ctx.strokeStyle = settings.trailColor;
+  ctx.globalAlpha = 0.6;
+  ctx.lineWidth = Math.max(1, settings.trailWidth / 3);
+  ctx.setLineDash([4, 5]);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Der Lichtpunkt: ein leuchtender Punkt, innen fast weiß, zum Rand hin in seiner Farbe.
+function drawDot(settings) {
+  const position = centerOf(positionAt(scene.progress));
+  const radius = scene.cellSize * 0.3;
+
+  const glowingBall = ctx.createRadialGradient(position.x, position.y, 0, position.x, position.y, radius);
+  glowingBall.addColorStop(0, "#ffffff");
+  glowingBall.addColorStop(0.25, "#ffffff");
+  glowingBall.addColorStop(1, settings.dotColor);
+
+  ctx.save();
+  ctx.fillStyle = glowingBall;
+  ctx.shadowColor = settings.dotColor;
+  ctx.shadowBlur = scene.cellSize * pixelRatioOf(settings);
+  ctx.beginPath();
+  ctx.arc(position.x, position.y, radius, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Zeichnet Spur und Lichtpunkt der aktuellen Seite, beschnitten auf die Labyrinth-Fläche:
+// so taucht der Punkt am Eingang auf und verschwindet am Ausgang.
+function drawTrailAndDot(settings) {
+  const { maze } = currentPage();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(scene.offsetX, scene.offsetY, maze.cols * scene.cellSize, maze.rows * scene.cellSize);
+  ctx.clip();
+  if (settings.showPlannedPath) drawPlannedPath(settings);
+  drawTrail(settings);
+  if (scene.phase === WRITING) drawDot(settings);
+  ctx.restore();
+}
+
+// Zeichnet eine Labyrinth-Seite, um `shift` Pixel verschoben (für den Seitenwechsel).
+// Spur und Lichtpunkt gibt es nur auf der aktuellen Seite.
+function drawPage(page, shift, settings) {
+  ctx.save();
+  ctx.translate(shift.x, shift.y);
+  drawWalls(page, settings);
+  if (page === currentPage()) drawTrailAndDot(settings);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Der Monitor: alles, was das Bild nach alter Bildröhre aussehen lässt
+// ---------------------------------------------------------------------------
+
+// Jede so-vielte Bildschirmzeile ist abgedunkelt (das Zeilenraster der Röhre).
+const SCANLINE_SPACING = 3;
+
+function screenOverlayLookOf(settings) {
+  return [canvas.width, canvas.height, settings.scanlineStrength, settings.vignetteStrength].join("|");
+}
+
+// Zeichnet vorab, was wie eine Glasscheibe über dem ganzen Bild liegt:
+// das Zeilenraster und die dunklen Ecken (eine Röhre leuchtet in der Mitte am hellsten).
+function renderScreenOverlay(settings) {
+  const pixelRatio = pixelRatioOf(settings);
+  const width = scene.viewWidth;
+  const height = scene.viewHeight;
+
+  const image = document.createElement("canvas");
+  image.width = canvas.width;
+  image.height = canvas.height;
+  const context = image.getContext("2d");
+  context.scale(pixelRatio, pixelRatio);
+
+  context.fillStyle = `rgba(0, 0, 0, ${settings.scanlineStrength})`;
+  for (let y = 0; y < height; y += SCANLINE_SPACING) {
+    context.fillRect(0, y, width, 1);
+  }
+
+  const darkCorners = context.createRadialGradient(
+    width / 2, height / 2, Math.min(width, height) * 0.35,
+    width / 2, height / 2, Math.hypot(width, height) / 2
+  );
+  darkCorners.addColorStop(0, "rgba(0, 0, 0, 0)");
+  darkCorners.addColorStop(1, `rgba(0, 0, 0, ${settings.vignetteStrength})`);
+  context.fillStyle = darkCorners;
+  context.fillRect(0, 0, width, height);
+
+  return { image, look: screenOverlayLookOf(settings) };
+}
+
+function drawScreenOverlay(settings) {
+  const isUpToDate = scene.screenOverlay && scene.screenOverlay.look === screenOverlayLookOf(settings);
+  if (!isUpToDate) scene.screenOverlay = renderScreenOverlay(settings);
+  ctx.drawImage(scene.screenOverlay.image, 0, 0, scene.viewWidth, scene.viewHeight);
+}
+
+// Leichtes Flimmern: jedes Bild ist zufällig eine Spur dunkler.
+function drawFlicker(settings) {
+  ctx.fillStyle = `rgba(0, 0, 0, ${Math.random() * settings.flickerStrength * 0.25})`;
+  ctx.fillRect(0, 0, scene.viewWidth, scene.viewHeight);
+}
+
+// Beginnt eine Bildstörung: ein Störbalken läuft einmal von oben nach unten durchs Bild.
+function startGlitch() {
+  scene.glitch = {
+    startedAt: scene.clock,
+    seconds: 0.35 + Math.random() * 0.5,
+    bandHeight: (0.08 + Math.random() * 0.17) * scene.viewHeight,
+  };
+}
+
+// Würfelt, ob jetzt eine Störung beginnt. Nur solange die Animation läuft.
+function maybeStartGlitch(seconds, settings) {
+  const isAnimationRunning = scene.phase !== FINISHED;
+  const chanceInThisFrame = (settings.glitchesPerMinute / 60) * seconds;
+  if (isAnimationRunning && !scene.glitch && Math.random() < chanceInThisFrame) startGlitch();
+}
+
+// Zeichnet die laufende Störung über das fertige Bild: Im Störbalken verrutschen die
+// Bildzeilen seitlich, dazu ein heller Schleier und ein paar Rausch-Striche.
+function drawGlitch(settings) {
+  if (!scene.glitch) return;
+
+  const { startedAt, seconds, bandHeight } = scene.glitch;
+  const part = (scene.clock - startedAt) / seconds;
+  if (part >= 1) {
+    scene.glitch = null;
+    return;
+  }
+
+  const pixelRatio = pixelRatioOf(settings);
+  const width = scene.viewWidth;
+  const height = scene.viewHeight;
+  // Der Balken startet knapp über dem Bild und endet knapp darunter
+  const bandTop = Math.max(0, part * (height + bandHeight) - bandHeight);
+  const bandBottom = Math.min(height, part * (height + bandHeight));
+
+  // Verrutschte Zeilen: schmale Streifen des fertigen Bildes werden seitlich versetzt
+  // über sich selbst kopiert.
+  let y = bandTop;
+  while (y < bandBottom) {
+    const stripHeight = 2 + Math.floor(Math.random() * 6);
+    const shift = (Math.random() - 0.5) * 2 * settings.glitchStrength;
+    ctx.drawImage(
+      canvas,
+      0, y * pixelRatio, canvas.width, stripHeight * pixelRatio, // Ausschnitt in Geräte-Pixeln
+      shift, y, width, stripHeight
+    );
+    y += stripHeight;
+  }
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter"; // Farben addieren sich: es wird nur heller
+  ctx.fillStyle = settings.wallColor;
+  ctx.globalAlpha = 0.07;
+  ctx.fillRect(0, bandTop, width, bandBottom - bandTop);
+  ctx.globalAlpha = 0.5;
+  for (let dash = 0; dash < 12; dash++) {
+    const dashY = bandTop + Math.random() * (bandBottom - bandTop);
+    ctx.fillRect(Math.random() * width, dashY, 10 + Math.random() * 60, 1);
+  }
+  ctx.restore();
+}
+
+// Ein komplettes Bild: die aktuelle Seite und - während des Seitenwechsels - die nächste,
+// darüber die Eigenheiten des Monitors.
+function drawScene(settings) {
+  ctx.fillStyle = settings.backgroundColor;
+  ctx.fillRect(0, 0, scene.viewWidth, scene.viewHeight);
+
+  const shifts = scrollShifts(settings);
+  drawPage(currentPage(), shifts.outgoing, settings);
+  if (scene.phase === SCROLLING) drawPage(scene.pages[scene.pageIndex + 1], shifts.incoming, settings);
+
+  drawGlitch(settings);
+  if (scene.phase !== FINISHED) drawFlicker(settings);
+  drawScreenOverlay(settings);
+}
+
+// ---------------------------------------------------------------------------
+// Bilder pro Sekunde
+// ---------------------------------------------------------------------------
+
+// Die Messung, ob die Animation flüssig läuft.
+const frameMeter = {
+  windowStartedAt: null, // Beginn der laufenden Mess-Sekunde
+  framesInWindow: 0,
+  lowestRate: null, // niedrigster Sekundenwert seit der letzten Frage
+  longestFrameMillis: 0, // längster Abstand zwischen zwei Bildern seit der letzten Frage
+};
+
+// Beginnt die Messung neu: bei jeder Frage, damit "niedrigster Wert" und "längstes Bild"
+// zu genau dieser Antwort gehören - und wenn der Tab aus dem Hintergrund zurückkommt.
+function resetFrameMeter() {
+  frameMeter.windowStartedAt = null;
+  frameMeter.framesInWindow = 0;
+  frameMeter.lowestRate = null;
+  frameMeter.longestFrameMillis = 0;
+}
+
+// Zählt ein Bild mit und schreibt einmal pro Sekunde das Ergebnis in die Regler-Leiste.
+// Gezählt werden die Aufrufe von onAnimationFrame - auch wenn sich gerade nichts bewegt.
+function countFrame(now, millisSinceLastFrame) {
+  if (frameMeter.windowStartedAt === null) frameMeter.windowStartedAt = now;
+  frameMeter.framesInWindow++;
+  frameMeter.longestFrameMillis = Math.max(frameMeter.longestFrameMillis, millisSinceLastFrame);
+
+  const windowMillis = now - frameMeter.windowStartedAt;
+  if (windowMillis < 1000) return;
+
+  const rate = Math.round((frameMeter.framesInWindow * 1000) / windowMillis);
+  frameMeter.lowestRate = frameMeter.lowestRate === null ? rate : Math.min(frameMeter.lowestRate, rate);
+  frameMeter.windowStartedAt = now;
+  frameMeter.framesInWindow = 0;
+  showFrameRate(rate);
+}
+
+function showFrameRate(rate) {
+  document.getElementById("frameRate").textContent = `${rate} Bilder pro Sekunde`;
+  document.getElementById("frameRateDetail").textContent =
+    `seit der letzten Frage: mindestens ${frameMeter.lowestRate}, ` +
+    `längstes Bild ${Math.round(frameMeter.longestFrameMillis)} ms`;
+}
+
+// Läuft einmal pro Bildschirm-Bild: führt die Animation fort und zeichnet neu.
+// Gezeichnet wird nur, wenn sich etwas bewegt, eine Störung läuft oder ein Regler etwas geändert hat.
+function onAnimationFrame(now) {
+  const settings = currentSettings;
+  const millisSinceLastFrame = scene.lastFrameTime === null ? 0 : now - scene.lastFrameTime;
+  const secondsSinceLastFrame = Math.min(LONGEST_PAUSE_SECONDS, millisSinceLastFrame / 1000);
+  scene.lastFrameTime = now;
+
+  stepAnimation(secondsSinceLastFrame, settings);
+  maybeStartGlitch(secondsSinceLastFrame, settings);
+
+  if (scene.phase !== FINISHED || scene.glitch || scene.needsRedraw) {
+    drawScene(settings);
+    scene.needsRedraw = false;
+  }
+  countFrame(now, millisSinceLastFrame);
+  requestAnimationFrame(onAnimationFrame);
+}
+
+// ---------------------------------------------------------------------------
+// Fenstergröße und Bildschirmtastatur
+// ---------------------------------------------------------------------------
+
+// Hat gerade ein Feld den Fokus, in das man tippt? Dann ist am Handy vermutlich die
+// Bildschirmtastatur offen.
+function isTypingInTextField() {
+  const focused = document.activeElement;
+  return Boolean(focused) && focused.matches("input[type=text], input[type=number], textarea");
+}
+
+// Baut das Labyrinth neu, wenn die Bühne wirklich eine andere Größe bekommen hat.
+//
+// Die Falle am Handy: Die Bildschirmtastatur macht das Fenster niedriger. Würde darauf
+// neu gebaut, begänne die Animation bei jedem Antippen des Fragefelds von vorn.
+// Deshalb gilt:
+//   - andere Breite (Handy gedreht, Fenster gezogen, Regler-Leiste auf/zu) -> neu bauen
+//   - nur andere Höhe, während getippt wird -> nichts tun (das Bild bleibt stehen
+//     und wird unten abgeschnitten, siehe fitCanvasToStage)
+//   - nur andere Höhe, ohne dass getippt wird -> neu bauen
+function rebuildIfStageChanged() {
+  const widthChanged = stage.clientWidth !== scene.viewWidth;
+  const heightChanged = stage.clientHeight !== scene.viewHeight;
+  if (widthChanged || (heightChanged && !isTypingInTextField())) regenerate();
+}
+
+// Beobachtet die Größe der Bühne. Reagiert wird erst, wenn sie eine Weile ruhig war.
+function watchStageSize() {
+  let settleTimer = null;
+  const waitUntilSettled = () => {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(rebuildIfStageChanged, RESIZE_SETTLE_MILLIS);
+  };
+
+  window.addEventListener("resize", waitUntilSettled);
+  // Das Auf- und Zuklappen der Regler-Leiste ändert die Bühne, ohne dass das Fenster sich ändert.
+  if (window.ResizeObserver) new ResizeObserver(waitUntilSettled).observe(stage);
+}
+
+// Kommt der Tab aus dem Hintergrund zurück, beginnen Zeitmessung und Bildzählung neu -
+// sonst zählte die Pause als ein einziges, sehr langes Bild.
+function onVisibilityChanged() {
+  scene.lastFrameTime = null;
+  resetFrameMeter();
+}
+
+// ---------------------------------------------------------------------------
+// Regler-Leiste
+// ---------------------------------------------------------------------------
+
+// Schreibt neben jeden Schieberegler seinen aktuellen Wert.
+function showSliderValues() {
+  document.querySelectorAll("span[data-for]").forEach((label) => {
+    label.textContent = document.getElementById(label.dataset.for).value;
+  });
+}
+
+// Klappt die Regler-Leiste auf oder zu.
+function setControlsOpen(isOpen) {
+  document.getElementById("controls").hidden = !isOpen;
+  document.getElementById("toggleControls").setAttribute("aria-expanded", String(isOpen));
+}
+
+// Schreibt in die Regler-Leiste, welches Profil gilt und warum.
+function showProfileInfo() {
+  document.getElementById("profileInfo").textContent =
+    `Aktiv: „${activeProfileName}“ · Fensterbreite ${window.innerWidth} px · ` +
+    `„desktop“ ab ${CONFIG.desktopFromWidth} px`;
+  document.getElementById("profile").value = activeProfileName;
+}
+
+// Füllt die Profil-Auswahl mit den Profilen aus der Config.
+function fillProfileChoice() {
+  const choice = document.getElementById("profile");
+  for (const profileName of Object.keys(CONFIG.profiles)) {
+    choice.add(new Option(profileName, profileName));
+  }
+}
+
+// Wechselt von Hand auf ein anderes Profil: Regler neu füllen, Labyrinth neu bauen.
+function switchProfile(profileName) {
+  applyProfile(CONFIG, profileName);
+  currentSettings = readSettings();
+  showSliderValues();
+  showProfileInfo();
+  regenerate();
+}
+
+// Ein Regler wurde bewegt: Werte neu lesen und - falls nötig - das Labyrinth neu bauen.
+function onControlChanged(control) {
+  currentSettings = readSettings();
+  showSliderValues();
+  if (REGENERATING_CONTROLS.includes(control.id)) regenerate();
+  showAnswerTextIfWanted(currentSettings);
+  scene.needsRedraw = true;
+}
+
+// Zeigt die aktuellen Reglerwerte als Profil-Block für config.js und kopiert ihn
+// in die Zwischenablage.
+function showConfigText() {
+  const textarea = document.getElementById("configText");
+  const status = document.getElementById("configStatus");
+  const note =
+    `Reglerwerte vom ${new Date().toLocaleDateString("de-DE")}, ` +
+    `Fenster ${window.innerWidth} × ${window.innerHeight} px, ${scene.cols} × ${scene.rows} Zellen`;
+
+  textarea.value = configTextOf(CONFIG, activeProfileName, currentValues(CONFIG), note);
+  textarea.hidden = false;
+  copyToClipboard(textarea).then((wasCopied) => {
+    status.textContent = wasCopied
+      ? `Kopiert. In config.js den Block „${activeProfileName}“ unter „profiles“ damit ersetzen.`
+      : "Kopieren hat nicht geklappt – bitte den Text unten von Hand markieren und kopieren.";
+  });
+}
+
+// Verbindet Fragefeld, Regler und Knöpfe mit ihren Aktionen.
+function connectControls() {
+  document.getElementById("askForm").addEventListener("submit", onQuestionSubmitted);
+  document.getElementById("replayAnswer").addEventListener("click", replayLastAnswer);
+  // iOS verschiebt die Seite, um das Fragefeld über die Tastatur zu heben, und schiebt
+  // sie nicht immer zurück. Beim Verlassen des Felds deshalb wieder ganz nach oben.
+  document.getElementById("question").addEventListener("blur", () => window.scrollTo(0, 0));
+
+  document.getElementById("toggleControls").addEventListener("click", () => {
+    setControlsOpen(document.getElementById("controls").hidden);
+  });
+  document.getElementById("closeControls").addEventListener("click", () => setControlsOpen(false));
+
+  document.querySelectorAll("#controlsBody input, #controlsBody select").forEach((control) => {
+    if (control.id === "profile") return; // hat unten seine eigene Aktion
+    control.addEventListener("input", () => onControlChanged(control));
+  });
+  document.getElementById("profile").addEventListener("change", (event) => switchProfile(event.target.value));
+  document.getElementById("showConfig").addEventListener("click", showConfigText);
+
+  document.getElementById("replay").addEventListener("click", regenerate);
+  document.getElementById("skipPage").addEventListener("click", () => {
+    if (scene.phase === WRITING) advanceDot(Infinity);
+  });
+  document.getElementById("newSeed").addEventListener("click", () => {
+    document.getElementById("seed").value = Math.floor(Math.random() * 1000000);
+    onControlChanged(document.getElementById("seed"));
+  });
+  document.getElementById("glitchNow").addEventListener("click", startGlitch);
+
+  document.addEventListener("visibilitychange", onVisibilityChanged);
+}
+
+// Der Start: Profil wählen, Regler füllen, Begrüßung schreiben.
+//
+// Die Regler gibt es auch dann, wenn die Config sie versteckt (Besucherfassung): aus ihnen
+// werden die Werte gelesen. Es fehlt dann nur der Knopf, der die Leiste aufklappt.
+// Welche Knöpfe neben dem Fragefeld stehen, bestimmt ebenfalls die Config.
+function start() {
+  const profileName = profileNameFromUrl(CONFIG) || profileNameForWidth(CONFIG, window.innerWidth);
+  fillProfileChoice();
+  applyProfile(CONFIG, profileName);
+  document.getElementById("toggleControls").hidden = !CONFIG.showControls;
+  document.getElementById("replayAnswer").hidden = !CONFIG.showReplayButton;
+  setControlsOpen(CONFIG.showControls && valuesOfProfile(CONFIG, profileName).controlsOpen);
+  currentSettings = readSettings();
+
+  connectControls();
+  showSliderValues();
+  showProfileInfo();
+
+  scene.answer = createAnswer(CONFIG.greeting, "");
+  regenerate();
+  watchStageSize();
+  requestAnimationFrame(onAnimationFrame);
+}
+
+start();
+  </script>
+</body>
+</html>

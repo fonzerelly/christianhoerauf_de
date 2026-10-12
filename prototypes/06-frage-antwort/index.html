@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Labyrinth-Prototyp 6: Frage und Antwort</title>
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    /* Für Screenreader und Suchmaschinen lesbar, auf dem Bildschirm unsichtbar. */
+    .visuallyHidden {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+    }
+    /* Hinweis, falls der Browser keine Skripte ausführt (nur in der Besucherfassung). */
+    .noscriptHint { grid-area: stage; align-self: center; padding: 24px; text-align: center; font-size: 18px; color: #33ff66; }
+
+    /* Die Seite ist genau so hoch wie das Fenster und scrollt nie. Weil nichts scrollt,
+       fährt am Handy auch die Adressleiste nicht ein und aus. */
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    @supports (height: 100dvh) { body { height: 100dvh; } }
+
+    /* Aufteilung: links oben das Labyrinth, darunter das Fragefeld, rechts die Regler. */
+    body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-areas: "stage controls" "ask controls";
+      font: 14px/1.4 ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+      color: #7fdc97;
+      background: #020a04;
+      touch-action: manipulation; /* kein Zoomen durch doppeltes Tippen */
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* Das Canvas hat eine feste Größe in Pixeln (setzt seite.js). Schrumpft die Bühne,
+       weil die Bildschirmtastatur aufgeht, wird es nur unten abgeschnitten statt verzerrt. */
+    #stage { grid-area: stage; position: relative; overflow: hidden; min-width: 0; min-height: 0; }
+    #maze { position: absolute; left: 0; top: 0; display: block; }
+
+    #answerText {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 12px 16px; text-align: center;
+      font-size: 18px; letter-spacing: 0.06em; color: #33ff66;
+      text-shadow: 0 0 8px #2bdc5a;
+      background: rgba(2, 10, 4, 0.85); border-top: 1px solid #14502a;
+    }
+
+    /* Das Fragefeld: Schrift mindestens 16 px, sonst zoomt iOS beim Antippen hinein. */
+    #askForm {
+      grid-area: ask; display: flex; gap: 8px;
+      padding: 8px; padding-bottom: max(8px, env(safe-area-inset-bottom));
+      background: #04140a; border-top: 1px solid #14502a;
+    }
+    #question {
+      flex: 1; min-width: 0; height: 48px; padding: 0 12px; margin: 0;
+      font: inherit; font-size: 18px; color: #33ff66; caret-color: #ff2a2a;
+      background: #020a04; border: 1px solid #1f7a40; border-radius: 2px;
+    }
+    #question::placeholder { color: #2f8f4d; opacity: 1; }
+    #question:focus { outline: none; border-color: #33ff66; box-shadow: 0 0 10px rgba(43, 220, 90, 0.5); }
+    #askForm button { width: auto; height: 48px; margin: 0; padding: 0 14px; font-size: 16px; }
+    #send { color: #03140a; background: #2bdc5a; border-color: #2bdc5a; font-weight: 600; }
+    #send:hover { background: #33ff66; }
+    #toggleControls[aria-expanded="true"] { background: #14502a; }
+
+    /* Die Regler-Leiste */
+    #controls {
+      grid-area: controls; width: 310px; overflow-y: auto;
+      background: #04140a; border-left: 1px solid #14502a;
+    }
+    #controlsHead {
+      position: sticky; top: 0; z-index: 1; display: flex; gap: 8px; align-items: center;
+      padding: 10px 16px; background: #062010; border-bottom: 1px solid #14502a;
+    }
+    #controlsHead div { flex: 1; min-width: 0; }
+    #controlsHead button { width: auto; margin: 0; padding: 8px 12px; }
+    #frameRate { color: #33ff66; font-weight: 600; }
+    #frameRateDetail, #profileInfo { font-size: 12px; opacity: 0.7; }
+    #controlsBody { padding: 16px; }
+    #controls h2 {
+      margin: 20px 0 8px; font-size: 12px; letter-spacing: 0.08em;
+      text-transform: uppercase; opacity: 0.6;
+    }
+    #controls h2:first-child { margin-top: 0; }
+    label { display: block; margin-bottom: 10px; }
+    label span { float: right; opacity: 0.6; }
+    .hint { font-size: 12px; opacity: 0.7; margin: 0 0 10px; }
+
+    /* Alle Eingabefelder mit 16 px Schrift (iOS-Zoom, siehe oben) */
+    input[type=text], input[type=number], select, textarea {
+      width: 100%; padding: 8px; margin-top: 4px;
+      font: inherit; font-size: 16px; color: inherit;
+      background: #020a04; border: 1px solid #14502a; border-radius: 2px;
+    }
+    textarea { font-size: 12px; white-space: pre; }
+    input[type=range] { width: 100%; margin: 4px 0 0; accent-color: #33ff66; }
+    input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; accent-color: #33ff66; }
+    input[type=color] { float: right; width: 44px; height: 24px; padding: 0; border: none; background: none; }
+    button {
+      width: 100%; padding: 10px; margin-bottom: 6px;
+      font: inherit; color: inherit; cursor: pointer;
+      background: #0a2a15; border: 1px solid #14502a; border-radius: 2px;
+    }
+    button:hover { background: #0f3d1f; }
+    #pageStatus { font-size: 16px; font-weight: 600; color: #33ff66; }
+    #status, #exchange { font-size: 12px; opacity: 0.7; margin-bottom: 10px; }
+
+    /* Handy: Labyrinth über die ganze Breite, darunter das Fragefeld. Die Regler liegen als
+       Blatt über dem unteren Teil des Labyrinths - in derselben Rasterzelle wie die Bühne,
+       damit sich deren Größe beim Auf- und Zuklappen nicht ändert (sonst entstünde ein neues Labyrinth). */
+    body[data-profile="handy"] {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "stage" "ask";
+    }
+    body[data-profile="handy"] #controls {
+      grid-area: stage; align-self: end; z-index: 2;
+      width: auto; max-height: 58%;
+      border-left: none; border-top: 1px solid #1f7a40;
+      background: rgba(4, 20, 10, 0.95);
+    }
+    body[data-profile="handy"] #answerText { font-size: 16px; }
+    body[data-profile="handy"] #askForm button { padding: 0 10px; }
+    /* größere Tippflächen */
+    body[data-profile="handy"] input[type=range] { height: 34px; }
+    body[data-profile="handy"] button { min-height: 46px; }
+    body[data-profile="handy"] label { margin-bottom: 14px; }
+    body[data-profile="handy"] input[type=color] { width: 56px; height: 34px; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="maze" aria-hidden="true"></canvas>
+    <div id="answerText" hidden></div>
+    <!-- Screenreader sehen das Canvas nicht: hier steht jede Antwort zusätzlich als Text. -->
+    <div id="spokenAnswer" class="visuallyHidden" aria-live="polite"></div>
+  </div>
+
+  <form id="askForm" autocomplete="off">
+    <input type="text" id="question" placeholder="Deine Frage …" aria-label="Deine Frage"
+           maxlength="200" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button type="submit" id="send">Senden</button>
+    <button type="button" id="replayAnswer" title="Das zuletzt Geschriebene nochmal schreiben"
+            aria-label="Das zuletzt Geschriebene nochmal schreiben" hidden>Nochmal</button>
+    <button type="button" id="toggleControls" aria-controls="controls" aria-expanded="false">Regler</button>
+  </form>
+
+  <div id="controls" hidden>
+    <div id="controlsHead">
+      <div>
+        <div id="frameRate">– Bilder pro Sekunde</div>
+        <div id="frameRateDetail"></div>
+      </div>
+      <button type="button" id="closeControls">Schließen</button>
+    </div>
+
+    <div id="controlsBody">
+      <h2>Frage und Antwort</h2>
+      <div id="pageStatus"></div>
+      <div id="exchange"></div>
+      <div id="status"></div>
+      <p class="hint">Testhilfe: Beginnt die Frage mit <b>=</b>, wird der Rest wörtlich geschrieben,
+        z. B. <b>=HALLO WELT</b>. Erlaubt sind A–Z, ÄÖÜ, 0–9, Bindestrich, Punkt und Fragezeichen.
+        Ein <b>|</b> markiert eine Trennstelle: <b>=INTER|NET|PRÄ|SENZ</b>.</p>
+      <button type="button" id="replay">Antwort nochmal abspielen</button>
+      <button type="button" id="skipPage">Diese Seite überspringen</button>
+      <label>
+        <input type="checkbox" id="showAnswerAsText"> Antwort am Ende zusätzlich als Text zeigen
+      </label>
+      <label>
+        <input type="checkbox" id="blurInputAfterSending"> Nach dem Senden die Tastatur schließen
+      </label>
+      <label>Neue Frage mitten im Schreiben: Rest so viel mal schneller <span data-for="rushFactor"></span>
+        <input type="range" id="rushFactor" min="1" max="20">
+      </label>
+
+      <h2>Geräteprofil</h2>
+      <div id="profileInfo" class="hint"></div>
+      <label>Regler füllen mit den Werten von
+        <select id="profile"></select>
+      </label>
+      <button type="button" id="showConfig">Aktuelle Werte als Config anzeigen und kopieren</button>
+      <div id="configStatus" class="hint"></div>
+      <textarea id="configText" rows="12" readonly hidden></textarea>
+
+      <h2>Tempo</h2>
+      <label>Tempo in Buchstaben (Zellen pro Sekunde) <span data-for="speed"></span>
+        <input type="range" id="speed" min="5" max="200">
+      </label>
+      <label>Auf Verbindungswegen so viel mal schneller <span data-for="connectorSpeedFactor"></span>
+        <input type="range" id="connectorSpeedFactor" min="1" max="8" step="0.5">
+      </label>
+
+      <h2>Leuchtspur (Nachleuchten)</h2>
+      <label>Leuchtet voll für (Sekunden) <span data-for="holdSeconds"></span>
+        <input type="range" id="holdSeconds" min="0" max="10" step="0.1">
+      </label>
+      <label>Blendet danach aus innerhalb von (Sekunden) <span data-for="fadeSeconds"></span>
+        <input type="range" id="fadeSeconds" min="0" max="10" step="0.1">
+      </label>
+      <label>Rest-Helligkeit danach (%, 100 = Text bleibt stehen) <span data-for="restBrightness"></span>
+        <input type="range" id="restBrightness" min="0" max="100">
+      </label>
+
+      <h2>Zeilenwechsel</h2>
+      <label>Höhe des Bands für den Rückweg (1 = gerade wie in Prototyp 5) <span data-for="returnBandRows"></span>
+        <input type="range" id="returnBandRows" min="1" max="4">
+      </label>
+      <label>Windungen des Rückwegs <span data-for="returnWindiness"></span>
+        <input type="range" id="returnWindiness" min="0" max="100">
+      </label>
+      <label>Gerade Wand darunter höchstens so viele Zellen lang (0 = nicht unterbrechen) <span data-for="maxWallRun"></span>
+        <input type="range" id="maxWallRun" min="0" max="12">
+      </label>
+
+      <h2>Labyrinth</h2>
+      <label>Zufalls-Startwert (bestimmt nur die Form des Labyrinths)
+        <input type="number" id="seed">
+      </label>
+      <button type="button" id="newSeed">Neues Labyrinth (neuer Startwert)</button>
+      <label>Feste Spaltenzahl (0 = Zellgröße gilt) <span data-for="cellColumns"></span>
+        <input type="range" id="cellColumns" min="0" max="80">
+      </label>
+      <label>Zellgröße (nur bei Spaltenzahl 0) <span data-for="cellSize"></span>
+        <input type="range" id="cellSize" min="8" max="48">
+      </label>
+      <label>Gewundenheit der Gänge <span data-for="windiness"></span>
+        <input type="range" id="windiness" min="0" max="100">
+      </label>
+      <label>Wandstärke <span data-for="wallWidth"></span>
+        <input type="range" id="wallWidth" min="0.5" max="12" step="0.5">
+      </label>
+
+      <h2>Lichtpunkt und Spur</h2>
+      <label>Sichtbarkeit der Verbindungswege (%) <span data-for="connectorOpacity"></span>
+        <input type="range" id="connectorOpacity" min="0" max="100">
+      </label>
+      <label>Spurstärke <span data-for="trailWidth"></span>
+        <input type="range" id="trailWidth" min="1" max="16" step="0.5">
+      </label>
+      <label>Leuchten der Spur <span data-for="glow"></span>
+        <input type="range" id="glow" min="0" max="40">
+      </label>
+      <label>
+        <input type="checkbox" id="showPlannedPath"> Geplanten Weg gestrichelt zeigen
+      </label>
+
+      <h2>Monitor</h2>
+      <label>Überstrahlen: Reichweite <span data-for="bloomRadius"></span>
+        <input type="range" id="bloomRadius" min="0" max="24">
+      </label>
+      <label>Überstrahlen: Stärke (%) <span data-for="bloomStrength"></span>
+        <input type="range" id="bloomStrength" min="0" max="100">
+      </label>
+      <label>Zeilenraster (%) <span data-for="scanlineStrength"></span>
+        <input type="range" id="scanlineStrength" min="0" max="100">
+      </label>
+      <label>Dunkle Ecken (%) <span data-for="vignetteStrength"></span>
+        <input type="range" id="vignetteStrength" min="0" max="100">
+      </label>
+      <label>Flimmern (%) <span data-for="flickerStrength"></span>
+        <input type="range" id="flickerStrength" min="0" max="100">
+      </label>
+      <label>Bildstörungen pro Minute <span data-for="glitchesPerMinute"></span>
+        <input type="range" id="glitchesPerMinute" min="0" max="60">
+      </label>
+      <label>Stärke der Störung (Versatz in Pixeln) <span data-for="glitchStrength"></span>
+        <input type="range" id="glitchStrength" min="0" max="60">
+      </label>
+      <button type="button" id="glitchNow">Störung jetzt auslösen</button>
+
+      <h2>Seiten</h2>
+      <label>Höchstens Zeilen pro Seite <span data-for="maxLinesPerPage"></span>
+        <input type="range" id="maxLinesPerPage" min="1" max="12">
+      </label>
+      <label>Dauer des Weiterschiebens (Sekunden) <span data-for="scrollSeconds"></span>
+        <input type="range" id="scrollSeconds" min="0" max="4" step="0.1">
+      </label>
+
+      <h2>Eingang und Ausgang</h2>
+      <label>Lichtpunkt kommt nach dem Laden von
+        <select id="entranceSide">
+          <option value="random">zufällig</option>
+          <option value="left">links</option>
+          <option value="top">oben</option>
+          <option value="bottom">unten</option>
+        </select>
+      </label>
+      <label>Lichtpunkt verlässt jede Seite nach
+        <select id="exitSide">
+          <option value="random">zufällig</option>
+          <option value="right">rechts</option>
+          <option value="top">oben</option>
+          <option value="bottom">unten</option>
+        </select>
+      </label>
+      <label>Umwege bei An- und Ablauf <span data-for="detour"></span>
+        <input type="range" id="detour" min="0" max="100">
+      </label>
+
+      <h2>Farben</h2>
+      <label>Hintergrund <input type="color" id="backgroundColor"></label>
+      <label>Wände <input type="color" id="wallColor"></label>
+      <label>Spur <input type="color" id="trailColor"></label>
+      <label>Lichtpunkt <input type="color" id="dotColor"></label>
+
+      <h2>Leistung</h2>
+      <label>Höchste Pixeldichte (kleiner = unschärfer, aber schneller) <span data-for="maxPixelRatio"></span>
+        <input type="range" id="maxPixelRatio" min="1" max="4" step="0.5">
+      </label>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="schrift.js"></script>
+  <script src="labyrinth.js"></script>
+  <script src="antworten.js"></script>
+  <script src="einstellungen.js"></script>
+  <script src="seite.js"></script>
+</body>
+</html>
