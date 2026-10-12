@@ -503,6 +503,8 @@ Flimmern → Glasscheibe.
 | `BRIGHTNESS_LEVELS` | In so viele Stufen (16) wird die Helligkeit der Spur eingeteilt. |
 | `pixelRatioOf(settings)` | Mit wie vielen Geräte-Pixeln pro Pixel gezeichnet wird: die Pixeldichte des Geräts, gedeckelt durch „Höchste Pixeldichte". **Neu.** |
 | `fitCanvasToStage(settings)` | Misst die Bühne, merkt sich ihre Größe und trägt sie als feste Pixelgröße am Canvas ein – es folgt der Bühne danach nicht mehr von selbst. **Geändert.** |
+| `applyDrawingScale()` | Stellt den Maßstab des Canvas ein (ein Seiten-Pixel = so viele Geräte-Pixel, wie das Canvas breiter ist als die Bühne). Läuft vor jedem Bild, weil der Browser den Zeichenzustand jederzeit vergessen darf. **Neu am 2026-10-12.** |
+| `discardPreparedImages()` | Wirft die vorab gezeichneten Bilder (Wände, Zeilenraster) weg, damit sie neu entstehen. Wird aufgerufen, wenn die Seite aus dem Hintergrund zurückkommt oder der Browser das Canvas neu angelegt hat. **Neu am 2026-10-12.** |
 | `cellSizeFor(settings)` | Die Zellgröße: der Regler, oder bei fester Spaltenzahl Bühnenbreite durch Spaltenzahl, abgerundet auf ganze Geräte-Pixel. **Neu.** |
 | `layoutGrid(settings)` | Teilt die Bühne ein: Zellgröße, Spalten, Zeilen (mindestens `MIN_COLS` × `MIN_ROWS`) und der Rand zum Zentrieren. **Neu.** |
 | `createAnswer(text, question)` | Legt eine Antwort an: Text, die Frage dazu, laufende Nummer, Seitenzahl (noch 0). Zählt `scene.answerCount` weiter. **Neu.** |
@@ -602,6 +604,25 @@ Geprüft mit Wegwerf-Skripten (nicht Teil des Prototyps):
 verhalten sich verschieden) noch die echte Bildrate noch Tippflächen unter dem Daumen noch
 das Kopieren in die Zwischenablage (im Headless-Chrome nicht erlaubt; der Rückfall auf
 „von Hand markieren" hat dort gegriffen). Firefox und Safari sind gar nicht geprüft.
+
+## Behobener Fehler: kaputtes Bild nach einer Pause im Hintergrund (2026-10-12)
+
+**Beobachtet** auf der Live-Seite am Handy: Nach dem Wechsel in eine andere App und
+zurück wurde das Labyrinth nur noch in halber Größe links oben gezeichnet, daneben und
+darunter standen hellgrüne, verschmierte Flächen.
+
+**Ursache:** Der Maßstab des Canvas wurde nur einmal beim Aufbau eingestellt. Der Browser
+hatte in der Pause den Zeichenzustand des Canvas zurückgesetzt, danach wurde in
+Geräte-Pixeln statt in Seiten-Pixeln gezeichnet. Der Rest des Canvas wurde nie mehr
+gelöscht; die grünen Flächen waren die beim Weiterschieben hereinrollenden Wandbilder,
+Bild für Bild übereinander.
+
+**Behebung:** `applyDrawingScale()` stellt den Maßstab vor jedem Bild ein, und
+`discardPreparedImages()` erzeugt die vorab gezeichneten Bilder nach einer Pause neu.
+
+**Geprüft** nur durch Nachstellen im Browser am Rechner (`ctx.reset()` vor einer neuen
+Frage): vorher dasselbe kaputte Bild, nachher ein normales. Ob das Zurücksetzen am Handy
+wirklich der Auslöser war, ist eine begründete Annahme, kein Beweis.
 
 ## Bekannte Schwächen
 

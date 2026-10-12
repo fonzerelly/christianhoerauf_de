@@ -86,7 +86,29 @@ function fitCanvasToStage(settings) {
   canvas.style.height = scene.viewHeight + "px";
   canvas.width = Math.round(scene.viewWidth * pixelRatio);
   canvas.height = Math.round(scene.viewHeight * pixelRatio);
+  applyDrawingScale();
+}
+
+// Stellt den Maßstab des Canvas ein: ein Pixel der Seite sind so viele Geräte-Pixel, wie
+// das Canvas breiter ist als die Bühne.
+//
+// Das passiert vor JEDEM Bild und nicht nur einmal beim Aufbau. Der Browser darf den
+// Zeichenzustand eines Canvas jederzeit vergessen, etwa wenn die Seite am Handy im
+// Hintergrund lag und er den Grafikspeicher freigegeben hat. Ohne den Maßstab würde
+// danach alles in halber Größe in die linke obere Ecke gezeichnet, und der Rest des
+// Bildes würde nie mehr gelöscht.
+function applyDrawingScale() {
+  const pixelRatio = canvas.width / scene.viewWidth;
   ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+}
+
+// Wirft alle vorab gezeichneten Bilder weg (Wände, Zeilenraster); sie entstehen beim
+// nächsten Bild neu. Nötig, wenn der Browser den Grafikspeicher freigegeben haben könnte -
+// dann wären auch diese Bilder leer oder beschädigt.
+function discardPreparedImages() {
+  scene.wallImages.clear();
+  scene.screenOverlay = null;
+  scene.needsRedraw = true;
 }
 
 // Die Zellgröße in Pixeln. Bei fester Spaltenzahl ergibt sie sich aus der Breite der Bühne -
@@ -863,6 +885,7 @@ function drawGlitch(settings) {
 // Ein komplettes Bild: die aktuelle Seite und - während des Seitenwechsels - die nächste,
 // darüber die Eigenheiten des Monitors.
 function drawScene(settings) {
+  applyDrawingScale();
   ctx.fillStyle = settings.backgroundColor;
   ctx.fillRect(0, 0, scene.viewWidth, scene.viewHeight);
 
@@ -979,10 +1002,12 @@ function watchStageSize() {
 }
 
 // Kommt der Tab aus dem Hintergrund zurück, beginnen Zeitmessung und Bildzählung neu -
-// sonst zählte die Pause als ein einziges, sehr langes Bild.
+// sonst zählte die Pause als ein einziges, sehr langes Bild. Außerdem werden die vorab
+// gezeichneten Bilder neu erzeugt, falls der Browser sie in der Pause verworfen hat.
 function onVisibilityChanged() {
   scene.lastFrameTime = null;
   resetFrameMeter();
+  if (document.visibilityState === "visible") discardPreparedImages();
 }
 
 // ---------------------------------------------------------------------------
@@ -1085,6 +1110,8 @@ function connectControls() {
   document.getElementById("glitchNow").addEventListener("click", startGlitch);
 
   document.addEventListener("visibilitychange", onVisibilityChanged);
+  // Der Browser meldet hiermit, dass er den Zeichenzustand des Canvas verloren und neu angelegt hat
+  canvas.addEventListener("contextrestored", discardPreparedImages);
 }
 
 // Der Start: Profil wählen, Regler füllen, Begrüßung schreiben.
