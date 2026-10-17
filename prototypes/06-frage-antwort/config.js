@@ -114,6 +114,7 @@ const CONFIG = {
     connectorOpacity: 25, // Sichtbarkeit der Verbindungswege in %
     trailWidth: 5, // Spurstärke in Pixeln
     glow: 16, // Leuchten der Spur
+    trailCore: 0, // heller Kern in der Mitte der Spur in % (0 = kein Kern, Spur einfarbig)
     showPlannedPath: false, // geplanten Weg gestrichelt zeigen
 
     // Farben

@@ -546,6 +546,8 @@ Flimmern → Glasscheibe.
 | `strokeWalkedSegments(kind, level, levelOfStep, steps, settings)` | Zeichnet im noch leuchtenden Abschnitt die Wegstücke einer Art und einer Helligkeitsstufe in einem Rutsch, jedes um eine halbe Spurbreite nach hinten versetzt (keine Überlappung). Zeichnet nichts, wenn kein Stück passt. **Geändert.** |
 | `fillUmlautDots(level, levelOfStep, steps, settings)` | Zeichnet die schon besuchten Umlaut-Punkte einer Helligkeitsstufe. **Geändert.** |
 | `drawTrail(settings)` | Zeichnet die Spur: erst blass die Verbinder, darüber die Buchstaben und Punkte, jeweils Stufe für Stufe – nur für den noch leuchtenden Abschnitt. **Geändert.** |
+| `TRAIL_CORE_WIDTH_PART` | Wie breit der helle Kern im Verhältnis zur Spur ist (0,45). **Neu am 2026-10-13.** |
+| `drawTrailCore(levelOfStep, steps, settings)` | Zeichnet in die Mitte der Buchstaben-Spur einen schmalen weißen Kern, so stark wie der Regler „Heller Kern der Spur" (`trailCore`). Damit ist die Spur das hellste Element im Bild und auch in Graustufen lesbar. Bei 0 passiert nichts. **Neu am 2026-10-13.** |
 | `drawPlannedPath(settings)` | Zeichnet gestrichelt den Weg, der auf dieser Seite noch vor dem Punkt liegt (abschaltbar). |
 | `drawDot(settings)` | Zeichnet den Lichtpunkt: innen weiß, außen in seiner Farbe, mit Leuchten. |
 | `drawTrailAndDot(settings)` | Zeichnet Spur und (nur während `WRITING`) Lichtpunkt, beschnitten auf die Labyrinth-Fläche. |
@@ -604,6 +606,22 @@ Geprüft mit Wegwerf-Skripten (nicht Teil des Prototyps):
 verhalten sich verschieden) noch die echte Bildrate noch Tippflächen unter dem Daumen noch
 das Kopieren in die Zwischenablage (im Headless-Chrome nicht erlaubt; der Rückfall auf
 „von Hand markieren" hat dort gegriffen). Firefox und Safari sind gar nicht geprüft.
+
+## Versuch: heller Kern der Spur für Farbsehschwäche (2026-10-13)
+
+**Beobachtet** von Christian: Stellt man das Handy auf Graustufen, ist der geschriebene
+Text praktisch nicht lesbar. Die rote Spur ist in Graustufen dunkler als die grünen Wände.
+
+**Versuch:** Config-Wert `trailCore` (Regler „Heller Kern der Spur", 0 bis 100 %). Er legt
+einen schmalen weißen Kern in die Mitte der Buchstaben-Spur. Standard ist 0, das Aussehen
+ist also unverändert, bis ein Wert gesetzt wird.
+
+**Gemessen** an einem Standbild im Handy-Profil (Helligkeit 0 bis 255, hellste 10 % der
+Pixel): Wände ab 179; Spur ohne Kern ab 106, mit Kern 85 % ab 213. Mit Kern ist die Spur
+also heller als die Wände, ohne Kern deutlich dunkler.
+
+**Noch offen:** die Entscheidung, ob und mit welchem Wert der Kern auf die Live-Seite
+kommt. Geprüft ist nur am Standbild, nicht in Bewegung und nicht von Betroffenen.
 
 ## Behobener Fehler: kaputtes Bild nach einer Pause im Hintergrund (2026-10-12)
 

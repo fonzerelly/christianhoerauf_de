@@ -700,6 +700,35 @@ function drawTrail(settings) {
     fillUmlautDots(level, levelOfStep, steps, settings);
   }
   ctx.restore();
+
+  if (settings.trailCore > 0) drawTrailCore(levelOfStep, steps, settings);
+}
+
+// Wie breit der helle Kern im Verhältnis zur Spur ist.
+const TRAIL_CORE_WIDTH_PART = 0.45;
+
+// Zeichnet in die Mitte der Buchstaben-Spur einen schmalen weißen Kern.
+//
+// Wozu: Rot und Grün unterscheiden sich für viele Menschen mit Farbsehschwäche kaum, und
+// in Graustufen ist die rote Spur dunkler als die grünen Wände. Der weiße Kern macht die
+// Spur zum HELLSTEN Element im Bild - sie hebt sich dann durch Helligkeit ab und nicht nur
+// durch die Farbe. Für alle anderen sieht sie aus wie ein weißglühender Draht mit rotem Schein.
+function drawTrailCore(levelOfStep, steps, settings) {
+  // Mit der schmaleren Breite als "Spurstärke" schließen die Kernstücke an den Ecken
+  // genauso lückenlos aneinander an wie die Spur selbst (siehe strokeWalkedSegments).
+  const coreSettings = { ...settings, trailWidth: settings.trailWidth * TRAIL_CORE_WIDTH_PART };
+
+  ctx.save();
+  ctx.strokeStyle = "#ffffff";
+  ctx.fillStyle = "#ffffff";
+  ctx.lineWidth = coreSettings.trailWidth;
+  ctx.lineCap = "butt";
+  for (let level = 1; level <= BRIGHTNESS_LEVELS; level++) {
+    ctx.globalAlpha = (level / BRIGHTNESS_LEVELS) * (settings.trailCore / 100);
+    strokeWalkedSegments(LETTER, level, levelOfStep, steps, coreSettings);
+    fillUmlautDots(level, levelOfStep, steps, coreSettings);
+  }
+  ctx.restore();
 }
 
 // Der Weg, der noch vor dem Lichtpunkt liegt (wie die gestrichelte Linie in der Skizze).
