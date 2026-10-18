@@ -7,3 +7,4 @@ playwright-report/
 visual/**/*-snapshots/
 tests/structure/__snapshots__/
 package-lock.json
+tests/structure/schaubilder/

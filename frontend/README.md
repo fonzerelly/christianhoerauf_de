@@ -48,7 +48,7 @@ src/
   rendering/    Zeichnen
   answering/    woher die Antworten kommen
   ui/           Fragefeld, Knöpfe, Fenstergröße
-tests/          Tests über mehrere Teile hinweg
+tests/          Tests über mehrere Teile hinweg (siehe tests/doc.md)
 visual/         Bildtests (Playwright)
 ```
 
