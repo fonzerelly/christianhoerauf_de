@@ -7,7 +7,6 @@ export default defineConfig({
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     exclude: ["**/*.property.test.ts", "**/node_modules/**"],
     environment: "node",
-    passWithNoTests: true, // nur bis zu den ersten Tests in Schritt 2
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],

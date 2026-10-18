@@ -5,7 +5,6 @@ export default defineConfig({
   test: {
     include: ["src/**/*.property.test.ts", "tests/**/*.property.test.ts"],
     environment: "node",
-    passWithNoTests: true, // nur bis zu den ersten Tests in Schritt 2
     testTimeout: 120_000,
   },
 });
