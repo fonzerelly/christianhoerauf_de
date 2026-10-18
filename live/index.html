@@ -1351,7 +1351,24 @@ function profileNameFromUrl(config) {
   return config.profiles[wished] ? wished : null;
 }
 
-// Alle Werte eines Profils: die Grundwerte, überschrieben mit den Abweichungen des Profils.
+// Mit "?seed=123" in der Adresse lässt sich der Zufalls-Startwert festlegen - auch in der
+// Besucherfassung, die keine Regler zeigt. So lässt sich ein Labyrinth 1:1 wieder aufrufen.
+const SEED_URL_PARAMETER = "seed";
+
+// Der Startwert aus einer Adresszeile wie "?seed=123" - oder null, wenn dort keiner oder
+// keine ganze Zahl ab 0 steht.
+function seedFromQuery(query) {
+  const wished = new URLSearchParams(query).get(SEED_URL_PARAMETER);
+  const isWholeNumber = /^\d+$/.test(wished || "");
+  return isWholeNumber ? Number(wished) : null;
+}
+
+// Der Startwert aus der Adresse dieser Seite (siehe seedFromQuery).
+function seedFromUrl() {
+  return seedFromQuery(window.location.search);
+}
+
+// Alle Werte eines Profils:die Grundwerte, überschrieben mit den Abweichungen des Profils.
 function valuesOfProfile(config, profileName) {
   return { ...config.base, ...config.profiles[profileName] };
 }
@@ -1372,6 +1389,7 @@ function controlValue(control) {
 
 // Macht ein Profil zum aktiven: füllt alle Regler mit seinen Werten und merkt sich den
 // Namen. Das Layout richtet sich über body[data-profile] ebenfalls nach dem Profil.
+// Steht in der Adresse ein Startwert (?seed=…), gilt er statt des Werts aus dem Profil.
 function applyProfile(config, profileName) {
   activeProfileName = profileName;
   document.body.dataset.profile = profileName;
@@ -1380,6 +1398,9 @@ function applyProfile(config, profileName) {
     const control = document.getElementById(name);
     if (control) setControlValue(control, value);
   }
+
+  const seedInUrl = seedFromUrl();
+  if (seedInUrl !== null) setControlValue(document.getElementById("seed"), seedInUrl);
 }
 
 // Die Werte, wie sie jetzt gerade gelten: für jeden Namen aus CONFIG.base der Stand

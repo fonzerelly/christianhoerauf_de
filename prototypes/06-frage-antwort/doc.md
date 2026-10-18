@@ -55,6 +55,8 @@ Für christianhoerauf.de: `../../live/index.html` (siehe „Besucherfassung").
 | `besucher/kopf.html` | Titel und Beschreibung der Besucherfassung. |
 | `besucher/inhalt.html` | Einstiegstext für Screenreader und Suchmaschinen, `noscript`-Hinweis. |
 | `baue-einzeldatei.sh` | Baut beide Einzeldateien: den Prototyp mit Reglern und die Besucherfassung. |
+| `tests/` | Automatische Tests mit Node (siehe „Tests"). Werden nicht in die Einzeldateien eingebaut. |
+| `werkzeuge/screenshots.js` | Screenshots der Besucherfassung für mehrere Startwerte, Handy und Desktop (siehe „Screenshots mehrerer Startwerte"). |
 
 Die Skripte werden in genau dieser Reihenfolge geladen; jedes benutzt nur, was davor steht.
 
@@ -78,6 +80,14 @@ Sprachmodells.
 
 **Jede Antwort bekommt ein anderes Labyrinth**, auch bei gleichem Text: ihr Startwert ist
 der Zufalls-Startwert aus dem Regler plus die laufende Nummer der Antwort.
+
+**Ein Labyrinth 1:1 wieder aufrufen:** `?seed=123` in der Adresse setzt den
+Zufalls-Startwert, auch in der Besucherfassung ohne Regler (z. B.
+`christianhoerauf.de/?seed=123`, kombinierbar mit `&profil=handy`). Ohne Parameter gilt der
+Wert aus der Config (1). Genau dasselbe Bild ergibt sich nur, wenn alles andere auch gleich
+ist: Rastergröße (also Fenstergröße und Profil), Text, Einstellungen und – ab der zweiten
+Antwort – die Folge der Antworten davor, denn der Eingang hängt am Ausgang des vorigen
+Labyrinths. Die Begrüßung bekommt den Startwert selbst, die erste Antwort Startwert + 1 usw.
 
 ### Knopf „Nochmal"
 
@@ -250,6 +260,8 @@ getrennt werden darf, und wird nie angezeigt.
   sich nicht von selbst (sonst gingen verstellte Regler beim Drehen des Handys verloren).
 - Von Hand wechseln: Auswahl „Regler füllen mit den Werten von" in der Regler-Leiste.
 - Erzwingen: `index.html?profil=handy` (zum Ausprobieren am Rechner).
+- Startwert festlegen: `index.html?seed=123` gilt statt `seed` aus dem Profil, auch nach
+  einem Profilwechsel von Hand.
 - Das Profil bestimmt auch das Layout (`body[data-profile="handy"]` in `index.html`).
   Ein weiteres Profil bekäme das Desktop-Layout.
 
@@ -478,10 +490,13 @@ Flimmern → Glasscheibe.
 | `activeProfileName` | Der Name des Profils, mit dessen Werten die Regler zuletzt gefüllt wurden. **Neu.** |
 | `profileNameForWidth(config, windowWidth)` | `desktop` ab der Schwelle `desktopFromWidth`, sonst `handy`. **Neu.** |
 | `profileNameFromUrl(config)` | Das mit `?profil=…` gewünschte Profil, oder `null`, wenn keines oder ein unbekanntes dasteht. **Neu.** |
+| `SEED_URL_PARAMETER` | Der Name des Adress-Parameters `seed`. **Neu.** |
+| `seedFromQuery(query)` | Liest aus einer Adresszeile wie `?seed=123` den Startwert als Zahl. Steht dort keiner oder keine ganze Zahl ab 0 (leer, `abc`, `1.5`, `-3`), kommt `null`. Kennt keinen Browser, deshalb in Node testbar. **Neu.** |
+| `seedFromUrl()` | `seedFromQuery` angewandt auf die Adresse der aktuellen Seite. **Neu.** |
 | `valuesOfProfile(config, profileName)` | Alle Werte eines Profils: die Grundwerte, überschrieben mit den Abweichungen des Profils. **Neu.** |
 | `setControlValue(control, value)` | Setzt einen Regler: Ankreuzfeld auf wahr/falsch, alle anderen auf den Wert als Text. **Neu.** |
 | `controlValue(control)` | Liest einen Regler im passenden Typ: Ankreuzfeld → wahr/falsch, Schieberegler und Zahlenfeld → Zahl, sonst Text. **Neu.** |
-| `applyProfile(config, profileName)` | Macht ein Profil zum aktiven: merkt sich den Namen, setzt `body[data-profile]` (Layout) und füllt alle Regler mit den Werten. **Neu.** |
+| `applyProfile(config, profileName)` | Macht ein Profil zum aktiven: merkt sich den Namen, setzt `body[data-profile]` (Layout) und füllt alle Regler mit den Werten. Steht in der Adresse `?seed=…`, bekommt der Regler „Zufalls-Startwert" diesen Wert statt des Profilwerts. **Geändert.** |
 | `currentValues(config)` | Die Werte, wie sie jetzt gelten: für jeden Namen aus `base` der Stand seines Reglers; Namen ohne Regler behalten den Wert aus dem aktiven Profil. **Neu.** |
 | `readSettings()` | Liest alle Regler in das Objekt, mit dem Labyrinth und Zeichnung arbeiten. Prozentwerte werden zu Anteilen von 0 bis 1. **Neu gebaut.** |
 | `configTextOf(config, profileName, values, note)` | Schreibt die Werte als fertigen Profil-Block für `config.js` auf – nur die, die von den Grundwerten abweichen, mit `note` als Kommentarzeile darüber. **Neu.** |
@@ -579,6 +594,73 @@ Flimmern → Glasscheibe.
 | `showConfigText()` | Zeigt die aktuellen Reglerwerte als Profil-Block im Textfeld, kopiert ihn in die Zwischenablage und meldet, ob das geklappt hat. **Neu.** |
 | `connectControls()` | Verbindet Fragefeld, Regler und Knöpfe mit ihren Aktionen. **Geändert.** |
 | `start()` | Der Start: Profil wählen (Adresse vor Fensterbreite), Regler füllen, die Knöpfe „Regler" und „Nochmal" je nach Config zeigen oder verstecken, Regler-Leiste auf oder zu, Begrüßung als erste Antwort, Labyrinth bauen, Bühne beobachten, Animation anwerfen. **Neu.** |
+
+## Tests
+
+Aufruf im Ordner `prototypes/06-frage-antwort`:
+
+```bash
+node --test
+```
+
+Node findet alle Dateien `tests/*.test.js` selbst. Es braucht keine Pakete, nur Node.
+
+| Datei / Name | Was es tut |
+|---|---|
+| `tests/lade-browser-skripte.js` → `loadBrowserScripts(fileNames)` | Lädt Skripte des Prototyps wie der Browser: nacheinander in einen gemeinsamen Bereich (Node-`vm`). Deklarierte Funktionen stehen danach als Eigenschaften bereit, Konstanten über `evaluate("NAME")`. Reicht `URLSearchParams` hinein, das ein leerer `vm`-Bereich nicht kennt. |
+| `tests/einstellungen.test.js` | Prüft `seedFromQuery`: gültige Startwerte (auch neben `profil=`, auch 0) werden zur Zahl, alles andere zu `null`. |
+| `tests/labyrinth.test.js` | Prüft an der Begrüßung auf einem Raster 34 × 60 mit festen Einstellungen (nicht aus `config.js`, damit Reglerwerte die Tests nicht berühren): gleicher Startwert → dasselbe Labyrinth, anderer Startwert → ein anderes, und Startwert 1 → weiterhin genau das bekannte Labyrinth (Prüfsumme über Wände, Route, Eingang, Ausgang). |
+
+**Schlägt die Prüfsumme fehl,** hat eine Änderung an `labyrinth.js` oder `schrift.js` das
+Labyrinth verändert, und ein notierter Startwert zeigt ein anderes Bild. Ist das gewollt,
+den neuen Wert aus der Fehlermeldung („actual") in `tests/labyrinth.test.js` eintragen.
+
+## Screenshots mehrerer Startwerte
+
+Aufruf im Ordner `prototypes/06-frage-antwort`:
+
+```bash
+node werkzeuge/screenshots.js          # Startwerte 1 bis 10
+node werkzeuge/screenshots.js 3 17 42  # nur diese
+```
+
+Öffnet `live/index.html?seed=…` in einem unsichtbaren Google Chrome, einmal als Handy und
+einmal als Desktop, lässt die Begrüßung durchlaufen und fotografiert sie. Ergebnis:
+`docs/screenshots/prototyp-6-seeds/` mit einer Übersichtsseite `index.html` (pro Startwert
+eine Bildreihe in zeitlicher Folge, dazu Rastergröße, Seitenzahl, Laufzeit und ob die Seite
+Fehler gemeldet hat). Bilder eines früheren Laufs werden vorher gelöscht. Dauer für 10
+Startwerte: etwa 2 Minuten.
+
+- **Handy:** wie der Gerätemodus der Entwicklertools – 390 × 844, Pixeldichte 3, Touch,
+  iPhone-Kennung. Die Seite wählt das Profil „handy" selbst über die Breite. Gespeichert
+  wird mit 780 px Breite (Pixeldichte 2), um Platz zu sparen.
+- **Desktop:** 1440 × 900, Pixeldichte 1.
+- **Momente pro Labyrinth-Seite:** 20 %, 50 % und 80 % des Wegs, Punkt hinausgelaufen;
+  dazwischen das Weiterschieben, am Schluss das Ende. Weil in echter Zeit fotografiert
+  wird, liegt der tatsächliche Anteil manchmal 1–2 % über dem Ziel; die Übersicht zeigt
+  den tatsächlichen.
+- **Was sich nicht wiederholt:** Flackern und Bildstörung würfeln mit `Math.random` und
+  sind bei jedem Lauf anders. Das Labyrinth und die Route sind bei gleichem Startwert und
+  gleicher Fenstergröße gleich.
+
+| Name | Was es tut |
+|---|---|
+| `DEVICES` | Die beiden Geräte: Fenstergröße, Pixeldichte, Kennung, Touch, Verkleinerung beim Speichern. |
+| `FRACTIONS_PER_PAGE` | Bei welchen Anteilen des Wegs je Seite fotografiert wird. |
+| `startChrome()` | Startet Chrome headless mit leerem Profil und wartet, bis es seinen Debug-Port meldet. |
+| `openTab(port)` | Öffnet einen Tab und verbindet sich per WebSocket. Liefert `send(methode, parameter)`, die gesammelten Fehler der Seite und `close()`. |
+| `evaluate(tab, expression)` | Wertet einen Ausdruck in der Seite aus. |
+| `ANIMATION_STATE` | Der Ausdruck, der Abschnitt, Seite, Weganteil, Raster, Profil und Startwert aus `seite.js` liest. |
+| `waitForAnimation(tab)` | Wartet, bis die Seite geladen ist und die Animation läuft. |
+| `imageNameOf(deviceName, seed, number, moment)` | Dateiname wie `handy-seed03-02-seite1-weg50.jpg`. |
+| `photographRun(port, deviceName, seed)` | Ein Durchlauf: Gerät nachahmen, Seite mit `?seed=` öffnen, Zustand alle 40 ms abfragen und an den Momenten fotografieren. |
+| `photographSeeds(deviceName, seeds)` | Ein Chrome arbeitet mehrere Startwerte nacheinander ab. |
+| `splitIntoGroups(list, count)` | Verteilt die Startwerte reihum auf mehrere Chrome, die gleichzeitig laufen. |
+| `escapeHtml(text)`, `runAsHtml(run)`, `writeOverviewPage(runs)` | Schreiben die Übersichtsseite. |
+| `clearOldImages()` | Löscht die `.jpg` eines früheren Laufs im Zielordner. |
+
+Das Werkzeug hat keine eigenen Tests: Es steuert einen echten Browser, und sein Ergebnis
+prüft man am Bild.
 
 ## Was geprüft ist und was nicht
 
