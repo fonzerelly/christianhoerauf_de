@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+reports/
+test-results/
+playwright-report/
+visual/**/*-snapshots/
+tests/structure/__snapshots__/
+package-lock.json

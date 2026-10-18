@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Christian Hörauf</title>
+    <meta name="description" content="Hier entsteht die Internetpräsenz von Christian Hörauf." />
+    <!-- Kein Symbolbild: verhindert, dass der Browser vergeblich nach favicon.ico fragt. -->
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- Der Text steckt sonst nur im Canvas. Hier steht er für Screenreader und Suchmaschinen. -->
+    <h1 class="visually-hidden">Hier entsteht die Internetpräsenz von Christian Hörauf</h1>
+    <noscript>
+      <p class="noscript-hint">
+        Hier entsteht die Internetpräsenz von Christian Hörauf.<br />
+        Für die Darstellung dieser Seite wird JavaScript benötigt.
+      </p>
+    </noscript>
+    <main id="stage">
+      <canvas id="maze" aria-hidden="true"></canvas>
+    </main>
+    <form id="ask-form" autocomplete="off">
+      <input
+        type="text"
+        id="question"
+        placeholder="Deine Frage …"
+        aria-label="Deine Frage"
+        enterkeyhint="send"
+      />
+      <button type="submit" id="send">Senden</button>
+    </form>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

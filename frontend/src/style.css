@@ -1,0 +1,129 @@
+* {
+  box-sizing: border-box;
+}
+
+/* Für Screenreader und Suchmaschinen lesbar, auf dem Bildschirm unsichtbar. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Die Seite ist genau so hoch wie das Fenster und scrollt nie. Weil nichts scrollt,
+   fährt am Handy auch die Adressleiste nicht ein und aus. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+  body {
+    height: 100dvh;
+  }
+}
+
+body {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "stage" "ask";
+  font:
+    14px/1.4 ui-monospace,
+    "DejaVu Sans Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  color: #7fdc97;
+  background: #020a04;
+  touch-action: manipulation; /* kein Zoomen durch doppeltes Tippen */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Das Canvas bekommt eine feste Größe in Pixeln. Schrumpft die Bühne, weil die
+   Bildschirmtastatur aufgeht, wird es nur unten abgeschnitten statt verzerrt. */
+#stage {
+  grid-area: stage;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+#maze {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+}
+
+.noscript-hint {
+  grid-area: stage;
+  align-self: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 18px;
+  color: #33ff66;
+}
+
+/* Das Fragefeld: Schrift mindestens 16 px, sonst zoomt iOS beim Antippen hinein. */
+#ask-form {
+  grid-area: ask;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  background: #04140a;
+  border-top: 1px solid #14502a;
+}
+
+#question {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 12px;
+  margin: 0;
+  font: inherit;
+  font-size: 18px;
+  color: #33ff66;
+  caret-color: #ff2a2a;
+  background: #020a04;
+  border: 1px solid #1f7a40;
+  border-radius: 2px;
+}
+
+#question::placeholder {
+  color: #2f8f4d;
+  opacity: 1;
+}
+
+#question:focus {
+  outline: none;
+  border-color: #33ff66;
+  box-shadow: 0 0 10px rgba(43, 220, 90, 0.5);
+}
+
+#ask-form button {
+  height: 48px;
+  margin: 0;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #03140a;
+  background: #2bdc5a;
+  border: 1px solid #2bdc5a;
+  border-radius: 2px;
+}
+
+#ask-form button:hover {
+  background: #33ff66;
+}
