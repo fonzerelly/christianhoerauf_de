@@ -2,7 +2,7 @@
 # Fügt index.html und alle Skripte zu EINER HTML-Datei zusammen. Es entstehen zwei Fassungen:
 #
 #   einzeldatei/labyrinth-prototyp-6.html   der Prototyp mit Reglern, zum Ausprobieren am Handy
-#   ../../live/index.html                   die Besucherfassung für christianhoerauf.de
+#   ../live/index.html                      die Besucherfassung für christianhoerauf.de
 #
 # In beiden wird jede Zeile <script src="datei.js"></script> durch den Inhalt der Datei
 # ersetzt. Die Besucherfassung bekommt zusätzlich, alles aus dem Ordner besucher/:
@@ -16,7 +16,7 @@ set -euo pipefail
 prototype_dir="$(cd "$(dirname "$0")" && pwd)"
 visitor_dir="$prototype_dir/besucher"
 prototype_target="$prototype_dir/einzeldatei/labyrinth-prototyp-6.html"
-visitor_target="$(cd "$prototype_dir/../.." && pwd)/live/index.html"
+visitor_target="$(cd "$prototype_dir/.." && pwd)/live/index.html"
 
 script_line='^[[:space:]]*<script src="([^"]+)"></script>[[:space:]]*$'
 title_line='^[[:space:]]*<title>.*</title>[[:space:]]*$'

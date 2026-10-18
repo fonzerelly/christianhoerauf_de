@@ -1,12 +1,12 @@
-// Macht Screenshots der Besucherfassung (live/index.html) für mehrere Zufalls-Startwerte,
+// Macht Screenshots der Besucherfassung (prototyp/live/index.html) für mehrere Zufalls-Startwerte,
 // einmal als Handy und einmal als Desktop, an mehreren Stellen der Begrüßungs-Animation.
 // Dazu entsteht eine Übersichtsseite index.html, die alle Bilder nebeneinander zeigt.
 //
-// Aufruf im Ordner prototypes/06-frage-antwort:
+// Aufruf im Ordner prototyp/06-frage-antwort:
 //   node werkzeuge/screenshots.js            Startwerte 1 bis 10
 //   node werkzeuge/screenshots.js 3 17 42    nur diese Startwerte
 //
-// Ergebnis: docs/screenshots/prototyp-6-seeds/ (alte Bilder dort werden vorher gelöscht).
+// Ergebnis: docs/prototyp/screenshots/prototyp-6-seeds/ (alte Bilder dort werden vorher gelöscht).
 //
 // Braucht nur Node und Google Chrome. Chrome läuft unsichtbar (headless) und wird über das
 // DevTools-Protokoll ferngesteuert - dasselbe, das die Entwicklertools des Browsers nutzen.
@@ -23,8 +23,8 @@ const os = require("node:os");
 const { spawn } = require("node:child_process");
 
 const PROJECT_DIR = path.join(__dirname, "..", "..", "..");
-const LIVE_PAGE = path.join(PROJECT_DIR, "live", "index.html");
-const OUTPUT_DIR = path.join(PROJECT_DIR, "docs", "screenshots", "prototyp-6-seeds");
+const LIVE_PAGE = path.join(PROJECT_DIR, "prototyp", "live", "index.html");
+const OUTPUT_DIR = path.join(PROJECT_DIR, "docs", "prototyp", "screenshots", "prototyp-6-seeds");
 const DEFAULT_SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const DEVICES = {
@@ -289,7 +289,7 @@ function runAsHtml(run) {
     <section>
       <h3>Seed ${run.seed} · ${run.cols} × ${run.rows} Zellen · ${run.pageCount} Seite(n) ·
         ca. ${run.walkingSeconds} s Laufzeit · ${errors}</h3>
-      <p class="url">live/index.html?seed=${run.seed}</p>
+      <p class="url">prototyp/live/index.html?seed=${run.seed}</p>
       <div class="strip ${run.device}">${pictures}
       </div>
     </section>`;
@@ -327,7 +327,7 @@ function writeOverviewPage(runs) {
 <body>
   <h1>Prototyp 6 – Begrüßung mit verschiedenen Startwerten</h1>
   <p>Erzeugt am ${new Date().toLocaleString("de-DE")} mit <code>node werkzeuge/screenshots.js</code>
-    (im Ordner prototypes/06-frage-antwort). Bild anklicken für volle Größe.</p>
+    (im Ordner prototyp/06-frage-antwort). Bild anklicken für volle Größe.</p>
   ${deviceSection("handy", "Handy, wie im Gerätemodus des Browsers")}
   ${deviceSection("desktop", "Desktop")}
 </body>

@@ -9,7 +9,7 @@ einem nachgeahmten Handy – siehe „Was geprüft ist und was nicht".
 
 Öffnen: `index.html` direkt im Browser (kein Server, kein Build nötig).
 Fürs Handy: `einzeldatei/labyrinth-prototyp-6.html` (siehe „Einzeldatei fürs Handy").
-Für christianhoerauf.de: `../../live/index.html` (siehe „Besucherfassung").
+Für christianhoerauf.de: `../live/index.html` (siehe „Besucherfassung").
 
 ## Neu gegenüber Prototyp 5
 
@@ -339,7 +339,7 @@ geruckelt hat.
 schreibt **zwei** Dateien (siehe auch „Besucherfassung"):
 
 - `einzeldatei/labyrinth-prototyp-6.html`: der Prototyp mit Reglern
-- `../../live/index.html`: die Besucherfassung
+- `../live/index.html`: die Besucherfassung
 
 Beide sind `index.html`, in der jede Zeile `<script src="…"></script>` durch den Inhalt
 der Datei ersetzt ist. Sie brauchen nichts anderes. **Nach jeder Änderung an `config.js`,
@@ -351,7 +351,7 @@ kurz über einen Webserver im Heimnetz ausliefern.
 
 ## Besucherfassung
 
-`/home/fonzy/projects/christianhoerauf_de/live/index.html` ist die Seite für
+`/home/fonzy/projects/christianhoerauf_de/prototyp/live/index.html` ist die Seite für
 christianhoerauf.de: eine einzelne Datei, die von Hand in den S3-Bucket geladen wird.
 Sie entsteht aus demselben Code wie der Prototyp – **nie von Hand ändern, immer neu bauen.**
 
@@ -597,7 +597,7 @@ Flimmern → Glasscheibe.
 
 ## Tests
 
-Aufruf im Ordner `prototypes/06-frage-antwort`:
+Aufruf im Ordner `prototyp/06-frage-antwort`:
 
 ```bash
 node --test
@@ -617,16 +617,16 @@ den neuen Wert aus der Fehlermeldung („actual") in `tests/labyrinth.test.js` e
 
 ## Screenshots mehrerer Startwerte
 
-Aufruf im Ordner `prototypes/06-frage-antwort`:
+Aufruf im Ordner `prototyp/06-frage-antwort`:
 
 ```bash
 node werkzeuge/screenshots.js          # Startwerte 1 bis 10
 node werkzeuge/screenshots.js 3 17 42  # nur diese
 ```
 
-Öffnet `live/index.html?seed=…` in einem unsichtbaren Google Chrome, einmal als Handy und
+Öffnet `prototyp/live/index.html?seed=…` in einem unsichtbaren Google Chrome, einmal als Handy und
 einmal als Desktop, lässt die Begrüßung durchlaufen und fotografiert sie. Ergebnis:
-`docs/screenshots/prototyp-6-seeds/` mit einer Übersichtsseite `index.html` (pro Startwert
+`docs/prototyp/screenshots/prototyp-6-seeds/` mit einer Übersichtsseite `index.html` (pro Startwert
 eine Bildreihe in zeitlicher Folge, dazu Rastergröße, Seitenzahl, Laufzeit und ob die Seite
 Fehler gemeldet hat). Bilder eines früheren Laufs werden vorher gelöscht. Dauer für 10
 Startwerte: etwa 2 Minuten.
