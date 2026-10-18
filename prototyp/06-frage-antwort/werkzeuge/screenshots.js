@@ -165,9 +165,9 @@ function imageNameOf(deviceName, seed, number, moment) {
   return `${deviceName}-seed${twoDigits(seed)}-${twoDigits(number)}-${moment}.jpg`;
 }
 
-// Öffnet die Seite als Handy oder Desktop mit ?seed=…, lässt die Begrüßung durchlaufen und
-// macht dabei die Bilder. Liefert die Angaben zum Durchlauf samt Liste der Bilder.
-async function photographRun(port, deviceName, seed) {
+// Öffnet einen Tab, der sich wie das Gerät verhält (Fenstergröße, Pixeldichte, Touch,
+// Kennung), und lädt darin die Seite unter `url`.
+async function openDeviceTab(port, deviceName, url) {
   const device = DEVICES[deviceName];
   const tab = await openTab(port);
   await tab.send("Runtime.enable");
@@ -175,7 +175,32 @@ async function photographRun(port, deviceName, seed) {
   await tab.send("Emulation.setDeviceMetricsOverride", device.metrics);
   if (device.userAgent) await tab.send("Emulation.setUserAgentOverride", { userAgent: device.userAgent });
   if (device.touch) await tab.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-  await tab.send("Page.navigate", { url: `file://${LIVE_PAGE}?seed=${seed}` });
+  await tab.send("Page.navigate", { url });
+  return tab;
+}
+
+// Liefert eine Funktion, die den ganzen Bildschirm des Tabs als JPEG nach
+// outputDir/fileName speichert.
+function cameraFor(tab, deviceName, outputDir) {
+  const device = DEVICES[deviceName];
+  // Ganzer Bildschirm, beim Handy verkleinert. Chrome multipliziert scale selbst noch mit
+  // der Pixeldichte: 390 px × Pixeldichte 3 × 2/3 = 780 px breit.
+  const clip = { x: 0, y: 0, width: device.metrics.width, height: device.metrics.height,
+    scale: device.imageScale };
+
+  return async (fileName) => {
+    const { data } = await tab.send("Page.captureScreenshot", {
+      format: "jpeg", quality: JPEG_QUALITY, clip, captureBeyondViewport: false,
+    });
+    fs.writeFileSync(path.join(outputDir, fileName), Buffer.from(data, "base64"));
+  };
+}
+
+// Öffnet die Seite als Handy oder Desktop mit ?seed=…, lässt die Begrüßung durchlaufen und
+// macht dabei die Bilder. Liefert die Angaben zum Durchlauf samt Liste der Bilder.
+async function photographRun(port, deviceName, seed) {
+  const tab = await openDeviceTab(port, deviceName, `file://${LIVE_PAGE}?seed=${seed}`);
+  const savePicture = cameraFor(tab, deviceName, OUTPUT_DIR);
 
   let state = await waitForAnimation(tab);
   const run = {
@@ -189,17 +214,9 @@ async function photographRun(port, deviceName, seed) {
     images: [],
   };
 
-  // Ganzer Bildschirm, beim Handy verkleinert. Chrome multipliziert scale selbst noch mit
-  // der Pixeldichte: 390 px × Pixeldichte 3 × 2/3 = 780 px breit.
-  const clip = { x: 0, y: 0, width: device.metrics.width, height: device.metrics.height,
-    scale: device.imageScale };
-
   const takePicture = async (moment, description) => {
     const fileName = imageNameOf(deviceName, seed, run.images.length + 1, moment);
-    const { data } = await tab.send("Page.captureScreenshot", {
-      format: "jpeg", quality: JPEG_QUALITY, clip, captureBeyondViewport: false,
-    });
-    fs.writeFileSync(path.join(OUTPUT_DIR, fileName), Buffer.from(data, "base64"));
+    await savePicture(fileName);
     run.images.push({ file: fileName, description });
   };
 
@@ -327,7 +344,8 @@ function writeOverviewPage(runs) {
 <body>
   <h1>Prototyp 6 – Begrüßung mit verschiedenen Startwerten</h1>
   <p>Erzeugt am ${new Date().toLocaleString("de-DE")} mit <code>node werkzeuge/screenshots.js</code>
-    (im Ordner prototyp/06-frage-antwort). Bild anklicken für volle Größe.</p>
+    (im Ordner prototyp/06-frage-antwort). Bild anklicken für volle Größe.
+    Frage, Schnelldurchlauf und Zeichensatz: <a href="../prototyp-6-vergleich/index.html">prototyp-6-vergleich</a>.</p>
   ${deviceSection("handy", "Handy, wie im Gerätemodus des Browsers")}
   ${deviceSection("desktop", "Desktop")}
 </body>
@@ -360,6 +378,10 @@ async function main() {
   writeOverviewPage(runs);
   console.log(`Fertig: ${path.join(OUTPUT_DIR, "index.html")}`);
 }
+
+module.exports = {
+  PROJECT_DIR, DEVICES, sleep, startChrome, evaluate, waitForAnimation, openDeviceTab, cameraFor, escapeHtml,
+};
 
 if (require.main === module) {
   main().catch((error) => {

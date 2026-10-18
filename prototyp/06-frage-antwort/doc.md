@@ -57,6 +57,7 @@ Für christianhoerauf.de: `../live/index.html` (siehe „Besucherfassung").
 | `baue-einzeldatei.sh` | Baut beide Einzeldateien: den Prototyp mit Reglern und die Besucherfassung. |
 | `tests/` | Automatische Tests mit Node (siehe „Tests"). Werden nicht in die Einzeldateien eingebaut. |
 | `werkzeuge/screenshots.js` | Screenshots der Besucherfassung für mehrere Startwerte, Handy und Desktop (siehe „Screenshots mehrerer Startwerte"). |
+| `werkzeuge/vergleichsbilder.js` | Vergleichsbilder für den Neubau: Frage, Schnelldurchlauf, ganzer Zeichensatz (siehe „Vergleichsbilder für den Neubau"). |
 
 Die Skripte werden in genau dieser Reihenfolge geladen; jedes benutzt nur, was davor steht.
 
@@ -653,6 +654,8 @@ Startwerte: etwa 2 Minuten.
 | `ANIMATION_STATE` | Der Ausdruck, der Abschnitt, Seite, Weganteil, Raster, Profil und Startwert aus `seite.js` liest. |
 | `waitForAnimation(tab)` | Wartet, bis die Seite geladen ist und die Animation läuft. |
 | `imageNameOf(deviceName, seed, number, moment)` | Dateiname wie `handy-seed03-02-seite1-weg50.jpg`. |
+| `openDeviceTab(port, deviceName, url)` | Öffnet einen Tab, der sich wie das Gerät verhält (Fenstergröße, Pixeldichte, Touch, Kennung), und lädt `url`. |
+| `cameraFor(tab, deviceName, outputDir)` | Liefert eine Funktion `(dateiname)`, die den ganzen Bildschirm als JPEG in `outputDir` speichert, beim Handy verkleinert. |
 | `photographRun(port, deviceName, seed)` | Ein Durchlauf: Gerät nachahmen, Seite mit `?seed=` öffnen, Zustand alle 40 ms abfragen und an den Momenten fotografieren. |
 | `photographSeeds(deviceName, seeds)` | Ein Chrome arbeitet mehrere Startwerte nacheinander ab. |
 | `splitIntoGroups(list, count)` | Verteilt die Startwerte reihum auf mehrere Chrome, die gleichzeitig laufen. |
@@ -661,6 +664,45 @@ Startwerte: etwa 2 Minuten.
 
 Das Werkzeug hat keine eigenen Tests: Es steuert einen echten Browser, und sein Ergebnis
 prüft man am Bild.
+
+`vergleichsbilder.js` nutzt `startChrome`, `evaluate`, `waitForAnimation`, `openDeviceTab`,
+`cameraFor`, `escapeHtml`, `DEVICES` und `PROJECT_DIR` mit (über `module.exports`). Beim
+Laden per `require` startet `screenshots.js` nichts.
+
+## Vergleichsbilder für den Neubau
+
+Aufruf im Ordner `prototyp/06-frage-antwort`:
+
+```bash
+node werkzeuge/vergleichsbilder.js
+```
+
+Spielt mit Startwert 1 drei Szenen durch, je als Handy und als Desktop (gleiche Geräte wie
+oben), und legt die Bilder mit Übersichtsseite in
+`docs/prototyp/screenshots/prototyp-6-vergleich/` ab. Dauer: etwa 1½ Minuten.
+
+- **frage** (Besucherfassung): Begrüßung abwarten, „Wer bist du?" eintippen und abschicken,
+  dann die Antwort „Ich bin noch ein Prototyp …" mit denselben Momenten wie oben.
+- **schnelldurchlauf** (Besucherfassung): Frage, sobald Seite 1 der Begrüßung zur Hälfte
+  geschrieben ist; drei Bilder vom Schnelldurchlauf, dann die Antwort.
+- **zeichensatz** (Prototyp-Fassung mit Reglern): Regler-Leiste zuklappen, damit die Bühne so
+  groß ist wie bei Besuchern, dann `=ABCDEF GHIJKL … -.?` abschicken. Weil die Leuchtspur
+  nur die letzten ein, zwei Zeichen zeigt, entsteht nach je zwei fertigen Glyphen ein Bild.
+
+Das Werkzeug liest nur; `config.js` bleibt unverändert.
+
+| Name | Was es tut |
+|---|---|
+| `SCENE_STATE` | Liest aus `seite.js` Abschnitt, Fortschritt, Seite der Antwort, ob die Seite zu einer überholten Antwort gehört, und `glyphEnds`: die Stellen der Route, an denen eine Glyphe fertig ist (letztes Wegstück, das kein Verbindungsweg ist). Dazu `glyphs`, die Zeichen der Seite in derselben Reihenfolge. |
+| `ask(tab, question)` | Tippt die Frage ins Fragefeld und schickt das Formular ab wie Enter. |
+| `waitFor(tab, onState)` | Fragt den Zustand alle 20 ms ab, bis `onState` `true` liefert; nach 4 Minuten Fehler. |
+| `photographAnswer(tab, takePicture)` | Begleitet die neue Antwort bis zum Ende: 20/50/80 % je Seite, Punkt draußen, Weiterschieben, Ende. Seiten der überholten Antwort werden übergangen. |
+| `sceneQuestion`, `sceneRush`, `sceneCharacterSet` | Die drei Szenen (siehe oben). |
+| `SCENES` | Name, Überschrift, Seite und Ablauf jeder Szene. |
+| `photographScene(port, deviceName, scene)` | Öffnet die Seite mit `?seed=1` als Gerät und spielt die Szene durch; Dateinamen wie `handy-frage-03-antwort-seite1-weg20.jpg`. |
+| `photographDevice(deviceName)` | Ein Chrome spielt alle Szenen für ein Gerät nacheinander durch. |
+| `runAsHtml(run)`, `writeOverviewPage(runs)` | Schreiben die Übersichtsseite, je Szene eine Bildreihe pro Gerät. |
+| `clearOldImages()` | Löscht die `.jpg` eines früheren Laufs im Zielordner. |
 
 ## Was geprüft ist und was nicht
 
