@@ -38,7 +38,9 @@ export function loadPrototype(): Prototype {
       return JSON.parse(json) as Result;
     },
     call<Result>(functionName: string, ...args: unknown[]): Result {
-      const argumentList = args.map((arg) => JSON.stringify(arg)).join(", ");
+      const argumentList = args
+        .map((arg) => (arg === undefined ? "undefined" : JSON.stringify(arg)))
+        .join(", ");
       return prototype.evaluate<Result>(`${functionName}(${argumentList})`);
     },
   };
