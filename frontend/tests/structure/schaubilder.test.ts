@@ -36,6 +36,8 @@ const SENTENCES: [string, string][] = [
   ["Hier ent|steht die Inter|net|prä|senz von Chris|tian Hör|auf", "internetpraesenz"],
   ["A.B.C-D 0123456789 ÄÖÜ ?!", "zeichen-gemischt"],
   ["Das ist ein langer Platzhalter-Text zum Ausprobieren mehrerer Seiten", "mehrere-seiten"],
+  // Unbekannte Zeichen (€, @) mitten im Text, neben echten E: Ist die Ersatzglyphe zu erkennen?
+  ["Ein € ist kein E, und ein @ auch nicht", "ersatzglyphe-im-text"],
 ];
 
 const GRID_OF_SENTENCES = { columns: 34, rows: 60 };
