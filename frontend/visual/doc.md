@@ -36,16 +36,17 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 
 ## Momente
 
-| Test                            | Was das Bild zeigt                                                                                               |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `<Zeichensatz>-schreiben`       | Drei Sekunden nach Beginn: Lichtpunkt mitten im Text, die Leuchtspur dahinter.                                   |
-| `<Zeichensatz>-haltepunkt`      | Der Lichtpunkt pulsiert am Haltepunkt, die Spur ist nicht verglommen (Test-Abstimmung): der ganze Text steht da. |
-| `mehrere-seiten-weiterschieben` | Mitten im Weiterschieben zur zweiten Seite.                                                                      |
-| `mehrere-seiten-haltepunkt`     | Haltepunkt der zweiten Seite.                                                                                    |
-| `frage-weiterschieben`          | Eine Frage am Haltepunkt: Der Lichtpunkt läuft hinaus, mitten im Weiterschieben zur Antwort.                     |
-| `nochmal-weiterschieben`        | „Nochmal“ schreibt die Antwort in einem frischen Labyrinth.                                                      |
-| `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                       |
-| `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                |
+| Test                             | Was das Bild zeigt                                                                                                                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<Zeichensatz>-schreiben`        | Drei Sekunden nach Beginn: Lichtpunkt mitten im Text, die Leuchtspur dahinter.                                                                                                                                         |
+| `<Zeichensatz>-haltepunkt`       | Der Lichtpunkt pulsiert am Haltepunkt, die Spur ist nicht verglommen (Test-Abstimmung): der ganze Text steht da.                                                                                                       |
+| `mehrere-seiten-weiterschieben`  | Mitten im Weiterschieben zur zweiten Seite.                                                                                                                                                                            |
+| `mehrere-seiten-haltepunkt`      | Haltepunkt der zweiten Seite.                                                                                                                                                                                          |
+| `frage-weiterschieben`           | Eine Frage am Haltepunkt: Der Lichtpunkt läuft hinaus, mitten im Weiterschieben zur Antwort.                                                                                                                           |
+| `nochmal-weiterschieben`         | „Nochmal“ schreibt die Antwort in einem frischen Labyrinth.                                                                                                                                                            |
+| `bildstoerung`                   | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                                                                                                                             |
+| `ton-knopf-aus` / `ton-knopf-an` | Nur der Ton-Knopf (44 × 44 Pixel): beim Laden mit durchgestrichenem Lautsprecher, nach einem Klick mit Schallwellen und hellem Rand. Der Test prüft auch `aria-pressed` und dass ein zweiter Klick wieder ausschaltet. |
+| `weniger-bewegung-haltepunkt`    | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                                                                                                                      |
 
-Zeichensätze: `zeichensatz-1` (A–Z), `zeichensatz-2` (ÄÖÜ, 0–9, `-.?!`), `ersatzglyphe` (`A € B €€ C`).
+Auf jedem ganzen Bild steht der Ton-Knopf oben rechts (aus). Zeichensätze: `zeichensatz-1` (A–Z), `zeichensatz-2` (ÄÖÜ, 0–9, `-.?!`), `ersatzglyphe` (`A € B €€ C`).
 Jede Begrüßung ist so geschnitten, dass sie auf Handy und Desktop auf eine Labyrinth-Seite passt.

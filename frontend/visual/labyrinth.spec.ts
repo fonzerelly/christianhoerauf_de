@@ -191,6 +191,29 @@ test.describe("Bildstörung", () => {
   });
 });
 
+test.describe("Ton-Knopf", () => {
+  test("steht beim Laden auf aus", async ({ page }) => {
+    await open(page, "zeichensatz-1");
+
+    const toggle = page.locator("#sound-toggle");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(toggle).toHaveScreenshot("ton-knopf-aus.png");
+  });
+
+  test("schaltet bei jedem Klick um und zeigt es im Symbol", async ({ page }) => {
+    await open(page, "zeichensatz-1");
+    const toggle = page.locator("#sound-toggle");
+
+    await toggle.click();
+    await page.mouse.move(0, 0); // der Zeiger soll den Knopf nicht hervorheben
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toHaveScreenshot("ton-knopf-an.png");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
 test.describe("weniger Bewegung gewünscht", () => {
   test.use({ reducedMotion: "reduce" });
 
