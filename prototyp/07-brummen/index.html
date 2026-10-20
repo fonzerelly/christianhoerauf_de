@@ -54,12 +54,17 @@
   <div class="row"><label for="driftSeconds">Wandern alle</label><input id="driftSeconds" type="range" min="0.5" max="10" step="0.5"><output id="driftSecondsOut"></output></div>
   <div class="row"><label for="glitchMode">Bei Störung</label>
     <select id="glitchMode">
+      <option value="beeps">Piepsen (abgehackte Piepser)</option>
+      <option value="data">Datensalat (kratzig, digital)</option>
+      <option value="stutter">Stottern (Brummen setzt aus, springt)</option>
       <option value="silence">Stille</option>
       <option value="noise">Rauschen statt Brummen</option>
       <option value="noiseOver">Rauschen über dem Brummen</option>
     </select><span></span></div>
-  <div class="row"><label for="noiseVolume">Rauschen Lautstärke</label><input id="noiseVolume" type="range" min="0" max="0.3" step="0.005"><output id="noiseVolumeOut"></output></div>
+  <div class="row"><label for="noiseVolume">Störung Lautstärke</label><input id="noiseVolume" type="range" min="0" max="0.3" step="0.005"><output id="noiseVolumeOut"></output></div>
   <div class="row"><label for="noiseColor">Rauschen Färbung</label><input id="noiseColor" type="range" min="300" max="10000" step="50"><output id="noiseColorOut"></output></div>
+  <div class="row"><label for="glitchPitch">Störung Tonhöhe bis</label><input id="glitchPitch" type="range" min="400" max="6000" step="50"><output id="glitchPitchOut"></output></div>
+  <div class="row"><label for="glitchChop">Störung Stückchen</label><input id="glitchChop" type="range" min="8" max="120" step="2"><output id="glitchChopOut"></output></div>
   <div class="row"><label>Pegel am Ausgang</label><meter id="meter" min="-80" max="0" low="-40" high="-12"></meter><output id="meterOut"></output></div>
 
   <p>Gefällt es dir, schick mir die Werte:</p>
@@ -70,13 +75,13 @@
   "use strict";
 
   const PRESETS = {
-    bisher:          { wave: "partials", base: 50, cutoff: 5000, volume: 0.04, whine: 0,     driftHertz: 0.4, minLevel: 0.5, driftSeconds: 3, glitchMode: "silence", noiseVolume: 0,    noiseColor: 3000 },
-    roehre:          { wave: "sawtooth", base: 50, cutoff: 900,  volume: 0.06, whine: 0,     driftHertz: 0.4, minLevel: 0.6, driftSeconds: 3, glitchMode: "noise",   noiseVolume: 0.08, noiseColor: 3000 },
-    "roehre-fiepen": { wave: "sawtooth", base: 50, cutoff: 900,  volume: 0.06, whine: 0.004, driftHertz: 0.4, minLevel: 0.6, driftSeconds: 3, glitchMode: "noise",   noiseVolume: 0.08, noiseColor: 3000 },
+    bisher:          { wave: "partials", base: 50, cutoff: 5000, volume: 0.04, whine: 0,     driftHertz: 0.4, minLevel: 0.5, driftSeconds: 3, glitchMode: "silence", noiseVolume: 0,    noiseColor: 3000, glitchPitch: 2500, glitchChop: 40 },
+    roehre:          { wave: "sawtooth", base: 50, cutoff: 900,  volume: 0.06, whine: 0,     driftHertz: 0.4, minLevel: 0.6, driftSeconds: 3, glitchMode: "beeps",   noiseVolume: 0.05, noiseColor: 3000, glitchPitch: 2500, glitchChop: 40 },
+    "roehre-fiepen": { wave: "sawtooth", base: 50, cutoff: 900,  volume: 0.06, whine: 0.004, driftHertz: 0.4, minLevel: 0.6, driftSeconds: 3, glitchMode: "beeps",   noiseVolume: 0.05, noiseColor: 3000, glitchPitch: 2500, glitchChop: 40 },
   };
   const FADE = 0.1;      // Zeitkonstante beim Ein-, Ausblenden und Verstummen (s)
   const DRIFT_FADE = 1;  // Zeitkonstante beim Wandern (s)
-  const ids = ["wave", "base", "cutoff", "volume", "whine", "driftHertz", "minLevel", "driftSeconds", "glitchMode", "noiseVolume", "noiseColor"];
+  const ids = ["wave", "base", "cutoff", "volume", "whine", "driftHertz", "minLevel", "driftSeconds", "glitchMode", "noiseVolume", "noiseColor", "glitchPitch", "glitchChop"];
   const TEXT_IDS = ["wave", "glitchMode"];
   const NOISE_ATTACK = 0.01; // Rauschen setzt fast sofort ein
   const NOISE_RELEASE = 0.05;
@@ -130,7 +135,11 @@
     noiseGain.gain.value = 0;
     noise.connect(noiseFilter).connect(noiseGain).connect(analyser);
     noise.start();
-    return { context, master, filter, analyser, whineGain, noiseFilter, noiseGain, voices: [] };
+
+    // Störgeräusche aus vorab berechneten Klangstückchen (Piepsen, Datensalat) laufen hierüber.
+    const glitchGain = context.createGain();
+    glitchGain.connect(analyser);
+    return { context, master, filter, analyser, whineGain, noiseFilter, noiseGain, glitchGain, voices: [] };
   }
 
   /** Baut die Tonquellen neu: eine Welle oder (wie bisher) drei Sinustöne. */
@@ -157,7 +166,7 @@
     if (!audio) return;
     const { volume, whine, glitchMode } = settings();
     const now = audio.context.currentTime;
-    const humSilenced = isMuted && glitchMode !== "noiseOver";
+    const humSilenced = isMuted && glitchMode !== "noiseOver" && glitchMode !== "stutter";
     const active = isOn && !humSilenced;
     audio.master.gain.setTargetAtTime(active ? volume * level : 0, now, timeConstant);
     audio.whineGain.gain.setTargetAtTime(active && volume > 0 ? whine / volume : 0, now, timeConstant);
@@ -187,6 +196,8 @@
     element("driftSecondsOut").textContent = `${s.driftSeconds} s`;
     element("noiseVolumeOut").textContent = s.noiseVolume.toFixed(3);
     element("noiseColorOut").textContent = `${s.noiseColor} Hz`;
+    element("glitchPitchOut").textContent = `${s.glitchPitch} Hz`;
+    element("glitchChopOut").textContent = `${s.glitchChop} ms`;
     element("values").textContent = JSON.stringify(s, null, 2);
     if (audio) {
       audio.filter.frequency.setTargetAtTime(s.cutoff, audio.context.currentTime, FADE);
@@ -216,14 +227,78 @@
     drift();
   });
   element("stop").addEventListener("click", () => { isOn = false; applyGain(FADE); clearTimeout(driftTimer); });
+  /** Eine Zufallszahl zwischen `low` und `high`. */
+  const between = (low, high) => low + Math.random() * (high - low);
+
+  /**
+   * Berechnet ein Klangstückchen für die Störung als AudioBuffer. Die Störung wird in Stückchen
+   * zerhackt (Länge um „Störung Stückchen“); jedes ist still oder klingt mit eigener Tonhöhe.
+   * - Piepsen: Rechteckwelle, Tonhöhe springt zwischen 300 Hz und „Störung Tonhöhe bis“.
+   * - Datensalat: Zufallswerte, die je Stückchen unterschiedlich lange gehalten werden
+   *   (sample and hold): klingt kratzig und digital.
+   */
+  function glitchBuffer(kind, seconds, pitchMax, chopMillis) {
+    const { sampleRate } = audio.context;
+    const buffer = audio.context.createBuffer(1, Math.ceil(seconds * sampleRate), sampleRate);
+    const data = buffer.getChannelData(0);
+    let index = 0;
+    while (index < data.length) {
+      const length = Math.round(between(0.4, 1.6) * chopMillis / 1000 * sampleRate);
+      const silent = Math.random() < 0.3;
+      const loudness = between(0.5, 1);
+      const frequency = between(300, pitchMax);
+      const hold = Math.max(1, Math.round(sampleRate / between(200, pitchMax)));
+      let held = 0;
+      for (let step = 0; step < length && index < data.length; step++, index++) {
+        if (silent) { data[index] = 0; continue; }
+        if (kind === "beeps") {
+          data[index] = (Math.sin(2 * Math.PI * frequency * step / sampleRate) >= 0 ? 1 : -1) * loudness;
+        } else {
+          if (step % hold === 0) held = Math.random() * 2 - 1;
+          data[index] = held * loudness;
+        }
+      }
+    }
+    return buffer;
+  }
+
+  /** Stottern: Das Brummen setzt in schnellem Wechsel aus und springt dabei in der Tonhöhe. */
+  function stutter(seconds, chopMillis) {
+    const { base } = settings();
+    const start = audio.context.currentTime;
+    let time = start;
+    while (time < start + seconds) {
+      const on = Math.random() > 0.4;
+      audio.master.gain.setValueAtTime(on ? settings().volume : 0, time);
+      for (const voice of audio.voices) {
+        voice.oscillator.frequency.setValueAtTime(base * voice.multiple * between(0.7, 1.8), time);
+      }
+      time += between(0.4, 1.6) * chopMillis / 1000;
+    }
+    for (const voice of audio.voices) voice.oscillator.frequency.setValueAtTime(base * voice.multiple, time);
+    audio.master.gain.setValueAtTime(settings().volume * level, time);
+  }
+
   /** Eine Bildstörung wie auf der Seite: 0,35 bis 0,85 Sekunden. */
   function glitch() {
     if (!audio || !isOn) return;
-    const { glitchMode, noiseVolume } = settings();
-    const seconds = 0.35 + Math.random() * 0.5;
+    const { glitchMode, noiseVolume, glitchPitch, glitchChop } = settings();
+    const seconds = between(0.35, 0.85);
     const now = audio.context.currentTime;
+    if (glitchMode === "stutter") {
+      stutter(seconds, glitchChop);
+      return;
+    }
     isMuted = true; applyGain(FADE);
-    if (glitchMode !== "silence") audio.noiseGain.gain.setTargetAtTime(noiseVolume, now, NOISE_ATTACK);
+    if (glitchMode === "beeps" || glitchMode === "data") {
+      const source = audio.context.createBufferSource();
+      source.buffer = glitchBuffer(glitchMode, seconds, glitchPitch, glitchChop);
+      audio.glitchGain.gain.value = noiseVolume;
+      source.connect(audio.glitchGain);
+      source.start();
+    } else if (glitchMode !== "silence") {
+      audio.noiseGain.gain.setTargetAtTime(noiseVolume, now, NOISE_ATTACK);
+    }
     setTimeout(() => {
       isMuted = false; applyGain(FADE);
       audio.noiseGain.gain.setTargetAtTime(0, audio.context.currentTime, NOISE_RELEASE);

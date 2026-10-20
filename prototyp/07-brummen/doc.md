@@ -15,8 +15,11 @@ tiefen Grundton dann selbst.
 ## Erkenntnisse
 
 - Eine **Sägezahnwelle** bei 50 Hz durch einen Tiefpass trifft den Klang (Christian, 2026-10-21).
-- **Stille während der Bildstörung wirkt falsch.** Stattdessen ein kurzes Rauschen; die Störung
-  dauert auf der Seite 0,35–0,85 s, die Probe ebenso.
+- **Stille während der Bildstörung wirkt falsch.** Die Störung dauert auf der Seite 0,35–0,85 s,
+  die Probe ebenso.
+- **Gleichmäßiges Rauschen klingt wie eine Luftpumpe** (Christian, 2026-10-21). Gesucht ist eher
+  „kaputte Elektronik“: abgebrochene Piepser. Deshalb die Störgeräusche Piepsen, Datensalat und
+  Stottern.
 
 ## Regler
 
@@ -28,8 +31,11 @@ tiefen Grundton dann selbst.
 | Lautstärke | Gesamtpegel des Brummens |
 | Fiepen 15,6 kHz | das hohe Pfeifen alter Fernseher (Zeilenfrequenz); viele Erwachsene hören es nicht |
 | Wandern | wie weit Tonhöhe und Pegel zufällig schwanken und wie oft ein neues Ziel gewürfelt wird |
-| Bei Störung | Stille, Rauschen statt Brummen, oder Rauschen über dem Brummen |
-| Rauschen Lautstärke, Färbung | Pegel und Mittenfrequenz (Bandpass) des Rauschens |
+| Bei Störung | Piepsen, Datensalat, Stottern, Stille, Rauschen statt Brummen, Rauschen über dem Brummen |
+| Störung Lautstärke | Pegel des Störgeräuschs (Piepsen, Datensalat, Rauschen) |
+| Rauschen Färbung | Mittenfrequenz (Bandpass) des Rauschens |
+| Störung Tonhöhe bis | höchste Tonhöhe der Piepser bzw. des Datensalats |
+| Störung Stückchen | ungefähre Länge der Stückchen, in die die Störung zerhackt wird |
 
 Voreinstellungen: „Wie bisher“ (erste Fassung), „Röhre (Vorschlag)“, „Röhre mit Fiepen“. Unten
 auf der Seite stehen die aktuellen Werte als JSON zum Übernehmen.
@@ -46,4 +52,7 @@ auf der Seite stehen die aktuellen Werte als JSON zum Übernehmen.
 | `drift()` | Würfelt ein neues Ziel für Tonhöhe und Pegel, gleitet dorthin und plant den nächsten Wurf. |
 | `refresh()` | Zeigt die Werte neben den Reglern und im JSON-Block und überträgt Tiefpass, Rauschfarbe und Pegel. |
 | `updateMeter()` | Misst bei jedem Bild den Pegel am Ausgang (RMS in dB) und zeigt ihn an. |
-| `glitch()` | Spielt eine Bildstörung von 0,35–0,85 s: Brummen weg, je nach Auswahl Rauschen an, danach zurück. |
+| `between(low, high)` | Eine Zufallszahl zwischen den beiden Grenzen. |
+| `glitchBuffer(kind, seconds, pitchMax, chopMillis)` | Berechnet das Störgeräusch als Klangstückchen: zerhackt in Stückchen, 30 % davon still. Piepsen: Rechteckwelle mit springender Tonhöhe. Datensalat: Zufallswerte, je Stückchen unterschiedlich lange gehalten (kratzig, digital). |
+| `stutter(seconds, chopMillis)` | Lässt das Brummen in schnellem Wechsel aus- und angehen und dabei in der Tonhöhe springen (0,7- bis 1,8-fach), danach zurück. |
+| `glitch()` | Spielt eine Bildstörung von 0,35–0,85 s: Brummen weg (außer bei Stottern und „Rauschen über dem Brummen“), dazu das gewählte Störgeräusch, danach zurück. |
