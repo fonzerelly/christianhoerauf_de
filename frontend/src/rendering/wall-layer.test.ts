@@ -194,4 +194,96 @@ describe("WallLayer", () => {
 
     expect(layers.created).toHaveLength(2);
   });
+
+  describe("prepare (vorab zeichnen, in Stücken)", () => {
+    /** Führt `prepare` bis zum Ende aus und zählt die Pausen. */
+    function prepareAndCountPauses(
+      walls: WallLayer,
+      aPage = page(),
+      layout = LAYOUT,
+      settings = SETTINGS,
+    ): number {
+      const steps = walls.prepare(aPage, layout, settings);
+      let pauses = 0;
+      while (steps.next().done !== true) pauses++;
+      return pauses;
+    }
+
+    it("zeichnet dasselbe wie `imageOf`, aber mit einem `flush()` nach jedem Stück", () => {
+      const layers = new FakeLayers();
+      const walls = new WallLayer(layers.create);
+
+      const pauses = prepareAndCountPauses(walls);
+
+      expect(pauses).toBe(2);
+      const calls = layers.created[0]?.calls ?? [];
+      const afterWalls = calls.slice(calls.indexOf("lineTo(20, 20)") + 1);
+      expect(afterWalls).toEqual([
+        "save()",
+        "strokeStyle = #0f0",
+        "lineWidth = 2",
+        "shadowColor = #0f0",
+        "shadowBlur = 6",
+        "globalAlpha = 0.5",
+        "stroke()",
+        "flush()", // Lichthof, erster Strich
+        "stroke()",
+        "restore()",
+        "flush()", // Lichthof, zweiter Strich
+        "strokeStyle = #0f0",
+        "lineWidth = 2",
+        "stroke()",
+        "strokeStyle = #ffffff",
+        "globalAlpha = 0.55",
+        "lineWidth = 0.6666666666666666",
+        "stroke()",
+        "flush()", // Linie und Kern
+      ]);
+    });
+
+    it("legt die Fläche erst im ersten Stück an, nicht schon beim Aufruf", () => {
+      const layers = new FakeLayers();
+      const steps = new WallLayer(layers.create).prepare(page(), LAYOUT, SETTINGS);
+
+      expect(layers.created).toHaveLength(0);
+      steps.next();
+      expect(layers.created).toHaveLength(1);
+    });
+
+    it("hebt das Ergebnis auf: `imageOf` und `draw` brauchen danach nichts mehr zu zeichnen", () => {
+      const layers = new FakeLayers();
+      const walls = new WallLayer(layers.create);
+      const aPage = page();
+
+      prepareAndCountPauses(walls, aPage);
+      expect(layers.created).toHaveLength(1);
+      walls.imageOf(aPage, LAYOUT, SETTINGS);
+      walls.draw(recordingContext().context, aPage, LAYOUT, SETTINGS);
+
+      expect(layers.created).toHaveLength(1);
+    });
+
+    it("tut nichts, wenn das Wandbild schon da ist", () => {
+      const layers = new FakeLayers();
+      const walls = new WallLayer(layers.create);
+      const aPage = page();
+      walls.imageOf(aPage, LAYOUT, SETTINGS);
+
+      const pauses = prepareAndCountPauses(walls, aPage);
+
+      expect(pauses).toBe(0);
+      expect(layers.created).toHaveLength(1);
+    });
+
+    it("zeichnet neu, wenn das vorhandene Wandbild veraltet ist", () => {
+      const layers = new FakeLayers();
+      const walls = new WallLayer(layers.create);
+      const aPage = page();
+      walls.imageOf(aPage, LAYOUT, SETTINGS);
+
+      prepareAndCountPauses(walls, aPage, LAYOUT, { ...SETTINGS, wallColor: "#00f" });
+
+      expect(layers.created).toHaveLength(2);
+    });
+  });
 });

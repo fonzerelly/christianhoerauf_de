@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Phase, Playback } from "../animation/playback-view";
 import { lastOf } from "../domain/lists";
+import type { Steps } from "../domain/steps";
 import type { Renderer } from "../rendering/renderer";
 import type { StageLayout } from "../rendering/stage-layout";
 import { playbackView } from "../test-support/fake-playback-view";
@@ -86,6 +87,10 @@ class FakeRenderer implements Renderer {
 
   public draw(view: Playback, seconds: number): void {
     this.drawn.push({ view, seconds });
+  }
+
+  public *prepare(): Steps<void> {
+    yield; // Die Bühne bereitet nichts vor; das tut die Seitenquelle.
   }
 
   public discardPreparedImages(): void {

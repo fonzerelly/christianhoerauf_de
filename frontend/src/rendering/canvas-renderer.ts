@@ -1,6 +1,7 @@
 import type { PlaybackView } from "../animation/playback-view";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { RandomSource } from "../domain/random/random-source";
+import type { Steps } from "../domain/steps";
 import { DotPainter } from "./dot-painter";
 import type { CanvasSurface, DrawingContext, LayerFactory } from "./drawing-context";
 import { GlitchScheduler } from "./glitch-scheduler";
@@ -69,6 +70,12 @@ export class CanvasRenderer implements Renderer {
   public discardPreparedImages(): void {
     this.walls.clear();
     this.monitor.discardPreparedImages();
+  }
+
+  public *prepare(page: MazePage): Steps<void> {
+    this.monitor.prepareOverlay(this.layout, this.parts.settings);
+    yield;
+    yield* this.walls.prepare(page, this.layout, this.parts.settings);
   }
 
   public draw(view: PlaybackView, seconds: number): void {

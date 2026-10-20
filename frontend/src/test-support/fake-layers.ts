@@ -14,6 +14,9 @@ export class FakeLayers {
     return {
       context,
       image: { name: `Fläche ${String(this.created.length)}` } as unknown as CanvasImageSource,
+      flush: () => {
+        calls.push("flush()");
+      },
     };
   };
 }

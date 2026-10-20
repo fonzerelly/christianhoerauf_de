@@ -27,4 +27,15 @@ describe("FakeLayers", () => {
     expect(first.image).toEqual({ name: "Fläche 1" });
     expect(second.image).toEqual({ name: "Fläche 2" });
   });
+
+  it("vermerkt ein `flush()` in der Aufzeichnung der Fläche, zwischen den Zeichenbefehlen", () => {
+    const layers = new FakeLayers();
+    const layer = layers.create(1, 1);
+
+    layer.context.beginPath();
+    layer.flush();
+    layer.context.fill();
+
+    expect(layers.created[0]?.calls).toEqual(["beginPath()", "flush()", "fill()"]);
+  });
 });

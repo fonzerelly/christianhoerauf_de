@@ -1,4 +1,6 @@
 import type { PlaybackView } from "../animation/playback-view";
+import type { MazePage } from "../domain/pages/maze-page-generator";
+import type { Steps } from "../domain/steps";
 import type { StageLayout } from "./stage-layout";
 
 /**
@@ -10,6 +12,13 @@ export interface Renderer {
   resize(layout: StageLayout): void;
   /** Zeichnet ein Bild. `seconds` ist die Zeit seit dem vorigen Bild. */
   draw(view: PlaybackView, seconds: number): void;
+  /**
+   * Zeichnet vorab, was die Seite zum Zeichnen braucht (die Wände, die Glasscheibe des Monitors),
+   * in Stücken (siehe `Steps`), damit der Browser zwischendurch arbeiten kann. Danach kostet das
+   * Zeichnen der Seite nur noch das Kopieren. Wer `prepare` auslässt, bekommt dasselbe Bild, nur
+   * rechnet dann das erste Bild alles auf einmal.
+   */
+  prepare(page: MazePage): Steps<void>;
   /** Wirft alle vorab gezeichneten Bilder weg, falls der Browser den Grafikspeicher freigegeben hat. */
   discardPreparedImages(): void;
   /** Läuft gerade eine Bildstörung? Dann muss weitergezeichnet werden, auch wenn die Animation steht. */

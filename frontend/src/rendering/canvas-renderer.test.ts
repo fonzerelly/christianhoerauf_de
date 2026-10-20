@@ -65,6 +65,55 @@ describe("CanvasRenderer", () => {
     });
   });
 
+  describe("prepare", () => {
+    /** Führt `prepare` bis zum Ende aus und zählt die Pausen. */
+    function prepareAndCountPauses(renderer: CanvasRenderer, page = PAGE): number {
+      const steps = renderer.prepare(page);
+      let pauses = 0;
+      while (steps.next().done !== true) pauses++;
+      return pauses;
+    }
+
+    it("zeichnet erst die Glasscheibe des Monitors vor, dann in zwei Stücken die Wände, jedes ausgeführt", () => {
+      const { renderer, layers } = setup();
+
+      const pauses = prepareAndCountPauses(renderer);
+
+      expect(pauses).toBe(3);
+      expect(layers.created).toHaveLength(2);
+      expect(layers.created[0]?.calls.at(-1)).toBe("flush()"); // Glasscheibe
+      expect(layers.created[1]?.calls.filter((call) => call === "flush()")).toHaveLength(3); // Wände
+    });
+
+    it("pausiert nach der Glasscheibe, bevor es die Wände anfängt", () => {
+      const { renderer, layers } = setup();
+      const steps = renderer.prepare(PAGE);
+
+      steps.next();
+
+      expect(layers.created).toHaveLength(1);
+    });
+
+    it("lässt dem ersten Bild nichts mehr zu zeichnen übrig", () => {
+      const { renderer, layers } = setup();
+      prepareAndCountPauses(renderer);
+
+      renderer.draw(playbackView({ currentPage: PAGE }), 0);
+
+      expect(layers.created).toHaveLength(2);
+    });
+
+    it("tut nichts, was schon vorab gezeichnet ist", () => {
+      const { renderer, layers } = setup();
+      prepareAndCountPauses(renderer);
+
+      const pauses = prepareAndCountPauses(renderer);
+
+      expect(pauses).toBe(1);
+      expect(layers.created).toHaveLength(2);
+    });
+  });
+
   describe("draw", () => {
     it("stellt den Maßstab vor jedem Bild neu ein und füllt den Hintergrund", () => {
       const { renderer, calls } = setup();

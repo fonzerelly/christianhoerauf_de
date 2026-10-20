@@ -40,6 +40,29 @@ describe("MonitorEffects", () => {
       ]);
     });
 
+    it("zeichnet es auf Wunsch vorab und führt es sofort aus (`flush`), damit das erste Bild es nicht mehr rechnen muss", () => {
+      const layers = new FakeLayers();
+      const effects = new MonitorEffects(layers.create, scriptedRandom());
+
+      effects.prepareOverlay(TEST_LAYOUT, TEST_SETTINGS);
+
+      expect(layers.created).toHaveLength(1);
+      expect(layers.created[0]?.calls.at(-1)).toBe("flush()");
+      effects.drawOverlay(recordingContext().context, TEST_LAYOUT, TEST_SETTINGS);
+      expect(layers.created).toHaveLength(1);
+    });
+
+    it("zeichnet es nicht noch einmal vorab, wenn es schon aktuell ist", () => {
+      const layers = new FakeLayers();
+      const effects = new MonitorEffects(layers.create, scriptedRandom());
+      effects.drawOverlay(recordingContext().context, TEST_LAYOUT, TEST_SETTINGS);
+
+      effects.prepareOverlay(TEST_LAYOUT, TEST_SETTINGS);
+
+      expect(layers.created).toHaveLength(1);
+      expect(layers.created[0]?.calls).not.toContain("flush()");
+    });
+
     it("legt das vorab gezeichnete Bild über das ganze Bild", () => {
       const layers = new FakeLayers();
       const { context, calls } = recordingContext();

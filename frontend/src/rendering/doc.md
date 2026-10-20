@@ -4,21 +4,21 @@ Zeichnen. Dieser Ordner liest den Zustand der Animation (`PlaybackView` aus `ani
 ihn auf ein Canvas. Das Canvas selbst steckt hinter dem schmalen `DrawingContext`; im Test steht
 eine Attrappe dafür, die jeden Aufruf aufzeichnet (`test-support/recording-context.ts`).
 
-| Datei                  | Was sie tut                                                                  |
-| ---------------------- | ---------------------------------------------------------------------------- |
-| `renderer.ts`          | Port `Renderer`: `resize`, `draw`, `discardPreparedImages`, `isGlitching`.   |
-| `canvas-renderer.ts`   | `CanvasRenderer`: der Adapter, der alles zu einem Bild zusammensetzt.        |
-| `drawing-context.ts`   | `DrawingContext`, `Layer`, `LayerFactory`, `CanvasSurface`: Zeichenwerkzeug. |
-| `render-settings.ts`   | `RenderSettings`: Farben, Wände, Leuchtspur, Monitor.                        |
-| `stage-layout.ts`      | `StageLayout`, `layoutStage`, `cellCenterOn`: Einteilung der Bühne.          |
-| `scroll-shifts.ts`     | `scrollShiftsOf`: Verschiebung beider Seiten beim Weiterschieben.            |
-| `wall-layer.ts`        | `WallLayer`, `traceWalls`: Wände vorab gezeichnet, mit Lichthof.             |
-| `trail-painter.ts`     | `TrailPainter`: Leuchtspur nach Helligkeitsstufen gebündelt.                 |
-| `dot-painter.ts`       | `DotPainter`: Lichtpunkt, am Haltepunkt pulsierend.                          |
-| `monitor-effects.ts`   | `MonitorEffects`: Glasscheibe, Flimmern, Bildstörung.                        |
-| `glitch-scheduler.ts`  | `GlitchScheduler`: würfelt, wann eine Bildstörung beginnt.                   |
-| `motion-preference.ts` | Port `MotionPreference` und `MediaQueryMotionPreference`.                    |
-| `test-settings.ts`     | Einfache Zahlen für die Tests des Zeichnens (kein Produktionscode).          |
+| Datei                  | Was sie tut                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| `renderer.ts`          | Port `Renderer`: `resize`, `prepare`, `draw`, `discardPreparedImages`, `isGlitching`. |
+| `canvas-renderer.ts`   | `CanvasRenderer`: der Adapter, der alles zu einem Bild zusammensetzt.                 |
+| `drawing-context.ts`   | `DrawingContext`, `Layer` (mit `flush`), `LayerFactory`, `CanvasSurface`.             |
+| `render-settings.ts`   | `RenderSettings`: Farben, Wände, Leuchtspur, Monitor.                                 |
+| `stage-layout.ts`      | `StageLayout`, `layoutStage`, `cellCenterOn`: Einteilung der Bühne.                   |
+| `scroll-shifts.ts`     | `scrollShiftsOf`: Verschiebung beider Seiten beim Weiterschieben.                     |
+| `wall-layer.ts`        | `WallLayer`, `traceWalls`: Wände vorab gezeichnet, mit Lichthof.                      |
+| `trail-painter.ts`     | `TrailPainter`: Leuchtspur nach Helligkeitsstufen gebündelt.                          |
+| `dot-painter.ts`       | `DotPainter`: Lichtpunkt, am Haltepunkt pulsierend.                                   |
+| `monitor-effects.ts`   | `MonitorEffects`: Glasscheibe, Flimmern, Bildstörung.                                 |
+| `glitch-scheduler.ts`  | `GlitchScheduler`: würfelt, wann eine Bildstörung beginnt.                            |
+| `motion-preference.ts` | Port `MotionPreference` und `MediaQueryMotionPreference`.                             |
+| `test-settings.ts`     | Einfache Zahlen für die Tests des Zeichnens (kein Produktionscode).                   |
 
 ## Reihenfolge eines Bildes
 
@@ -45,14 +45,15 @@ Auf ganze Pixel gerundet, damit die Wände nicht flimmern.
 
 ## WallLayer
 
-| Methode                                 | Was sie konkret tut                                                                                                                                                                                                                 |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `traceWalls(context, page, cellSize)`   | Legt alle Wände einer Seite als Linien in den Pfad; Lücken an Eingang und Ausgang.                                                                                                                                                  |
-| `imageOf(page, layout, settings)`       | Das Wandbild der Seite. Es entsteht beim ersten Mal auf einer eigenen Fläche in drei Schichten (Lichthof zweimal, Linie, heller Kern) und wird aufgehoben, bis sich Wandstärke, Farbe, Lichthof, Zellgröße oder Pixeldichte ändern. |
-| `draw(context, page, layout, settings)` | Kopiert das Wandbild so aufs Bild, dass das Labyrinth an seinem Platz steht (Rand für den Lichthof eingerechnet).                                                                                                                   |
-| `keepOnly(pages)`                       | Wirft die Wandbilder aller anderen Seiten weg.                                                                                                                                                                                      |
-| `clear()`                               | Wirft alle Wandbilder weg.                                                                                                                                                                                                          |
-| `render` (privat)                       | Legt die Fläche an (Größe des Labyrinths plus Rand, mal Pixeldichte) und zeichnet die drei Schichten.                                                                                                                               |
+| Methode                                 | Was sie konkret tut                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `traceWalls(context, page, cellSize)`   | Legt alle Wände einer Seite als Linien in den Pfad; Lücken an Eingang und Ausgang.                                                                                                                                                                                                                                                                                              |
+| `imageOf(page, layout, settings)`       | Das Wandbild der Seite. Es entsteht beim ersten Mal auf einer eigenen Fläche in drei Schichten (Lichthof zweimal, Linie, heller Kern) und wird aufgehoben, bis sich Wandstärke, Farbe, Lichthof, Zellgröße oder Pixeldichte ändern.                                                                                                                                             |
+| `prepare(page, layout, settings)`       | Zeichnet dasselbe Wandbild vorab, in Stücken (`Steps`): erster Strich des Lichthofs, zweiter Strich, Linie und Kern. Nach jedem Stück ruft es `flush()` der Fläche auf, damit der Browser das Gezeichnete wirklich ausführt, bevor er Bilder zeichnet oder Eingaben bearbeitet. Sind die Wände schon aktuell, passiert nichts. `imageOf` zeichnet ohne Pausen und ohne `flush`. |
+| `draw(context, page, layout, settings)` | Kopiert das Wandbild so aufs Bild, dass das Labyrinth an seinem Platz steht (Rand für den Lichthof eingerechnet).                                                                                                                                                                                                                                                               |
+| `keepOnly(pages)`                       | Wirft die Wandbilder aller anderen Seiten weg.                                                                                                                                                                                                                                                                                                                                  |
+| `clear()`                               | Wirft alle Wandbilder weg.                                                                                                                                                                                                                                                                                                                                                      |
+| `render` (privat)                       | Legt die Fläche an (Größe des Labyrinths plus Rand, mal Pixeldichte) und zeichnet die drei Schichten.                                                                                                                                                                                                                                                                           |
 
 ## TrailPainter
 
@@ -86,22 +87,24 @@ voll groß. Zeichnet nichts, wenn der Lichtpunkt nicht zu sehen ist.
 | Methode                                    | Was sie konkret tut                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `drawOverlay(context, layout, settings)`   | Legt die Glasscheibe über das Bild: jede dritte Bildzeile abgedunkelt, dazu ein Farbverlauf zu dunklen Ecken. Vorab gezeichnet, neu nur bei anderer Größe, anderem Zeilenraster oder anderen Ecken.                                                                                                                                                                                                                                            |
+| `prepareOverlay(layout, settings)`         | Zeichnet die Glasscheibe schon jetzt vor und führt das sofort aus (`flush`). Ist sie aktuell, passiert nichts.                                                                                                                                                                                                                                                                                                                                 |
 | `drawFlicker(context, layout, settings)`   | Dunkelt das Bild um einen Zufallswert bis zu einem Viertel der Flimmerstärke ab.                                                                                                                                                                                                                                                                                                                                                               |
 | `drawGlitch(context, canvas, glitch, ...)` | Kopiert die Zeilen des Störbalkens (mit Rand) aus dem fertigen Bild auf eine eigene Fläche; im Störbalken werden schmale Streifen (2 bis 7 Pixel hoch) von dieser Kopie seitlich versetzt darübergelegt, dazu ein heller Schleier (addierend) und 12 Rausch-Striche. Die Kopie ist nötig: Ein Canvas auf sich selbst zu zeichnen, kostete je Streifen eine Kopie des ganzen Canvas (216 ms je Bild auf einem gedrosselten Handy, jetzt 32 ms). |
 | `discardPreparedImages()`                  | Wirft die vorab gezeichnete Glasscheibe und die Kopie für Bildstörungen weg.                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## CanvasRenderer
 
-| Methode                           | Was sie konkret tut                                                                                                                                                                                                           |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `constructor(parts)`              | Nimmt Canvas, Zeichenwerkzeug, Flächen-Fabrik, Zufall, Bewegungswunsch, Einstellungen und die erste Einteilung der Bühne.                                                                                                     |
-| `resize(layout)`                  | Setzt Anzeigegröße und Auflösung des Canvas, wirft alles Vorgezeichnete weg und beendet eine Störung.                                                                                                                         |
-| `draw(view, seconds)`             | Ein Bild (Reihenfolge siehe oben). Setzt den Maßstab vor jedem Bild neu, weil der Browser den Zeichenzustand jederzeit vergessen darf. Zeichnet die Wände der nächsten Seite schon vorab und wirft nicht mehr gebrauchte weg. |
-| `discardPreparedImages()`         | Wirft Wände und Glasscheibe weg (Seite kommt aus dem Hintergrund zurück, `contextrestored`).                                                                                                                                  |
-| `isGlitching`                     | Läuft eine Störung? Dann muss weitergezeichnet werden, auch wenn die Animation steht.                                                                                                                                         |
-| `drawPages` / `drawPage` (privat) | Zeichnen die aktuelle Seite (mit Spur und Lichtpunkt, beschnitten auf die Labyrinth-Fläche) und die Folgeseite beim Weiterschieben, um die berechnete Verschiebung versetzt.                                                  |
+| Methode                           | Was sie konkret tut                                                                                                                                                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(parts)`              | Nimmt Canvas, Zeichenwerkzeug, Flächen-Fabrik, Zufall, Bewegungswunsch, Einstellungen und die erste Einteilung der Bühne.                                                                                                                                                                                     |
+| `resize(layout)`                  | Setzt Anzeigegröße und Auflösung des Canvas, wirft alles Vorgezeichnete weg und beendet eine Störung.                                                                                                                                                                                                         |
+| `prepare(page)`                   | Zeichnet vorab, was die Seite braucht, in Stücken (`Steps`): erst die Glasscheibe (`prepareOverlay`, eine Pause), dann die Wände (`WallLayer.prepare`, zwei Pausen). Danach kostet das Zeichnen der Seite nur noch das Kopieren. Die Seitenquelle der Bühne ruft es auf, bevor die Animation die Seite zeigt. |
+| `draw(view, seconds)`             | Ein Bild (Reihenfolge siehe oben). Setzt den Maßstab vor jedem Bild neu, weil der Browser den Zeichenzustand jederzeit vergessen darf. Zeichnet die Wände der nächsten Seite schon vorab und wirft nicht mehr gebrauchte weg.                                                                                 |
+| `discardPreparedImages()`         | Wirft Wände und Glasscheibe weg (Seite kommt aus dem Hintergrund zurück, `contextrestored`).                                                                                                                                                                                                                  |
+| `isGlitching`                     | Läuft eine Störung? Dann muss weitergezeichnet werden, auch wenn die Animation steht.                                                                                                                                                                                                                         |
+| `drawPages` / `drawPage` (privat) | Zeichnen die aktuelle Seite (mit Spur und Lichtpunkt, beschnitten auf die Labyrinth-Fläche) und die Folgeseite beim Weiterschieben, um die berechnete Verschiebung versetzt.                                                                                                                                  |
 
 ## test-support für dieses Verzeichnis
 
-`recording-context.ts` (zeichnet jeden Aufruf als Text auf), `fake-layers.ts` (Flächen, die aufzeichnen),
+`recording-context.ts` (zeichnet jeden Aufruf als Text auf), `fake-layers.ts` (Flächen, die aufzeichnen, auch `flush()`),
 `maze-page-builder.ts` (kleine Seiten), `fake-playback-view.ts` (Zustand der Animation von Hand).

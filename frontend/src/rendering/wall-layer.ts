@@ -1,4 +1,6 @@
 import type { MazePage } from "../domain/pages/maze-page-generator";
+import { runToEnd } from "../domain/steps";
+import type { Steps } from "../domain/steps";
 import type { DrawingContext, Layer, LayerFactory } from "./drawing-context";
 import type { RenderSettings } from "./render-settings";
 import type { StageLayout } from "./stage-layout";
@@ -79,9 +81,20 @@ export class WallLayer {
     const cached = this.images.get(page);
     if (cached?.look === lookOf(layout, settings)) return cached;
 
-    const fresh = this.render(page, layout, settings);
+    const fresh = runToEnd(this.render(page, layout, settings, false));
     this.images.set(page, fresh);
     return fresh;
+  }
+
+  /**
+   * Zeichnet das Wandbild der Seite vorab, in Stücken (siehe `Steps`), damit der Browser
+   * zwischendurch Bilder zeichnen und Eingaben bearbeiten kann. Nach jedem Stück ist das
+   * Gezeichnete wirklich ausgeführt (`flush`). Ist das Bild schon da, passiert nichts.
+   */
+  public *prepare(page: MazePage, layout: StageLayout, settings: RenderSettings): Steps<void> {
+    if (this.images.get(page)?.look === lookOf(layout, settings)) return;
+
+    this.images.set(page, yield* this.render(page, layout, settings, true));
   }
 
   /** Kopiert das Wandbild der Seite so auf `context`, dass das Labyrinth an seinem Platz auf der Bühne steht. */
@@ -113,7 +126,19 @@ export class WallLayer {
     this.images.clear();
   }
 
-  private render(page: MazePage, layout: StageLayout, settings: RenderSettings): WallImage {
+  /**
+   * Zeichnet die Wände einer Seite auf eine neue Fläche, in drei Stücken: erster und zweiter
+   * Strich des Lichthofs (jeder rechnet das Leuchten über alle Wände und ist der größte Brocken),
+   * dann Linie und Kern. Mit `flushAfterStep` wird jedes Stück sofort ausgeführt; sonst rechnet
+   * der Browser alles erst beim ersten Kopieren der Fläche, was für den Aufrufer ohne Pausen
+   * dasselbe ergibt und billiger ist.
+   */
+  private *render(
+    page: MazePage,
+    layout: StageLayout,
+    settings: RenderSettings,
+    flushAfterStep: boolean,
+  ): Steps<WallImage> {
     const { pixelRatio, cellSize } = layout;
     const padding = Math.ceil(settings.wallWidth + 2 * settings.bloomRadius);
     const layer = this.createLayer(
@@ -126,6 +151,10 @@ export class WallLayer {
     context.lineCap = "square";
     traceWalls(context, page, cellSize);
 
+    const finishStep = (): void => {
+      if (flushAfterStep) layer.flush();
+    };
+
     // 1. Lichthof: der "Schatten" der Linie in ihrer eigenen Farbe, ohne Versatz. Zweimal
     //    übereinander, sonst ist er zu schwach, um als Leuchten zu wirken.
     context.save();
@@ -136,8 +165,12 @@ export class WallLayer {
     context.shadowBlur = settings.bloomRadius * pixelRatio;
     context.globalAlpha = settings.bloomStrength;
     context.stroke();
+    finishStep();
+    yield;
     context.stroke();
     context.restore();
+    finishStep();
+    yield;
 
     // 2. die Linie selbst
     context.strokeStyle = settings.wallColor;
@@ -149,6 +182,7 @@ export class WallLayer {
     context.globalAlpha = 0.55;
     context.lineWidth = settings.wallWidth / 3;
     context.stroke();
+    finishStep();
 
     return {
       layer,

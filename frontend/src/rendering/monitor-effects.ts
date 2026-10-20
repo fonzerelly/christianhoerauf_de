@@ -39,16 +39,16 @@ export class MonitorEffects {
 
   /** Legt die Glasscheibe über das Bild. Sie wird vorab gezeichnet und nur neu, wenn sie veraltet ist. */
   public drawOverlay(context: DrawingContext, layout: StageLayout, settings: RenderSettings): void {
-    const look = [
-      Math.round(layout.viewWidth * layout.pixelRatio),
-      Math.round(layout.viewHeight * layout.pixelRatio),
-      settings.scanlineStrength,
-      settings.vignetteStrength,
-    ].join("|");
-    if (this.overlay?.look !== look)
-      this.overlay = { layer: this.renderOverlay(layout, settings), look };
+    const overlay = this.currentOverlay(layout, settings, false);
+    context.drawImage(overlay.layer.image, 0, 0, layout.viewWidth, layout.viewHeight);
+  }
 
-    context.drawImage(this.overlay.layer.image, 0, 0, layout.viewWidth, layout.viewHeight);
+  /**
+   * Zeichnet die Glasscheibe schon jetzt vor und führt das sofort aus, statt es dem ersten Bild
+   * zu überlassen. Ist sie aktuell, passiert nichts.
+   */
+  public prepareOverlay(layout: StageLayout, settings: RenderSettings): void {
+    this.currentOverlay(layout, settings, true);
   }
 
   /** Leichtes Flimmern: Jedes Bild ist zufällig eine Spur dunkler. */
@@ -169,6 +169,22 @@ export class MonitorEffects {
   public discardPreparedImages(): void {
     this.overlay = undefined;
     this.glitchSource = undefined;
+  }
+
+  /** Die aktuelle Glasscheibe; ist sie veraltet, wird sie neu gezeichnet (und auf Wunsch gleich ausgeführt). */
+  private currentOverlay(layout: StageLayout, settings: RenderSettings, flush: boolean): Overlay {
+    const look = [
+      Math.round(layout.viewWidth * layout.pixelRatio),
+      Math.round(layout.viewHeight * layout.pixelRatio),
+      settings.scanlineStrength,
+      settings.vignetteStrength,
+    ].join("|");
+    if (this.overlay?.look !== look) {
+      const layer = this.renderOverlay(layout, settings);
+      if (flush) layer.flush();
+      this.overlay = { layer, look };
+    }
+    return this.overlay;
   }
 
   private renderOverlay(layout: StageLayout, settings: RenderSettings): Layer {

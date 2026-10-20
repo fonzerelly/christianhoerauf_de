@@ -36,6 +36,12 @@ export interface Layer {
   readonly context: DrawingContext;
   /** Die Fläche selbst, um sie auf eine andere zu kopieren. */
   readonly image: CanvasImageSource;
+  /**
+   * Zwingt den Browser, alles bisher auf die Fläche Gezeichnete jetzt auszuführen. Ohne das merkt
+   * er sich die Zeichenbefehle nur und rechnet sie erst, wenn die Fläche zum ersten Mal auf eine
+   * andere kopiert wird - dann im Bild, in dem sie gebraucht wird.
+   */
+  flush(): void;
 }
 
 /** Legt eine Zeichenfläche an, in Geräte-Pixeln gemessen. */

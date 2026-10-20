@@ -83,7 +83,12 @@ const hum = new HumControl(
 );
 connectSoundToggle(soundToggle, () => hum.toggle());
 
-// Zeichnen
+// Zeichnen. Eine vorab gezeichnete Fläche wird ausgeführt (`flush`), indem sie auf ein
+// Ein-Pixel-Canvas kopiert wird: Der Browser muss dafür alles Aufgezeichnete rechnen, aber nichts
+// vom Grafikspeicher zurücklesen (anders als bei `getImageData`).
+const flushTarget = createContext2d(
+  Object.assign(document.createElement("canvas"), { width: 1, height: 1 }),
+);
 const renderer = new CanvasRenderer({
   canvas,
   context: createContext2d(canvas),
@@ -91,7 +96,13 @@ const renderer = new CanvasRenderer({
     const layer = document.createElement("canvas");
     layer.width = width;
     layer.height = height;
-    return { context: createContext2d(layer), image: layer };
+    return {
+      context: createContext2d(layer),
+      image: layer,
+      flush: () => {
+        flushTarget.drawImage(layer, 0, 0, 1, 1);
+      },
+    };
   },
   random: new Mulberry32(randomSeed),
   motion: new MediaQueryMotionPreference(window.matchMedia("(prefers-reduced-motion: reduce)")),
