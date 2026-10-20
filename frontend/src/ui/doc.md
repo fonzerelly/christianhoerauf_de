@@ -35,6 +35,12 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 | `connectReplayButton(button, onReplay)`          | Ruft `onReplay` bei jedem Klick.                                                                                                                                                      |
 | `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                        |
 
+## closesKeyboardAfterSending
+
+| Funktion                                                   | Was sie konkret tut                                                                                                                                                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `closesKeyboardAfterSending(profileWants, hasTouchScreen)` | Liefert `true` nur, wenn das Profil das Verlassen des Fragefelds will (Handy) **und** das Gerät einen Touchscreen hat (`pointer: coarse`). Am Rechner im schmalen Fenster behält das Feld so den Fokus. |
+
 ## Conversation
 
 | Methode                              | Was sie konkret tut                                                                                                                                                                  |

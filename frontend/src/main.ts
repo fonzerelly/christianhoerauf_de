@@ -23,6 +23,7 @@ import { Conversation } from "./ui/conversation";
 import { selectProfile } from "./ui/device-profile-selector";
 import { PhaseIndicator } from "./ui/phase-indicator";
 import { QuestionForm } from "./ui/question-form";
+import { closesKeyboardAfterSending } from "./ui/on-screen-keyboard";
 import { connectReplayButton } from "./ui/replay-button";
 import { requireElement } from "./ui/required-element";
 import { SpokenAnswer } from "./ui/spoken-answer";
@@ -115,7 +116,10 @@ const conversation = new Conversation(
   new SpokenAnswer(spokenRegion),
 );
 new QuestionForm(form, questionInput, {
-  blurAfterSending: tuning.blurInputAfterSending,
+  blurAfterSending: closesKeyboardAfterSending(
+    tuning.blurInputAfterSending,
+    window.matchMedia("(pointer: coarse)").matches,
+  ),
   scrollToTop: () => {
     window.scrollTo(0, 0);
   },
