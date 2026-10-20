@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brummen abstimmen</title>
+  <style>
+    :root { --bg: #03140a; --fg: #b8f5c8; --accent: #2bdc5a; --muted: #6b9a78; }
+    body { background: var(--bg); color: var(--fg); font-family: ui-monospace, monospace; margin: 0; padding: 16px; }
+    main { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.3rem; color: var(--accent); }
+    p { color: var(--muted); line-height: 1.4; }
+    .row { display: grid; grid-template-columns: 11rem 1fr 6rem; gap: 0.5rem; align-items: center; margin: 0.6rem 0; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    select, button { background: #0b2a16; color: var(--fg); border: 1px solid var(--accent); padding: 0.4rem 0.8rem; font: inherit; border-radius: 4px; }
+    button.primary { background: var(--accent); color: var(--bg); font-weight: bold; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+    pre { background: #0b2a16; padding: 0.8rem; border-radius: 4px; white-space: pre-wrap; }
+    output { text-align: right; }
+    meter { width: 100%; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Brummen abstimmen</h1>
+  <p>Erst auf „Start“ klicken (Browser erlauben Ton nur nach einem Klick). Regler verändern den
+     Klang sofort. „Wie bisher“ stellt den heutigen Klang der Seite ein, zum Vergleich.</p>
+
+  <div class="buttons">
+    <button class="primary" id="start">Start</button>
+    <button id="stop">Stop</button>
+    <button id="glitch">Bildstörung (0,35–0,85 s wie auf der Seite)</button>
+  </div>
+  <div class="buttons">
+    <button data-preset="bisher">Wie bisher</button>
+    <button data-preset="roehre">Röhre (Vorschlag)</button>
+    <button data-preset="roehre-fiepen">Röhre mit Fiepen</button>
+  </div>
+
+  <div class="row"><label for="wave">Wellenform</label>
+    <select id="wave">
+      <option value="sine">Sinus (rein, nur Grundton)</option>
+      <option value="triangle">Dreieck (weich)</option>
+      <option value="sawtooth">Sägezahn (schnarrend)</option>
+      <option value="square">Rechteck (hohl)</option>
+      <option value="partials">Sinus 50/100/150 wie bisher</option>
+    </select><span></span></div>
+  <div class="row"><label for="base">Grundton</label><input id="base" type="range" min="40" max="120" step="1"><output id="baseOut"></output></div>
+  <div class="row"><label for="cutoff">Tiefpass (Helligkeit)</label><input id="cutoff" type="range" min="100" max="5000" step="10"><output id="cutoffOut"></output></div>
+  <div class="row"><label for="volume">Lautstärke</label><input id="volume" type="range" min="0" max="0.3" step="0.005"><output id="volumeOut"></output></div>
+  <div class="row"><label for="whine">Fiepen 15,6 kHz</label><input id="whine" type="range" min="0" max="0.03" step="0.001"><output id="whineOut"></output></div>
+  <div class="row"><label for="driftHertz">Wandern Tonhöhe ±</label><input id="driftHertz" type="range" min="0" max="3" step="0.1"><output id="driftHertzOut"></output></div>
+  <div class="row"><label for="minLevel">Wandern Pegel ab</label><input id="minLevel" type="range" min="0" max="1" step="0.05"><output id="minLevelOut"></output></div>
+  <div class="row"><label for="driftSeconds">Wandern alle</label><input id="driftSeconds" type="range" min="0.5" max="10" step="0.5"><output id="driftSecondsOut"></output></div>
+  <div class="row"><label for="glitchMode">Bei Störung</label>
+    <select id="glitchMode">
+      <option value="silence">Stille</option>
+      <option value="noise">Rauschen statt Brummen</option>
+      <option value="noiseOver">Rauschen über dem Brummen</option>
+    </select><span></span></div>
+  <div class="row"><label for="noiseVolume">Rauschen Lautstärke</label><input id="noiseVolume" type="range" min="0" max="0.3" step="0.005"><output id="noiseVolumeOut"></output></div>
+  <div class="row"><label for="noiseColor">Rauschen Färbung</label><input id="noiseColor" type="range" min="300" max="10000" step="50"><output id="noiseColorOut"></output></div>
+  <div class="row"><label>Pegel am Ausgang</label><meter id="meter" min="-80" max="0" low="-40" high="-12"></meter><output id="meterOut"></output></div>
+
+  <p>Gefällt es dir, schick mir die Werte:</p>
+  <pre id="values"></pre>
+</main>
+
+<script>
+  "use strict";
+
+  const PRESETS = {
+    bisher:          { wave: "partials", base: 50, cutoff: 5000, volume: 0.04, whine: 0,     driftHertz: 0.4, minLevel: 0.5, driftSeconds: 3, glitchMode: "silence", noiseVolume: 0,    noiseColor: 3000 },
+    roehre:          { wave: "sawtooth", base: 50, cutoff: 900,  volume: 0.06, whine: 0,     driftHertz: 0.4, minLevel: 0.6, driftSeconds: 3, glitchMode: "noise",   noiseVolume: 0.08, noiseColor: 3000 },
+    "roehre-fiepen": { wave: "sawtooth", base: 50, cutoff: 900,  volume: 0.06, whine: 0.004, driftHertz: 0.4, minLevel: 0.6, driftSeconds: 3, glitchMode: "noise",   noiseVolume: 0.08, noiseColor: 3000 },
+  };
+  const FADE = 0.1;      // Zeitkonstante beim Ein-, Ausblenden und Verstummen (s)
+  const DRIFT_FADE = 1;  // Zeitkonstante beim Wandern (s)
+  const ids = ["wave", "base", "cutoff", "volume", "whine", "driftHertz", "minLevel", "driftSeconds", "glitchMode", "noiseVolume", "noiseColor"];
+  const TEXT_IDS = ["wave", "glitchMode"];
+  const NOISE_ATTACK = 0.01; // Rauschen setzt fast sofort ein
+  const NOISE_RELEASE = 0.05;
+  const element = (id) => document.getElementById(id);
+
+  let audio = null;      // die aufgebaute Tonanlage, erst nach dem ersten Klick
+  let isOn = false, isMuted = false, level = 1, driftTimer = null;
+
+  function settings() {
+    const values = {};
+    for (const id of ids) values[id] = TEXT_IDS.includes(id) ? element(id).value : Number(element(id).value);
+    return values;
+  }
+
+  function applyPreset(name) {
+    const preset = PRESETS[name];
+    for (const id of ids) element(id).value = preset[id];
+    rebuildVoices();
+    refresh();
+  }
+
+  function buildAudio() {
+    const context = new AudioContext();
+    const master = context.createGain();
+    master.gain.value = 0;
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 4096;
+    master.connect(analyser).connect(context.destination);
+    const filter = context.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.Q.value = 0.7;
+    filter.connect(master);
+    const whine = context.createOscillator();
+    whine.frequency.value = 15625; // Zeilenfrequenz alter PAL-Fernseher
+    const whineGain = context.createGain();
+    whineGain.gain.value = 0;
+    whine.connect(whineGain).connect(master);
+    whine.start();
+
+    // Rauschen: zwei Sekunden weißes Rauschen in Schleife, durch einen Bandpass gefärbt.
+    const noiseBuffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
+    const channel = noiseBuffer.getChannelData(0);
+    for (let index = 0; index < channel.length; index++) channel[index] = Math.random() * 2 - 1;
+    const noise = context.createBufferSource();
+    noise.buffer = noiseBuffer;
+    noise.loop = true;
+    const noiseFilter = context.createBiquadFilter();
+    noiseFilter.type = "bandpass";
+    noiseFilter.Q.value = 0.6;
+    const noiseGain = context.createGain();
+    noiseGain.gain.value = 0;
+    noise.connect(noiseFilter).connect(noiseGain).connect(analyser);
+    noise.start();
+    return { context, master, filter, analyser, whineGain, noiseFilter, noiseGain, voices: [] };
+  }
+
+  /** Baut die Tonquellen neu: eine Welle oder (wie bisher) drei Sinustöne. */
+  function rebuildVoices() {
+    if (!audio) return;
+    for (const voice of audio.voices) voice.oscillator.stop();
+    const { wave, base } = settings();
+    const partials = wave === "partials"
+      ? [{ multiple: 1, strength: 1 }, { multiple: 2, strength: 0.7 }, { multiple: 3, strength: 0.5 }]
+      : [{ multiple: 1, strength: 1 }];
+    audio.voices = partials.map(({ multiple, strength }) => {
+      const oscillator = audio.context.createOscillator();
+      oscillator.type = wave === "partials" ? "sine" : wave;
+      oscillator.frequency.value = base * multiple;
+      const gain = audio.context.createGain();
+      gain.gain.value = strength;
+      oscillator.connect(gain).connect(audio.filter);
+      oscillator.start();
+      return { oscillator, multiple };
+    });
+  }
+
+  function applyGain(timeConstant) {
+    if (!audio) return;
+    const { volume, whine, glitchMode } = settings();
+    const now = audio.context.currentTime;
+    const humSilenced = isMuted && glitchMode !== "noiseOver";
+    const active = isOn && !humSilenced;
+    audio.master.gain.setTargetAtTime(active ? volume * level : 0, now, timeConstant);
+    audio.whineGain.gain.setTargetAtTime(active && volume > 0 ? whine / volume : 0, now, timeConstant);
+  }
+
+  /** Würfelt ein neues Ziel für Tonhöhe und Pegel und gleitet langsam dorthin. */
+  function drift() {
+    if (!audio) return;
+    const { base, driftHertz, minLevel, driftSeconds } = settings();
+    const frequency = base + (Math.random() * 2 - 1) * driftHertz;
+    level = minLevel + Math.random() * (1 - minLevel);
+    for (const voice of audio.voices) {
+      voice.oscillator.frequency.setTargetAtTime(frequency * voice.multiple, audio.context.currentTime, DRIFT_FADE);
+    }
+    applyGain(DRIFT_FADE);
+    driftTimer = setTimeout(drift, driftSeconds * 1000);
+  }
+
+  function refresh() {
+    const s = settings();
+    element("baseOut").textContent = `${s.base} Hz`;
+    element("cutoffOut").textContent = `${s.cutoff} Hz`;
+    element("volumeOut").textContent = s.volume.toFixed(3);
+    element("whineOut").textContent = s.whine.toFixed(3);
+    element("driftHertzOut").textContent = `${s.driftHertz.toFixed(1)} Hz`;
+    element("minLevelOut").textContent = `${Math.round(s.minLevel * 100)} %`;
+    element("driftSecondsOut").textContent = `${s.driftSeconds} s`;
+    element("noiseVolumeOut").textContent = s.noiseVolume.toFixed(3);
+    element("noiseColorOut").textContent = `${s.noiseColor} Hz`;
+    element("values").textContent = JSON.stringify(s, null, 2);
+    if (audio) {
+      audio.filter.frequency.setTargetAtTime(s.cutoff, audio.context.currentTime, FADE);
+      audio.noiseFilter.frequency.setTargetAtTime(s.noiseColor, audio.context.currentTime, FADE);
+      applyGain(FADE);
+    }
+  }
+
+  function updateMeter() {
+    if (audio) {
+      const samples = new Float32Array(audio.analyser.fftSize);
+      audio.analyser.getFloatTimeDomainData(samples);
+      const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
+      const decibel = rms > 0 ? 20 * Math.log10(rms) : -80;
+      element("meter").value = Math.max(-80, decibel);
+      element("meterOut").textContent = `${decibel.toFixed(1)} dB`;
+    }
+    requestAnimationFrame(updateMeter);
+  }
+
+  element("start").addEventListener("click", () => {
+    if (!audio) { audio = buildAudio(); rebuildVoices(); }
+    void audio.context.resume();
+    isOn = true;
+    refresh();
+    clearTimeout(driftTimer);
+    drift();
+  });
+  element("stop").addEventListener("click", () => { isOn = false; applyGain(FADE); clearTimeout(driftTimer); });
+  /** Eine Bildstörung wie auf der Seite: 0,35 bis 0,85 Sekunden. */
+  function glitch() {
+    if (!audio || !isOn) return;
+    const { glitchMode, noiseVolume } = settings();
+    const seconds = 0.35 + Math.random() * 0.5;
+    const now = audio.context.currentTime;
+    isMuted = true; applyGain(FADE);
+    if (glitchMode !== "silence") audio.noiseGain.gain.setTargetAtTime(noiseVolume, now, NOISE_ATTACK);
+    setTimeout(() => {
+      isMuted = false; applyGain(FADE);
+      audio.noiseGain.gain.setTargetAtTime(0, audio.context.currentTime, NOISE_RELEASE);
+    }, seconds * 1000);
+  }
+  element("glitch").addEventListener("click", glitch);
+  element("wave").addEventListener("change", () => { rebuildVoices(); refresh(); });
+  element("glitchMode").addEventListener("change", refresh);
+  element("base").addEventListener("input", () => { rebuildVoices(); refresh(); });
+  for (const id of ids.filter((id) => !TEXT_IDS.includes(id) && id !== "base")) element(id).addEventListener("input", refresh);
+  for (const button of document.querySelectorAll("[data-preset]")) {
+    button.addEventListener("click", () => applyPreset(button.dataset.preset));
+  }
+
+  applyPreset("roehre");
+  updateMeter();
+</script>
+</body>
+</html>

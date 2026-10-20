@@ -10,7 +10,7 @@ erst durch seine Leuchtspur lesbar.
 |---|---|
 | `frontend/` | Neubau der Seite in TypeScript (in Arbeit) |
 | `backend/` | Dienste für die Antworten (in Arbeit) |
-| `prototyp/` | Prototypen 1–6; `prototyp/live/` ist die heute ausgelieferte Seite |
+| `prototyp/` | Prototypen 1–7; `prototyp/live/` ist die heute ausgelieferte Seite |
 | `corporate-identity/` | Visitenkarte und Co. (verschlüsselt) |
 | `docs/` | Glossare, Entscheidungen, Pläne (verschlüsselt) |
 | `scripts/` | Hilfsskripte, z. B. `entsperren.sh` |
