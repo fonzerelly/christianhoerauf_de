@@ -41,6 +41,7 @@ src/bot/
   adapters/     Anschlüsse an AWS, LM Studio, Dateien
   pipeline/     Modellschritte (zur Laufzeit ohne DSPy)
   handler.py    Einstieg des Lambdas, steckt alles zusammen
+schema/         JSON-Schema des Vertrags (answer.schema.json)
 tests/          Unit-Tests
 scripts/        Prüfen, Paket bauen, Kaltstart messen
 ```

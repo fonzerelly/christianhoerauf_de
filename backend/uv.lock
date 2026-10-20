@@ -181,6 +181,18 @@ wheels = [
 ]
 
 [[package]]
+name = "aws-bedrock-token-generator"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fb/39/cf1c2e12bc5a84af0f96a546481213f81fa6e7927d2bbabd81758c6558ca/aws_bedrock_token_generator-1.1.0.tar.gz", hash = "sha256:95ccb07f63a91ac486561f6df05cc4e04784c8ff5086dc687ed9c5fd3ab1b5ba", size = 19123, upload-time = "2025-07-29T19:53:19.511Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/fd/745ece98870c3824d294bcdce5dc5e15381188a41bc80832c246b205e40e/aws_bedrock_token_generator-1.1.0-py3-none-any.whl", hash = "sha256:bd12854f7c7e52dde5d980d369379f12d0cc5f0855099d87f38688b0f9de5cd4", size = 10291, upload-time = "2025-07-29T19:53:18.704Z" },
+]
+
+[[package]]
 name = "boto3"
 version = "1.43.108"
 source = { registry = "https://pypi.org/simple" }
@@ -292,30 +304,46 @@ wheels = [
 name = "christianhoerauf-backend"
 version = "0.0.0"
 source = { editable = "." }
+dependencies = [
+    { name = "aws-bedrock-token-generator" },
+    { name = "boto3" },
+]
 
 [package.dev-dependencies]
 dev = [
     { name = "hypothesis" },
     { name = "import-linter" },
+    { name = "jsonschema" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
     { name = "ruff" },
+    { name = "types-jsonschema" },
+    { name = "types-pyyaml" },
 ]
 dspy = [
     { name = "dspy" },
 ]
 
 [package.metadata]
+requires-dist = [
+    { name = "aws-bedrock-token-generator", specifier = "==1.1.0" },
+    { name = "boto3", specifier = "==1.43.108" },
+]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "hypothesis", specifier = "==6.168.5" },
     { name = "import-linter", specifier = "==2.15" },
+    { name = "jsonschema", specifier = "==4.26.0" },
     { name = "mypy", specifier = "==2.4.0" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "pyyaml", specifier = "==6.0.3" },
     { name = "ruff", specifier = "==0.16.10" },
+    { name = "types-jsonschema", specifier = "==4.26.0.20261006" },
+    { name = "types-pyyaml", specifier = "==6.0.12.20260906" },
 ]
 dspy = [{ name = "dspy", specifier = "==3.4.0" }]
 
@@ -1616,6 +1644,27 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl", hash = "sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73", size = 80199, upload-time = "2026-09-11T07:25:14.599Z" },
+]
+
+[[package]]
+name = "types-jsonschema"
+version = "4.26.0.20261006"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "referencing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/29/d2/1f742605f5a6d39f993134885b8de41c98af606871d3ebddaf3e776bd1eb/types_jsonschema-4.26.0.20261006.tar.gz", hash = "sha256:3eb7db61b6819d40addfdaac7173e749071a7d4a9a4394f0c844598ec84b2500", size = 16843, upload-time = "2026-10-06T08:16:07.318Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/a0/4f2e3c0dc3d5cad958006f2e0307065cc8fe4fbf0393ff0b69d55ee9bbe5/types_jsonschema-4.26.0.20261006-py3-none-any.whl", hash = "sha256:29301f4e65e3928540cdf5e23ad716e38bb0c0b416a48dada213edd3d70206ec", size = 16113, upload-time = "2026-10-06T08:16:06.355Z" },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20260906"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz", hash = "sha256:f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212", size = 18649, upload-time = "2026-09-06T06:35:35.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl", hash = "sha256:bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b", size = 21282, upload-time = "2026-09-06T06:35:34.372Z" },
 ]
 
 [[package]]

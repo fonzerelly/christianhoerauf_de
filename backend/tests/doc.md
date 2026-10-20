@@ -9,4 +9,11 @@ auf `_properties.py`.
 | `domain/test_answer.py` | `Answer.to_dict()` ohne und mit Gimmick. |
 | `domain/test_answer_properties.py` | Beliebiger Text übersteht die Umwandlung nach JSON und zurück unverändert. |
 | `test_handler.py` | Der Platzhalter-Handler antwortet mit 200 und dem festen Text als JSON. |
-| `test_build_package.py` | `build_package()` (Testhelfer): startet `scripts/build_package.sh` und liefert die Dateinamen im ZIP. `test_package_contains_handler_but_no_docs_or_dspy`: enthält `bot/handler.py`, keine `doc.md`, kein DSPy. `test_package_is_far_below_the_lambda_size_limit`: ZIP unter 5 MiB. |
+| `test_build_package.py` | `build_package()` (Testhelfer): startet `scripts/build_package.sh` und liefert die Dateinamen im ZIP. `test_package_contains_handler_but_no_docs_or_dspy`: enthält `bot/handler.py`, keine `doc.md`, kein DSPy. `test_package_is_well_below_the_lambda_size_limit`: ZIP unter 25 MiB (mit boto3 rund 16 MiB). |
+| `domain/test_answer_schema.py` | Jede `Answer` (Beispiele und beliebiger Text) genügt `schema/answer.schema.json`; kaputte Antworten (ohne Text, leerer Text, Gimmick ohne `type`, unbekannter Schlüssel) lehnt das Schema ab. |
+| `domain/test_intent.py` | Es gibt genau die vier Absichten. |
+| `domain/test_language.py` | `guess_language` für deutsche, englische, leere und Zahlen-Fragen. |
+| `domain/test_fixed_answers.py` | Feste Antworten: Wortlaut für Christian und Ausfall, Englisch unterscheidet sich vom Deutschen, alle kurz und ohne Gimmick. |
+| `domain/test_cost_protection.py` | Grenzen, Schlüssel, Aufbereitung der Frage; Hypothesis: gleiche IP/Tag gleiches Kürzel, anderer Tag/andere IP/anderes Geheimnis anderes Kürzel, Kürzel kurz und ohne IP. |
+| `domain/test_reply_check.py` | Emojis weg, Leerraum, Umlaute bleiben, Kürzen an Satzgrenze, Wort oder hart; Hypothesis: nie länger als 200 Zeichen. |
+| `domain/test_gimmick.py` | Leere Anmeldung; angemeldetes Gimmick erscheint samt Beschreibung. |

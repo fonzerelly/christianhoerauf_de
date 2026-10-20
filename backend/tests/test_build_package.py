@@ -20,7 +20,8 @@ def test_package_contains_handler_but_no_docs_or_dspy() -> None:
     assert not any(name.lower().startswith("dspy") for name in names)
 
 
-def test_package_is_far_below_the_lambda_size_limit() -> None:
+# Mit boto3 rund 16 MiB; Grenze bei Lambda: 50 MB als ZIP-Upload.
+def test_package_is_well_below_the_lambda_size_limit() -> None:
     build_package()
 
-    assert PACKAGE_ZIP.stat().st_size < 5 * 1024 * 1024
+    assert PACKAGE_ZIP.stat().st_size < 25 * 1024 * 1024

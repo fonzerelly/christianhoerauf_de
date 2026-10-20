@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://christianhoerauf.de/schema/answer.schema.json",
+  "title": "Antwort des Bots (ADR system/0003)",
+  "type": "object",
+  "required": ["text"],
+  "additionalProperties": false,
+  "properties": {
+    "text": { "type": "string", "minLength": 1 },
+    "gimmick": {
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "type": "string", "minLength": 1 } }
+    }
+  }
+}
