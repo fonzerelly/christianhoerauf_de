@@ -20,6 +20,10 @@ tiefen Grundton dann selbst.
 - **Gleichmäßiges Rauschen klingt wie eine Luftpumpe** (Christian, 2026-10-21). Gesucht ist eher
   „kaputte Elektronik“: abgebrochene Piepser. Deshalb die Störgeräusche Piepsen, Datensalat und
   Stottern.
+- **Entschieden: Datensalat** (Christian, 2026-10-21). Werte der Voreinstellung „Röhre
+  (Vorschlag)“: Sägezahn 50 Hz, Tiefpass 900 Hz, Lautstärke 0,06, kein Fiepen, Wandern ±0,4 Hz,
+  Pegel ab 60 %, alle 3 s; bei Störung Datensalat mit Lautstärke 0,05, Tonhöhe bis 2.500 Hz,
+  Stückchen um 40 ms. Übernahme ins Frontend: Schritt 8a im Frontend-Plan.
 
 ## Regler
 
