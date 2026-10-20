@@ -8,6 +8,8 @@ import { AnswerPlayback } from "./animation/answer-playback";
 import { FrameTimer } from "./animation/frame-timer";
 import { PerformanceClock } from "./animation/performance-clock";
 import { fetchJson } from "./answering/fetch-json";
+import type { AnswerSource } from "./answering/answer-source";
+import { HttpAnswerSource } from "./answering/http-answer-source";
 import { StaticContentAnswerSource } from "./answering/static-content-answer-source";
 import { TUNING } from "./config/tuning";
 import { createDefaultFont } from "./domain/font/font";
@@ -149,12 +151,25 @@ const stage = new Stage({
   hum,
 });
 
+// Antwortquelle (ADR 0003): Ohne Adresse des Backends antwortet die statische Datei; mit Adresse
+// (beim Bauen aus VITE_ANSWER_URL) fragt die Seite das Backend. Begrüßung und leere Frage kommen
+// immer aus der Datei.
+const ANSWER_TIMEOUT_MILLIS = 15_000;
+const staticAnswers = new StaticContentAnswerSource(() => fetchJson("/content.json", fetch));
+const answerUrl = import.meta.env.VITE_ANSWER_URL;
+const answerSource: AnswerSource =
+  answerUrl === undefined || answerUrl === ""
+    ? staticAnswers
+    : new HttpAnswerSource({
+        url: answerUrl,
+        fetchFunction: fetch,
+        greetingSource: staticAnswers,
+        timeoutMillis: ANSWER_TIMEOUT_MILLIS,
+        timeoutSignal: (millis) => AbortSignal.timeout(millis),
+      });
+
 // Frage und Antwort
-const conversation = new Conversation(
-  new StaticContentAnswerSource(() => fetchJson("/content.json", fetch)),
-  stage,
-  new SpokenAnswer(spokenRegion),
-);
+const conversation = new Conversation(answerSource, stage, new SpokenAnswer(spokenRegion));
 new QuestionForm(form, questionInput, {
   blurAfterSending: closesKeyboardAfterSending(
     tuning.blurInputAfterSending,
