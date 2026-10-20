@@ -5,7 +5,8 @@ export type WaypointTuple = readonly [number, number] | readonly [number, number
 
 // Die Schrift: jedes Zeichen ist der Weg, den der Lichtpunkt läuft, um es zu schreiben.
 //
-// Ein Zeichen lebt in einem Feld aus 3 x 5 Zellen. x läuft von 0 (links) bis 2 (rechts),
+// Ein Zeichen lebt in einem Feld aus 3 x 5 Zellen (nur die Ersatzglyphe ist 7 Zellen breit).
+// x läuft von 0 (links) bis 2 (rechts),
 // y von 0 (oben) bis 4 (unten). Zwischen zwei Wegpunkten läuft der Punkt geradeaus, nur
 // waagrecht oder senkrecht, nie schräg.
 //
@@ -20,8 +21,10 @@ export type WaypointTuple = readonly [number, number] | readonly [number, number
 //  - "hop" lässt den Punkt ohne Leuchtspur zum Wegpunkt springen (Bindestrich, Fragezeichen).
 //  - "!" ist wie "?" ein Strich mit einem Punkt darunter; der Strich wird wie beim Fragezeichen
 //    ohne Leuchtspur angefahren.
-//  - Die Ersatzglyphe läuft in Schlangenlinien durch alle 15 Zellen, jede genau einmal. Sie
-//    steht für jedes Zeichen, das die Schrift nicht kennt.
+//  - Die Ersatzglyphe ist ein Kamm und doppelt so breit wie ein Zeichen: ein Feld von 7 x 5
+//    Zellen (x von 0 bis 6). Der Rücken steht rechts (x = 6), fünf Zinken zeigen nach links.
+//    Jede Zinke läuft der Punkt als Sackgasse hin und auf demselben Weg zurück. Sie steht für
+//    jedes Zeichen, das die Schrift nicht kennt.
 // prettier-ignore
 export const GLYPH_PATHS: Readonly<Record<string, readonly WaypointTuple[]>> = {
   "0": [[0, 4], [0, 0], [2, 0], [2, 4], [0, 4]],
@@ -67,5 +70,5 @@ export const GLYPH_PATHS: Readonly<Record<string, readonly WaypointTuple[]>> = {
   ".": [[0, 4, "dot"]],
   "?": [[1, 4, "dot"], [1, 3], [1, 2], [2, 2], [2, 0], [0, 0], [0, 1], [0, 4, "hop"]],
   "!": [[1, 4], [1, 2, "hop"], [1, 0], [1, 4, "dot"]],
-  "█": [[0, 4], [0, 0], [2, 0], [2, 1], [1, 1], [1, 2], [2, 2], [2, 3], [1, 3], [1, 4], [2, 4]],
+  "█": [[6, 4], [0, 4], [6, 4], [6, 3], [0, 3], [6, 3], [6, 2], [0, 2], [6, 2], [6, 1], [0, 1], [6, 1], [6, 0], [0, 0], [6, 0], [6, 4]],
 };

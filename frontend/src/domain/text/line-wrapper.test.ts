@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { REPLACEMENT_CHARACTER as R } from "../font/font";
 import { LineWrapper } from "./line-wrapper";
 
 function wrap(text: string, maxCharsPerLine: number): string[] {
@@ -54,5 +55,25 @@ describe("LineWrapper", () => {
 
   it("lässt ein einzelnes Zeichen am Ende eines Worts allein, das ohne Strich getrennt wurde", () => {
     expect(wrap("ABCDEFG", 2)).toEqual(["AB", "CD", "EF", "G"]);
+  });
+
+  describe("mit der Ersatzglyphe, die so breit ist wie zwei Zeichen", () => {
+    it("rechnet sie beim Füllen einer Zeile doppelt", () => {
+      expect(wrap(`AB ${R} CD`, 5)).toEqual([`AB ${R}`, "CD"]);
+      expect(wrap(`A ${R} CD`, 7)).toEqual([`A ${R} CD`]);
+      expect(wrap(`A ${R} CD`, 6)).toEqual([`A ${R}`, "CD"]);
+    });
+
+    it("trennt ein Wort, das nur wegen der doppelten Breite nicht passt", () => {
+      expect(wrap(`AB${R}CD`, 5)).toEqual([`AB${R}-`, "CD"]);
+    });
+
+    it("hält eine Ersatzglyphe allein in einer Zeile nicht für ein einsames Zeichen", () => {
+      expect(wrap(`AB CD ${R}`, 5)).toEqual(["AB CD", R]);
+    });
+
+    it("lässt eine Ersatzglyphe nach unten rutschen, wenn sie ein einsames Zeichen rettet", () => {
+      expect(wrap(`XY ${R} 8`, 5)).toEqual(["XY", `${R} 8`]);
+    });
   });
 });

@@ -1,4 +1,5 @@
 import { CHAR_ADVANCE, GLYPH_HEIGHT } from "../font/glyph";
+import { widthInCharacters } from "../font/text-width";
 
 /** Die Grundlinie unter den Glyphen einer Zeile ist eine Rasterzeile hoch. */
 const BASELINE_HEIGHT = 1;
@@ -23,9 +24,12 @@ export function lineAdvanceOf(returnBandRows: number): number {
   return GLYPH_HEIGHT + BASELINE_HEIGHT + returnBandRows;
 }
 
-/** Breite einer Zeile in Zellen: jedes Zeichen mit Lücke, nur hinter dem letzten entfällt sie. */
+/**
+ * Breite einer Zeile in Zellen: jede Zeichenbreite mit Lücke, nur hinter der letzten entfällt
+ * sie. Die Ersatzglyphe belegt zwei Zeichenbreiten.
+ */
 export function lineWidthOf(line: string): number {
-  return line.length * CHAR_ADVANCE - 1;
+  return widthInCharacters(line) * CHAR_ADVANCE - 1;
 }
 
 /** Die erste Spalte der Zeile, wenn sie im Raster mittig steht. */

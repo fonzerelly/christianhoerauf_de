@@ -18,11 +18,15 @@ const DRAWABLE_CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ01234567
 const GLYPH_WIDTH = 3;
 const GLYPH_HEIGHT = 5;
 const CHARACTER_ADVANCE = 4;
+// Die Ersatzglyphe ist so breit wie zwei Zeichen samt Lücke: 2 * 4 - 1 Zellen.
+const REPLACEMENT_CHARACTER = "█";
+const REPLACEMENT_WIDTH = 2 * CHARACTER_ADVANCE - 1;
 const BASELINE_HEIGHT = 1;
 
 export interface Box {
   readonly left: number;
   readonly top: number;
+  readonly width: number;
 }
 
 /**
@@ -52,7 +56,7 @@ export function readGlyphs(page: MazePage, returnBandRows: number): string[][] {
     }),
   );
 
-  const allInk = inkInBox(page.route, { left: -1000, top: -1000 }, 5000, 5000);
+  const allInk = inkInBox(page.route, { left: -1000, top: -1000, width: 5000 }, 5000);
   if (allInk.size !== readInk) {
     throw new Error(
       `${String(allInk.size - readInk)} Stück Schrift liegen außerhalb der Glyphen-Felder`,
@@ -62,8 +66,8 @@ export function readGlyphs(page: MazePage, returnBandRows: number): string[][] {
 }
 
 /**
- * Die Felder aller Zeichen einer Seite (3 x 5 Zellen), Zeile für Zeile. Der Textblock steht
- * mittig im Raster, jede Zeile mittig im Textblock.
+ * Die Felder aller Zeichen einer Seite (3 x 5 Zellen, die Ersatzglyphe 7 x 5), Zeile für Zeile.
+ * Der Textblock steht mittig im Raster, jede Zeile mittig im Textblock.
  */
 export function glyphFieldsOf(page: MazePage, returnBandRows: number): Box[][] {
   const lineAdvance = GLYPH_HEIGHT + BASELINE_HEIGHT + returnBandRows;
@@ -71,13 +75,20 @@ export function glyphFieldsOf(page: MazePage, returnBandRows: number): Box[][] {
   const blockTop = Math.floor((page.grid.rows - blockHeight) / 2);
 
   return page.lines.map((line, lineIndex) => {
-    const lineWidth = line.length * CHARACTER_ADVANCE - 1;
-    const lineLeft = Math.floor((page.grid.columns - lineWidth) / 2);
-    return Array.from(line).map((_, characterIndex) => ({
-      left: lineLeft + characterIndex * CHARACTER_ADVANCE,
-      top: blockTop + lineIndex * lineAdvance,
-    }));
+    const characters = Array.from(line);
+    const widths = characters.map(widthOfField);
+    const lineWidth = widths.reduce((sum, width) => sum + width + 1, -1);
+    let left = Math.floor((page.grid.columns - lineWidth) / 2);
+    return widths.map((width) => {
+      const field = { left, top: blockTop + lineIndex * lineAdvance, width };
+      left += width + 1;
+      return field;
+    });
   });
+}
+
+function widthOfField(character: string): number {
+  return character === REPLACEMENT_CHARACTER ? REPLACEMENT_WIDTH : GLYPH_WIDTH;
 }
 
 function sameInk(first: ReadonlySet<string>, second: ReadonlySet<string>): boolean {
@@ -114,15 +125,10 @@ function inkOfGlyph(glyph: Glyph): Set<string> {
 }
 
 /** Die Schrift, die die Route in einem Feld schreibt, in Zellen des Felds. */
-function inkInBox(
-  route: readonly RouteStep[],
-  box: Box,
-  width = GLYPH_WIDTH,
-  height = GLYPH_HEIGHT,
-): Set<string> {
+function inkInBox(route: readonly RouteStep[], box: Box, height = GLYPH_HEIGHT): Set<string> {
   const isInside = (step: RouteStep): boolean =>
     step.x >= box.left &&
-    step.x < box.left + width &&
+    step.x < box.left + box.width &&
     step.y >= box.top &&
     step.y < box.top + height;
   const relative = (step: RouteStep): { x: number; y: number } => ({

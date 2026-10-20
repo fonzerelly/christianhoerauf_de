@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDefaultFont } from "../font/font";
+import { createDefaultFont, REPLACEMENT_CHARACTER } from "../font/font";
 import { MazeGrower } from "../maze/maze-grower";
 import { PathFinder } from "../maze/path-finder";
 import { WindingPathFinder } from "../maze/winding-path-finder";
@@ -72,6 +72,17 @@ describe("RouteBuilder", () => {
       "15,31",
       "16,31",
       "17,31",
+    ]);
+  });
+
+  it("rückt nach einer Ersatzglyphe um deren doppelte Breite weiter", () => {
+    const { steps } = build([`${REPLACEMENT_CHARACTER}A`]);
+
+    // Die Zeile ist 11 Zellen breit und beginnt in Spalte 11. Die Ersatzglyphe belegt die Spalten 11
+    // bis 17, dann kommt eine Lücke, das A beginnt in Spalte 19.
+    const letterColumns = new Set(steps.filter(({ kind }) => kind === "letter").map(({ x }) => x));
+    expect([...letterColumns].sort((a, b) => a - b)).toEqual([
+      11, 12, 13, 14, 15, 16, 17, 19, 20, 21,
     ]);
   });
 

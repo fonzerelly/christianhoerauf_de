@@ -1,5 +1,6 @@
 import type { Font } from "../font/font";
 import { CHAR_ADVANCE, GLYPH_HEIGHT } from "../font/glyph";
+import { widthInCharacters } from "../font/text-width";
 import { itemAt } from "../lists";
 import type { AreaPathFinder } from "./area-path-finder";
 import { cellOutside } from "./gate";
@@ -134,16 +135,18 @@ export class RouteBuilder {
         );
       }
 
-      Array.from(line).forEach((character, characterIndex) => {
+      let glyphLeft = lineLeft;
+      for (const character of line) {
         const glyph = this.font.glyphFor(character);
-        if (glyph === undefined) return; // Leerzeichen: die Leuchtspur läuft einfach weiter
-
-        const glyphLeft = lineLeft + characterIndex * CHAR_ADVANCE;
-        trace.walkTo(glyphLeft + itemAt(glyph, 0).x, baselineRow, "connector");
-        appendGlyph(trace, glyph, glyphLeft, block.top + lineIndex * lineAdvance);
-        trace.markGlyphEnd();
-        trace.walkTo(trace.end.x, baselineRow, "connector");
-      });
+        if (glyph !== undefined) {
+          // Leerzeichen haben keine Glyphe: die Leuchtspur läuft einfach weiter
+          trace.walkTo(glyphLeft + itemAt(glyph, 0).x, baselineRow, "connector");
+          appendGlyph(trace, glyph, glyphLeft, block.top + lineIndex * lineAdvance);
+          trace.markGlyphEnd();
+          trace.walkTo(trace.end.x, baselineRow, "connector");
+        }
+        glyphLeft += widthInCharacters(character) * CHAR_ADVANCE;
+      }
     });
 
     trace.walkTo(block.right + 2, baselineRowOf(lines.length - 1), "connector");

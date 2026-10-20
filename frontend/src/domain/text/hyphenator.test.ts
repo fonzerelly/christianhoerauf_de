@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { REPLACEMENT_CHARACTER as R } from "../font/font";
 import { Hyphenator } from "./hyphenator";
 
 describe("Hyphenator", () => {
@@ -26,5 +27,27 @@ describe("Hyphenator", () => {
 
   it("ignoriert Trennstellen ohne Strich, wenn kein Platz für den Strich ist", () => {
     expect(new Hyphenator(2).split("AB|CD|EF")).toEqual(["AB", "CD", "EF"]);
+  });
+
+  describe("mit der Ersatzglyphe, die so breit ist wie zwei Zeichen", () => {
+    it("rechnet sie beim Trennen nach Platz doppelt", () => {
+      expect(new Hyphenator(5).split(`A${R}BCDEFG`)).toEqual([`A${R}B-`, "CDEFG"]);
+    });
+
+    it("rechnet sie beim Trennen an einer Trennstelle doppelt", () => {
+      expect(new Hyphenator(5).split(`A${R}|BCDEF`)).toEqual([`A${R}-`, "BCDEF"]);
+    });
+
+    it("lässt ein Wort in einem Stück, das mit der doppelten Breite gerade passt", () => {
+      expect(new Hyphenator(6).split(`AB${R}CD`)).toEqual([`AB${R}CD`]);
+    });
+
+    it("trennt ein Wort, das nur wegen der doppelten Breite nicht passt", () => {
+      expect(new Hyphenator(5).split(`AB${R}CD`)).toEqual([`AB${R}-`, "CD"]);
+    });
+
+    it("setzt sie allein in ein Stück, wenn die Zeile für sie zu schmal ist", () => {
+      expect(new Hyphenator(1).split(`${R}${R}`)).toEqual([R, R]);
+    });
   });
 });

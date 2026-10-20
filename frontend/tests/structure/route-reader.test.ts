@@ -4,7 +4,7 @@ import { Mulberry32 } from "../../src/domain/random/mulberry32";
 import { MazePageGenerator } from "../../src/domain/pages/maze-page-generator";
 import type { MazePage } from "../../src/domain/pages/maze-page-generator";
 import type { Gate } from "../../src/domain/route/gate";
-import { readGlyphs } from "./route-reader";
+import { glyphFieldsOf, readGlyphs } from "./route-reader";
 
 const COLUMNS = 34;
 const ROWS = 60;
@@ -63,6 +63,12 @@ describe("readGlyphs", () => {
     expect(read[0]).toEqual(["Ä", ".", "?", "!", "█"]);
   });
 
+  it("liest die breite Ersatzglyphe zwischen gewöhnlichen Zeichen", () => {
+    const read = readGlyphs(generate(["A█B", "█"]), SETTINGS.returnBandRows);
+
+    expect(read).toEqual([["A", "█", "B"], ["█"]]);
+  });
+
   it("liefert für ein Feld, dessen Weg zu keiner Glyphe passt, einen leeren Eintrag", () => {
     const page = generate(["L"]);
     // Ein Schriftweg des L wird zu einem Sprung ohne Leuchtspur: Es bleibt eine unlesbare Schrift.
@@ -85,5 +91,20 @@ describe("readGlyphs", () => {
     };
 
     expect(() => readGlyphs(withStray, SETTINGS.returnBandRows)).toThrow("außerhalb");
+  });
+});
+
+describe("glyphFieldsOf", () => {
+  it("gibt jedem Zeichen ein Feld von 3 Zellen und der Ersatzglyphe eins von 7 Zellen", () => {
+    const fields = glyphFieldsOf(generate(["A█B"]), SETTINGS.returnBandRows);
+
+    // Die Zeile ist 15 Zellen breit und beginnt in Spalte 9; die Ersatzglyphe schiebt das B um 8.
+    expect(fields).toEqual([
+      [
+        { left: 9, top: 27, width: 3 },
+        { left: 13, top: 27, width: 7 },
+        { left: 21, top: 27, width: 3 },
+      ],
+    ]);
   });
 });

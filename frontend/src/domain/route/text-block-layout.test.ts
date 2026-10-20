@@ -14,6 +14,11 @@ describe("lineWidthOf", () => {
     expect(lineWidthOf("AB")).toBe(7);
     expect(lineWidthOf("ABC D")).toBe(19);
   });
+
+  it("rechnet die Ersatzglyphe als zwei Zeichen: 7 Zellen, denn die Lücke dazwischen gehört dazu", () => {
+    expect(lineWidthOf("█")).toBe(7);
+    expect(lineWidthOf("A█B")).toBe(15);
+  });
 });
 
 describe("lineLeftOf", () => {
@@ -21,6 +26,10 @@ describe("lineLeftOf", () => {
     expect(lineLeftOf("AB", 34)).toBe(13);
     expect(lineLeftOf("C", 34)).toBe(15);
     expect(lineLeftOf("C", 35)).toBe(16);
+  });
+
+  it("zentriert eine Zeile mit Ersatzglyphe nach ihrer wirklichen Breite", () => {
+    expect(lineLeftOf("A█", 34)).toBe(11);
   });
 });
 

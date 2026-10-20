@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { GLYPH_HEIGHT, GLYPH_WIDTH } from "./glyph";
+import { GLYPH_HEIGHT } from "./glyph";
 import type { Glyph } from "./glyph";
 import { createDefaultFont, REPLACEMENT_CHARACTER } from "./font";
+import { glyphWidthOf } from "./text-width";
 
 const font = createDefaultFont();
 
@@ -76,13 +77,33 @@ describe("Font", () => {
     ]);
   });
 
-  it("lässt den Lichtpunkt für die Ersatzglyphe durch alle 15 Zellen laufen, jede genau einmal", () => {
-    const glyph = font.glyphFor(REPLACEMENT_CHARACTER);
+  it("schreibt die Ersatzglyphe als Kamm: Rücken rechts, fünf Zinken nach links, jede hin und zurück", () => {
+    expect(font.glyphFor(REPLACEMENT_CHARACTER)).toEqual(
+      [
+        [6, 4],
+        [0, 4],
+        [6, 4],
+        [6, 3],
+        [0, 3],
+        [6, 3],
+        [6, 2],
+        [0, 2],
+        [6, 2],
+        [6, 1],
+        [0, 1],
+        [6, 1],
+        [6, 0],
+        [0, 0],
+        [6, 0],
+        [6, 4],
+      ].map(([x, y]) => ({ x, y })),
+    );
+  });
 
-    const cells = cellsWalkedBy(glyph ?? []);
+  it("deckt mit der Ersatzglyphe das ganze Feld von 7 x 5 Zellen ab", () => {
+    const cells = cellsWalkedBy(font.glyphFor(REPLACEMENT_CHARACTER) ?? []);
 
-    expect(cells).toHaveLength(GLYPH_WIDTH * GLYPH_HEIGHT);
-    expect(new Set(cells).size).toBe(GLYPH_WIDTH * GLYPH_HEIGHT);
+    expect(new Set(cells).size).toBe(glyphWidthOf(REPLACEMENT_CHARACTER) * GLYPH_HEIGHT);
   });
 
   it.each(DRAWABLE_CHARACTERS)("hält beim Zeichen %s die Regeln der Schrift ein", (character) => {
@@ -94,7 +115,7 @@ describe("Font", () => {
     expect(last?.y, "Ausstieg in der untersten Zeile").toBe(GLYPH_HEIGHT - 1);
     glyph.forEach((waypoint, index) => {
       expect(waypoint.x).toBeGreaterThanOrEqual(0);
-      expect(waypoint.x).toBeLessThan(GLYPH_WIDTH);
+      expect(waypoint.x).toBeLessThan(glyphWidthOf(character));
       expect(waypoint.y).toBeGreaterThanOrEqual(0);
       expect(waypoint.y).toBeLessThan(GLYPH_HEIGHT);
       const before = glyph[index - 1];

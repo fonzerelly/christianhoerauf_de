@@ -1,9 +1,11 @@
+import { widthInCharacters } from "../font/text-width";
 import { itemAt, lastOf } from "../lists";
 import { Hyphenator } from "./hyphenator";
 import { withoutBreakMarks } from "./break-marks";
 
 /**
- * Bricht einen aufbereiteten Text an Wortgrenzen in Zeilen um.
+ * Bricht einen aufbereiteten Text an Wortgrenzen in Zeilen um. Gemessen wird in Zeichenbreiten
+ * (`widthInCharacters`): Die Ersatzglyphe belegt zwei.
  *
  * - Wörter, die in eine Zeile passen, werden nie getrennt.
  * - Ein längeres Wort wird mit Trennstrich zerteilt (siehe `Hyphenator`).
@@ -24,7 +26,7 @@ export class LineWrapper {
     const markedWords = text.split(" ").filter((word) => withoutBreakMarks(word) !== "");
     for (const markedWord of markedWords) {
       let word = withoutBreakMarks(markedWord);
-      if (word.length > this.maxCharsPerLine) {
+      if (widthInCharacters(word) > this.maxCharsPerLine) {
         const pieces = this.hyphenator.split(markedWord);
         if (currentLine) lines.push(currentLine);
         lines.push(...pieces.slice(0, -1));
@@ -32,7 +34,7 @@ export class LineWrapper {
         currentLine = "";
       }
       const candidate = currentLine ? `${currentLine} ${word}` : word;
-      if (candidate.length <= this.maxCharsPerLine) {
+      if (widthInCharacters(candidate) <= this.maxCharsPerLine) {
         currentLine = candidate;
       } else {
         lines.push(currentLine);
@@ -56,7 +58,7 @@ export class LineWrapper {
       const wordsBefore = lineBefore.split(" ");
       const canBorrowWord = wordsBefore.length >= 2 && !lineBefore.endsWith("-");
 
-      if (line.length === 1 && canBorrowWord) {
+      if (widthInCharacters(line) === 1 && canBorrowWord) {
         lines[index] = `${lastOf(wordsBefore)} ${line}`;
         lines[index - 1] = wordsBefore.slice(0, -1).join(" ");
       }

@@ -21,8 +21,10 @@ const answer = fc
   )
   .map((characters) => characters.join(""));
 
+// Mindestens 13 Spalten: Erst dann passen zwei Zeichenbreiten in eine Zeile, und die breite
+// Ersatzglyphe (7 Zellen) hat Platz. In einem schmaleren Raster läuft sie über den Rand hinaus.
 const grid = fc.record({
-  columns: fc.integer({ min: 9, max: 70 }),
+  columns: fc.integer({ min: 13, max: 70 }),
   rows: fc.integer({ min: 10, max: 80 }),
 });
 

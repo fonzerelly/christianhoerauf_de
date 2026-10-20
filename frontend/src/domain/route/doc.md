@@ -37,12 +37,12 @@ außerhalb des Rasters), eine Art (`letter`, `connector`, `silent`) und `isDot`.
 
 ## text-block-layout
 
-| Funktion                                      | Was sie konkret tut                                                                                  |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `lineAdvanceOf(returnBandRows)`               | Rasterzeilen je Textzeile: 5 Glyphenzeilen, 1 Grundlinie und das Band.                               |
-| `lineWidthOf(line)`                           | Breite einer Zeile: 4 Zellen je Zeichen, minus die Lücke hinter dem letzten.                         |
-| `lineLeftOf(line, columns)`                   | Erste Spalte der Zeile, wenn sie mittig steht (abgerundet).                                          |
-| `layoutTextBlock(lines, columns, rows, band)` | Zentriert den Textblock aus allen Zeilen im Raster und liefert seine äußersten Zellen (`Rectangle`). |
+| Funktion                                      | Was sie konkret tut                                                                                               |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `lineAdvanceOf(returnBandRows)`               | Rasterzeilen je Textzeile: 5 Glyphenzeilen, 1 Grundlinie und das Band.                                            |
+| `lineWidthOf(line)`                           | Breite einer Zeile: 4 Zellen je Zeichenbreite (die Ersatzglyphe belegt zwei), minus die Lücke hinter der letzten. |
+| `lineLeftOf(line, columns)`                   | Erste Spalte der Zeile, wenn sie mittig steht (abgerundet).                                                       |
+| `layoutTextBlock(lines, columns, rows, band)` | Zentriert den Textblock aus allen Zeilen im Raster und liefert seine äußersten Zellen (`Rectangle`).              |
 
 ## gate
 
@@ -90,10 +90,10 @@ bekommt das Wegstück `isDot`.
 
 ## RouteBuilder
 
-| Methode                                        | Was sie konkret tut                                                                                                                                                                                                                 |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `build(lines, block, columns, entrance, exit)` | Sucht Anlauf und Ablauf in ihren Revieren, setzt die Route aus Außenschritten, Anlauf, Text, Ablauf und Außenschritten zusammen und liefert sie samt Index des Endes der letzten Glyphe. Wirft, wenn der Text keine Glyphe enthält. |
-| `appendTextRoute` (privat)                     | Läuft Zeile für Zeile: Zeilenwechsel (ab der zweiten Zeile), dann je Zeichen zur Glyphe auf der Grundlinie, durch sie hindurch und zurück auf die Grundlinie. Leerzeichen haben keine Glyphe. Zuletzt zum Tor rechts.               |
+| Methode                                        | Was sie konkret tut                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `build(lines, block, columns, entrance, exit)` | Sucht Anlauf und Ablauf in ihren Revieren, setzt die Route aus Außenschritten, Anlauf, Text, Ablauf und Außenschritten zusammen und liefert sie samt Index des Endes der letzten Glyphe. Wirft, wenn der Text keine Glyphe enthält.                                                                                                    |
+| `appendTextRoute` (privat)                     | Läuft Zeile für Zeile: Zeilenwechsel (ab der zweiten Zeile), dann je Zeichen zur Glyphe auf der Grundlinie, durch sie hindurch und zurück auf die Grundlinie. Leerzeichen haben keine Glyphe. Die nächste Glyphe beginnt jeweils um die Breite des Zeichens (Ersatzglyphe: zwei Zeichenbreiten) weiter rechts. Zuletzt zum Tor rechts. |
 
 ## WallBreaker
 
