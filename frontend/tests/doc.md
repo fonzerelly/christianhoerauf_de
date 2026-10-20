@@ -3,10 +3,11 @@
 Tests, die mehrere Teile des Codes zusammen prüfen. Die Unit-Tests der einzelnen Klassen liegen
 neben dem Code unter `src/`.
 
-| Ordner / Datei   | Was sie prüft                                                                                      |
-| ---------------- | -------------------------------------------------------------------------------------------------- |
-| `golden-master/` | Der Neubau erzeugt bei gleichen Eingaben dasselbe wie der Prototyp.                                |
-| `structure/`     | Labyrinth-Seiten von außen: Der Leser liest den Text aus der Route, die Route hält die Regeln ein. |
+| Ordner / Datei   | Was sie prüft                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `golden-master/` | Der Neubau erzeugt bei gleichen Eingaben dasselbe wie der Prototyp.                                                            |
+| `pages/`         | Hinweis am Fragefeld, Impressum, Datenschutzerklärung, `CNAME` und Workflow zum Ausrollen: der Text steht, wie er stehen muss. |
+| `structure/`     | Labyrinth-Seiten von außen: Der Leser liest den Text aus der Route, die Route hält die Regeln ein.                             |
 
 ## golden-master
 
@@ -39,3 +40,15 @@ Nicht verglichen werden das Zeichen `!` und die Ersatzglyphe; der Prototyp kennt
 Kreuzungen im Textblock sind erlaubt: B, D und I kreuzen sich unten selbst (der Balken in der Mitte
 schneidet die untere Linie), und ein Fragezeichen am Zeilenende kehrt auf der Grundlinie zu einer
 Zelle zurück, die die Route schon gelaufen ist.
+
+## pages
+
+`pages.test.ts` liest die Dateien als Text und prüft ihren Inhalt; es startet keinen Browser.
+
+| Prüfung                              | Was sie sicherstellt                                                                                                                                                                                 |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hinweis unter dem Fragefeld          | `index.html` nennt Sprachmodell, AWS in Frankfurt und die Bitte um keine persönlichen Daten, verlinkt Datenschutz und Impressum und stellt den Hinweis hinter das Fragefeld.                         |
+| `impressum.html`, `datenschutz.html` | Beginnen mit dem unsichtbaren Kommentar „Entwurf, nicht anwaltlich geprüft“, sind deutsch und mobil lesbar, führen die Platzhalter `[NAME]`, `[ANSCHRIFT]`, `[E-MAIL]` und verlinken die Startseite. |
+| `datenschutz.html`                   | Nennt Verantwortlichen, GitHub Pages, AWS Frankfurt, Rechtsgrundlage, Kürzel statt IP-Adresse, 30 Tage, Cookies und alle Rechte der Betroffenen.                                                     |
+| `public/CNAME`                       | Enthält genau `christianhoerauf.de`.                                                                                                                                                                 |
+| `frontend-pages.yml`                 | Läuft bei Push auf `master` (nur `frontend/**` und der Workflow) und per Hand, baut mit `vars.ANSWER_URL`, liefert `frontend/dist` aus, jede Action mit fester Version.                              |

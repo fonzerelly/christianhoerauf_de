@@ -1,0 +1,60 @@
+/* Impressum und Datenschutzerklärung: derselbe grüne Monitor wie die Startseite, aber zum Lesen
+   und Scrollen. Eigene Datei, weil `style.css` die Startseite auf Fensterhöhe festlegt. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px 16px 48px;
+  font:
+    16px/1.6 ui-monospace,
+    "DejaVu Sans Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  color: #7fdc97;
+  background: #020a04;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+h1,
+h2 {
+  color: #33ff66;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  font-size: 1.2rem;
+}
+
+a {
+  color: #33ff66;
+}
+
+a:focus-visible {
+  outline: 2px solid #33ff66;
+  outline-offset: 2px;
+}
+
+/* Platzhalter, die Christian noch füllt: auffällig, damit sie nicht online bleiben. */
+mark {
+  color: #03140a;
+  background: #ffd24a;
+}
+
+.back {
+  display: inline-block;
+  padding: 4px 0;
+}
