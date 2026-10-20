@@ -16,3 +16,15 @@ sicher, dass `domain` nur aus `domain` importiert.
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `itemAt(list, index)` | Liefert das Element an der Stelle. Wirft einen `RangeError`, wenn es die Stelle nicht gibt (statt `undefined` zu liefern). |
 | `lastOf(list)`        | Liefert das letzte Element. Wirft bei einer leeren Liste.                                                                  |
+
+## steps.ts
+
+Die Domäne kennt keine Zeit und keinen Browser. Damit ein Aufrufer lange Berechnungen trotzdem
+zwischendurch unterbrechen kann (der Browser soll zwischen zwei Stücken Bilder zeichnen und auf
+Eingaben antworten), schreibt sie sie als Generatoren: Jedes `yield` ist eine Stelle, an der
+pausiert werden darf.
+
+| Funktion / Typ    | Was sie konkret tut                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `Steps<Result>`   | Eine Berechnung in Stücken: ein Generator, der `undefined` liefert (die Pausen) und am Ende `Result` zurückgibt. |
+| `runToEnd(steps)` | Führt alle Stücke hintereinander aus, ohne Pause, und liefert das Ergebnis.                                      |

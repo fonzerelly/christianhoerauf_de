@@ -119,4 +119,22 @@ describe("AnswerPaginator", () => {
     expect(paginator.restingStepOf(firstPage)).toBe(firstPage.lastGlyphEnd + 2);
     expect(paginator.restingStepOf(itemAt(pages, pages.length - 1))).toBe(restingStepIndex);
   });
+
+  it("liefert in Stücken dasselbe wie `paginate` und pausiert zweimal je Seite", () => {
+    const answer =
+      "Das ist ein langer Platzhalter-Text zum Ausprobieren mehrerer Seiten und noch viel mehr";
+    const steps = createPaginator().paginateInSteps(answer, 3);
+
+    let pauses = 0;
+    let step = steps.next();
+    while (step.done !== true) {
+      pauses++;
+      step = steps.next();
+    }
+
+    const expected = createPaginator().paginate(answer, 3);
+    expect(expected.pages.length).toBeGreaterThan(1);
+    expect(pauses).toBe(2 * expected.pages.length);
+    expect(step.value).toEqual(expected);
+  });
 });

@@ -5,6 +5,8 @@ import { PathFinder } from "../maze/path-finder";
 import { RectangularGrid } from "../maze/rectangular-grid";
 import { WindingPathFinder } from "../maze/winding-path-finder";
 import type { RandomSource } from "../random/random-source";
+import { runToEnd } from "../steps";
+import type { Steps } from "../steps";
 import { AreaPathFinder } from "../route/area-path-finder";
 import { BorderCellPicker } from "../route/border-cell-picker";
 import type { Gate } from "../route/gate";
@@ -75,6 +77,15 @@ export class MazePageGenerator {
    * enthalten.
    */
   public generate(lines: readonly string[], entrance: Gate): MazePage {
+    return runToEnd(this.generateInSteps(lines, entrance));
+  }
+
+  /**
+   * Wie `generate`, aber in Stücken (siehe `Steps`), damit ein Aufrufer zwischendurch pausieren
+   * kann: erst Ausgang und Route, dann Freibrechen und Wände unterbrechen, zuletzt das Wachsen.
+   * Die Reihenfolge der Zufallszüge ist dieselbe wie bei `generate`.
+   */
+  public *generateInSteps(lines: readonly string[], entrance: Gate): Steps<MazePage> {
     const exit = this.borderCellPicker.pickExit(entrance, this.columns, this.rows);
     const block = layoutTextBlock(lines, this.columns, this.rows, this.settings.returnBandRows);
     const { steps: route, lastGlyphEnd } = this.routeBuilder.build(
@@ -84,12 +95,14 @@ export class MazePageGenerator {
       entrance,
       exit,
     );
+    yield;
 
     const grid = new RectangularGrid(this.columns, this.rows);
     this.carveRoute(grid, route);
     this.wallBreaker.breakUpLongWalls(grid, route, lines.length, block);
-    this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
+    yield;
 
+    this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
     return { grid, route, entrance, exit, lines, lastGlyphEnd };
   }
 

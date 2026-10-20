@@ -1,6 +1,8 @@
 import type { Font } from "../font/font";
 import { lastOf } from "../lists";
 import type { RandomSource } from "../random/random-source";
+import { runToEnd } from "../steps";
+import type { Steps } from "../steps";
 import { BorderCellPicker } from "../route/border-cell-picker";
 import { entranceOppositeOf } from "../route/gate";
 import type { Gate } from "../route/gate";
@@ -53,6 +55,14 @@ export class AnswerPaginator {
    * der Ausgang der letzten Seite der vorigen Antwort ist.
    */
   public paginate(answer: string, seed: number, exitBefore?: Gate): PaginatedAnswer {
+    return runToEnd(this.paginateInSteps(answer, seed, exitBefore));
+  }
+
+  /**
+   * Wie `paginate`, aber in Stücken (siehe `Steps`): Die Erzeugung jeder Seite pausiert zweimal
+   * (siehe `MazePageGenerator.generateInSteps`). Das Ergebnis ist dasselbe.
+   */
+  public *paginateInSteps(answer: string, seed: number, exitBefore?: Gate): Steps<PaginatedAnswer> {
     const { columns, rows, maze } = this.settings;
     const random = this.createRandom(seed);
     const borderCellPicker = new BorderCellPicker(random);
@@ -67,7 +77,10 @@ export class AnswerPaginator {
       const entrance = previousExit
         ? entranceOppositeOf(previousExit, columns, rows)
         : borderCellPicker.pickFirstEntrance(columns, rows);
-      const page = generator.generate(lines.slice(first, first + capacity.linesPerPage), entrance);
+      const page = yield* generator.generateInSteps(
+        lines.slice(first, first + capacity.linesPerPage),
+        entrance,
+      );
       pages.push(page);
       previousExit = page.exit;
     }

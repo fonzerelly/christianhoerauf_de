@@ -16,15 +16,12 @@ const SETTINGS: MazeSettings = {
 };
 const ENTRANCE: Gate = { cell: { x: 0, y: 20 }, side: "left" };
 
+function createGenerator(seed: number): MazePageGenerator {
+  return new MazePageGenerator(COLUMNS, ROWS, new Mulberry32(seed), createDefaultFont(), SETTINGS);
+}
+
 function generate(lines: string[], seed = 1, entrance = ENTRANCE) {
-  const generator = new MazePageGenerator(
-    COLUMNS,
-    ROWS,
-    new Mulberry32(seed),
-    createDefaultFont(),
-    SETTINGS,
-  );
-  return generator.generate(lines, entrance);
+  return createGenerator(seed).generate(lines, entrance);
 }
 
 describe("MazePageGenerator", () => {
@@ -78,5 +75,21 @@ describe("MazePageGenerator", () => {
   it("erzeugt mit demselben Startwert dieselbe Seite und mit einem anderen eine andere", () => {
     expect(generate(["HALLO"], 4)).toEqual(generate(["HALLO"], 4));
     expect(generate(["HALLO"], 4).route).not.toEqual(generate(["HALLO"], 5).route);
+  });
+
+  describe("in Stücken", () => {
+    it("pausiert zweimal (nach der Route, nach den Wänden) und liefert dieselbe Seite wie `generate`", () => {
+      const steps = createGenerator(3).generateInSteps(["HALLO", "WELT"], ENTRANCE);
+
+      let pauses = 0;
+      let step = steps.next();
+      while (step.done !== true) {
+        pauses++;
+        step = steps.next();
+      }
+
+      expect(pauses).toBe(2);
+      expect(step.value).toEqual(generate(["HALLO", "WELT"], 3));
+    });
   });
 });
