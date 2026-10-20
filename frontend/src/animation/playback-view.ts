@@ -1,3 +1,13 @@
+/**
+ * Die Abschnitte der Animation:
+ * - `writing`: Der Lichtpunkt läuft seine Route ab, schreibend und hinaus.
+ * - `resting`: Er steht am Haltepunkt, pulsiert und wartet auf die nächste Antwort.
+ * - `fading`: Er ist draußen, die Leuchtspur verglimmt.
+ * - `scrolling`: Das Bild schiebt zur nächsten Labyrinth-Seite weiter.
+ * - `waiting`: Es bewegt sich nichts; es fehlt die nächste Antwort.
+ */
+export type Phase = "writing" | "resting" | "fading" | "scrolling" | "waiting";
+
 import type { Position } from "../domain/maze/position";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 
@@ -6,6 +16,8 @@ import type { MazePage } from "../domain/pages/maze-page-generator";
  * diese Schnittstelle; im Test des Renderers steht eine Attrappe dafür.
  */
 export interface PlaybackView {
+  /** In welchem Abschnitt der Animation wir sind. */
+  readonly phase: Phase;
   /** Hat die Animation gerade etwas zu zeigen oder zu bewegen? Im Stillstand (`waiting`) nicht. */
   readonly isAnimating: boolean;
   /** Schiebt das Bild gerade zur nächsten Seite weiter? */

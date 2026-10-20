@@ -5,6 +5,7 @@ describe("playbackView", () => {
   it("steht ohne Angaben still: nichts zu zeichnen, kein Lichtpunkt", () => {
     const view = playbackView({});
 
+    expect(view.phase).toBe("waiting");
     expect(view.isAnimating).toBe(false);
     expect(view.isScrolling).toBe(false);
     expect(view.isResting).toBe(false);
@@ -21,6 +22,7 @@ describe("playbackView", () => {
 
   it("nimmt die genannten Werte", () => {
     const view = playbackView({
+      phase: "fading",
       isAnimating: true,
       progress: 2.5,
       scrollPart: 0.5,
@@ -29,7 +31,12 @@ describe("playbackView", () => {
       dot: { x: 1, y: 2 },
     });
 
-    expect(view).toMatchObject({ isAnimating: true, progress: 2.5, scrollPart: 0.5 });
+    expect(view).toMatchObject({
+      phase: "fading",
+      isAnimating: true,
+      progress: 2.5,
+      scrollPart: 0.5,
+    });
     expect(view.firstGlowingStep()).toBe(2);
     expect(view.trailLevelOf(7)).toBe(7);
     expect(view.dotPosition()).toEqual({ x: 1, y: 2 });

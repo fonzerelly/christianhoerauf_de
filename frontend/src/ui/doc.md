@@ -13,6 +13,7 @@ werden. `main.ts` übergibt die echten Elemente.
 | `spoken-answer.ts`           | `SpokenAnswer`: der `aria-live`-Bereich für Screenreader.                   |
 | `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Screenreader.             |
 | `stage.ts`                   | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe. |
+| `phase-indicator.ts`         | `PhaseIndicator`: Abschnitt der Animation als `data-phase`.                 |
 | `stage-size-watcher.ts`      | `StageSizeWatcher`: Tastatur-Falle am Handy.                                |
 | `animation-loop.ts`          | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                      |
 | `required-element.ts`        | `requireElement`: Element der Seite holen und prüfen.                       |
@@ -55,6 +56,12 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 | `refresh()`          | Wirft das Vorgezeichnete weg und zeichnet das nächste Bild neu.                                                                                                                                                                       |
 | `rebuild()`          | Die Bühne hat eine andere Größe: misst neu, stellt den Renderer um und baut einen neuen Ablauf, der die aktuelle Antwort (oder die, auf die gewartet wird) von vorn schreibt. Startwert wie bei einem frischen Laden in dieser Größe. |
 
+## PhaseIndicator
+
+`show(phase)` schreibt den Abschnitt der Animation (`writing`, `resting`, `fading`, `scrolling`,
+`waiting`) als `data-phase` an die Bühne, aber nur wenn er sich ändert. Besucher sehen nichts davon;
+die Bildtests warten damit auf den Haltepunkt oder das Weiterschieben.
+
 ## StageSizeWatcher
 
 `notifyChange()` wartet 0,3 s, bis die Größe ruhig ist (jede neue Meldung bricht das Warten ab), und prüft
@@ -72,5 +79,5 @@ während getippt wird (Bildschirmtastatur) → nichts.
 
 `requireElement(root, id, type)` liefert das Element oder scheitert mit `Auf der Seite fehlt das Element
 "<id>"` bzw. `… ist von der falschen Art`. `readTestHooks(scope)` liest `scope.labyrinthTestHooks`
-(`clock`, `requestFrame`, `randomSeed`), das nur ein Test per Playwright-`addInitScript` setzt; fehlt es
+(`clock`, `requestFrame`, `randomSeed` und optional `tuning`, Abstimmungswerte, die den des Profils ersetzen), das nur ein Test per Playwright-`addInitScript` setzt; fehlt es
 oder ist es unvollständig: `undefined`.

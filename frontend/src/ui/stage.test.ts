@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Playback } from "../animation/playback-view";
+import type { Phase, Playback } from "../animation/playback-view";
 import { lastOf } from "../domain/lists";
 import type { Renderer } from "../rendering/renderer";
 import type { StageLayout } from "../rendering/stage-layout";
@@ -21,6 +21,7 @@ const LAYOUT: StageLayout = {
 class FakePlayback implements Playback {
   public readonly requests: Promise<string>[] = [];
   public readonly advances: number[] = [];
+  public phase: Phase = "waiting";
   public isAnimating = false;
   public answersWritten = 0;
   private readonly view = playbackView({});
@@ -94,6 +95,7 @@ class FakeRenderer implements Renderer {
 
 function setup(baseSeed = 100) {
   const renderer = new FakeRenderer();
+  const shownPhases: Phase[] = [];
   const playbacks: FakePlayback[] = [];
   let nextLayout = LAYOUT;
   const stage = new Stage({
@@ -105,9 +107,15 @@ function setup(baseSeed = 100) {
       return playback;
     },
     baseSeed,
+    phaseDisplay: {
+      show: (phase) => {
+        shownPhases.push(phase);
+      },
+    },
   });
   return {
     stage,
+    shownPhases,
     renderer,
     playbacks,
     current: () => lastOf(playbacks),
@@ -187,6 +195,18 @@ describe("Stage", () => {
       stage.tick(0.1);
 
       expect(renderer.drawn).toHaveLength(2);
+    });
+  });
+
+  describe("Abschnitt", () => {
+    it("zeigt in jedem Bild den Abschnitt, in dem die Animation nach dem Weiterlaufen ist", () => {
+      const { stage, current, shownPhases } = setup();
+
+      stage.tick(0.1);
+      current().phase = "resting";
+      stage.tick(0.1);
+
+      expect(shownPhases).toEqual(["waiting", "resting"]);
     });
   });
 

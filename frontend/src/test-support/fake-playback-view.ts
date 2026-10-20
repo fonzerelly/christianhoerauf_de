@@ -1,4 +1,4 @@
-import type { PlaybackView } from "../animation/playback-view";
+import type { Phase, PlaybackView } from "../animation/playback-view";
 import { BRIGHTNESS_LEVELS } from "../animation/trail";
 import type { Position } from "../domain/maze/position";
 import type { MazePage } from "../domain/pages/maze-page-generator";
@@ -8,6 +8,7 @@ import type { MazePage } from "../domain/pages/maze-page-generator";
  * alles still; die Leuchtspur leuchtet überall voll, das erste leuchtende Wegstück ist 1.
  */
 export function playbackView(values: {
+  phase?: Phase;
   isAnimating?: boolean;
   isScrolling?: boolean;
   isResting?: boolean;
@@ -22,6 +23,7 @@ export function playbackView(values: {
   levelOfStep?: (step: number) => number;
 }): PlaybackView {
   return {
+    phase: values.phase ?? "waiting",
     isAnimating: values.isAnimating ?? false,
     isScrolling: values.isScrolling ?? false,
     isResting: values.isResting ?? false,

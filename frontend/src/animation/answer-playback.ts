@@ -6,19 +6,9 @@ import type { PageSource } from "./page-source";
 import { paceOf } from "./pace";
 import { pulseOf } from "./pulse";
 import type { PlaybackSettings } from "./playback-settings";
-import type { Playback } from "./playback-view";
+import type { Phase, Playback } from "./playback-view";
 import { RouteWalker } from "./route-walker";
 import { Trail } from "./trail";
-
-/**
- * Die Abschnitte der Animation:
- * - `writing`: Der Lichtpunkt läuft seine Route ab, schreibend und hinaus.
- * - `resting`: Er steht am Haltepunkt, pulsiert und wartet auf die nächste Antwort.
- * - `fading`: Er ist draußen, die Leuchtspur verglimmt.
- * - `scrolling`: Das Bild schiebt zur nächsten Labyrinth-Seite weiter.
- * - `waiting`: Es bewegt sich nichts; es fehlt die nächste Antwort.
- */
-export type Phase = "writing" | "resting" | "fading" | "scrolling" | "waiting";
 
 /** Die Route, auf der der Lichtpunkt steht, solange es noch keine Seite gibt: ein einziges Wegstück. */
 const NO_ROUTE: readonly RouteStep[] = [{ x: 0, y: 0, kind: "connector", isDot: false }];

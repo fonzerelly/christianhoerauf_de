@@ -16,6 +16,16 @@ describe("readTestHooks", () => {
     expect(hooks?.randomSeed).toBe(7);
   });
 
+  it("liest auch Abstimmungswerte, die ein Test ersetzen will (etwa eine lange Leuchtdauer)", () => {
+    const hooks = readTestHooks({ labyrinthTestHooks: { ...VALID, tuning: { holdSeconds: 600 } } });
+
+    expect(hooks?.tuning).toEqual({ holdSeconds: 600 });
+  });
+
+  it("kommt ohne Abstimmungswerte aus", () => {
+    expect(readTestHooks({ labyrinthTestHooks: VALID })?.tuning).toEqual({});
+  });
+
   it("liefert nichts, wenn die Seite nicht von einem Test geladen wird", () => {
     expect(readTestHooks({})).toBeUndefined();
   });
@@ -26,7 +36,8 @@ describe("readTestHooks", () => {
     ["Uhr fehlt", { ...VALID, clock: undefined }],
     ["Uhr ohne now", { ...VALID, clock: {} }],
     ["Bildtakt fehlt", { ...VALID, requestFrame: undefined }],
-    ["Startwert ist kein Zahl", { ...VALID, randomSeed: "7" }],
+    ["Startwert ist keine Zahl", { ...VALID, randomSeed: "7" }],
+    ["Abstimmungswerte sind kein Objekt", { ...VALID, tuning: 5 }],
   ])("liefert nichts, wenn die Bereitstellung unvollständig ist: %s", (_name, hooks) => {
     expect(readTestHooks({ labyrinthTestHooks: hooks })).toBeUndefined();
   });

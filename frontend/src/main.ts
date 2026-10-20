@@ -21,6 +21,7 @@ import type { StageLayout } from "./rendering/stage-layout";
 import { AnimationLoop } from "./ui/animation-loop";
 import { Conversation } from "./ui/conversation";
 import { selectProfile } from "./ui/device-profile-selector";
+import { PhaseIndicator } from "./ui/phase-indicator";
 import { QuestionForm } from "./ui/question-form";
 import { connectReplayButton } from "./ui/replay-button";
 import { requireElement } from "./ui/required-element";
@@ -36,11 +37,12 @@ const LONGEST_FRAME_SECONDS = 0.1;
 // Geräteprofil und Abstimmungswerte
 const urlParameters = readUrlParameters(window.location.search);
 const profile = selectProfile(window.innerWidth, urlParameters.profile);
+const testHooks = readTestHooks(window);
 const tuning = {
   ...TUNING[profile],
   ...(urlParameters.seed === undefined ? {} : { seed: urlParameters.seed }),
+  ...testHooks?.tuning,
 };
-const testHooks = readTestHooks(window);
 
 // Elemente der Seite
 const stageElement = requireElement(document, "stage", HTMLElement);
@@ -103,6 +105,7 @@ const stage = new Stage({
       { ...tuning, seed: firstSeed },
     ),
   baseSeed: tuning.seed,
+  phaseDisplay: new PhaseIndicator(stageElement),
 });
 
 // Frage und Antwort

@@ -1,4 +1,4 @@
-import type { Playback } from "../animation/playback-view";
+import type { Phase, Playback } from "../animation/playback-view";
 import type { Renderer } from "../rendering/renderer";
 import type { StageLayout } from "../rendering/stage-layout";
 
@@ -10,6 +10,8 @@ export interface StageParts {
   readonly createPlayback: (layout: StageLayout, firstSeed: number) => Playback;
   /** Der Startwert der Begrüßung. */
   readonly baseSeed: number;
+  /** Zeigt den Abschnitt der Animation an (`data-phase`). */
+  readonly phaseDisplay: { show(phase: Phase): void };
 }
 
 /**
@@ -44,6 +46,7 @@ export class Stage {
    */
   public tick(seconds: number): void {
     this.playback.advance(seconds);
+    this.parts.phaseDisplay.show(this.playback.phase);
     const isAnimating = this.playback.isAnimating;
     if (isAnimating || this.wasAnimating || this.parts.renderer.isGlitching || this.needsDraw) {
       this.parts.renderer.draw(this.playback, seconds);

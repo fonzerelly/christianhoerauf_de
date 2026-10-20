@@ -32,6 +32,8 @@ body {
 
 body {
   display: grid;
+  /* minmax(0, 1fr): Die Spalte ist so breit wie das Fenster und wächst nicht mit dem Fragefeld mit. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas: "stage" "ask";
   font:
