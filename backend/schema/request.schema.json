@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://christianhoerauf.de/schema/request.schema.json",
+  "title": "Anfrage an den Bot: POST mit Content-Type application/json",
+  "type": "object",
+  "required": ["question"],
+  "properties": {
+    "question": { "type": "string", "pattern": "\\S", "maxLength": 500 }
+  }
+}
