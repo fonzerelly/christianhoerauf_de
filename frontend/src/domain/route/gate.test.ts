@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cellOutside, entranceOppositeOf } from "./gate";
+import { cellOutside, entranceOppositeOf, outwardOf } from "./gate";
 import type { Gate } from "./gate";
 
 describe("cellOutside", () => {
@@ -12,6 +12,20 @@ describe("cellOutside", () => {
     "liegt außerhalb des Rands: %j, Abstand %d",
     (gate, distance, expected) => {
       expect(cellOutside(gate, distance)).toEqual(expected);
+    },
+  );
+});
+
+describe("outwardOf", () => {
+  it.each([
+    ["left", { x: -1, y: 0 }],
+    ["right", { x: 1, y: 0 }],
+    ["top", { x: 0, y: -1 }],
+    ["bottom", { x: 0, y: 1 }],
+  ] satisfies [Gate["side"], { x: number; y: number }][])(
+    "zeigt am Rand %s in die Richtung %j",
+    (side, expected) => {
+      expect(outwardOf(side)).toEqual(expected);
     },
   );
 });

@@ -48,6 +48,7 @@ außerhalb des Rasters), eine Art (`letter`, `connector`, `silent`) und `isDot`.
 
 | Funktion                                  | Was sie konkret tut                                                                             |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `outwardOf(side)`                         | Die Richtung, die am Rand aus dem Raster hinausführt, z. B. `right` → `{ x: 1, y: 0 }`.         |
 | `cellOutside(gate, distance)`             | Die Zelle `distance` Schritte außerhalb des Rasters vor der Randzelle des Tors.                 |
 | `entranceOppositeOf(exit, columns, rows)` | Der Eingang der Folgeseite: gegenüberliegender Rand, gleiche Zeile bzw. Spalte wie der Ausgang. |
 

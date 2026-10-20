@@ -65,6 +65,14 @@ describe("AnswerPlayback", () => {
       expect(playback.isDotVisible).toBe(false);
     });
 
+    it("hat nichts zu bewegen", () => {
+      const playback = new AnswerPlayback(new FakePageSource(), SETTINGS);
+
+      expect(playback.isAnimating).toBe(false);
+      expect(playback.isScrolling).toBe(false);
+      expect(playback.isResting).toBe(false);
+    });
+
     it("lässt die Uhr trotzdem weiterlaufen, ohne etwas zu tun", () => {
       const playback = new AnswerPlayback(new FakePageSource(), SETTINGS);
 
@@ -113,6 +121,8 @@ describe("AnswerPlayback", () => {
 
       playback.advance(TO_RESTING);
       expect(playback.phase).toBe("resting");
+      expect(playback.isResting).toBe(true);
+      expect(playback.isAnimating).toBe(true);
       expect(playback.progress).toBe(7);
       expect(playback.restingSeconds).toBe(0);
 
@@ -166,6 +176,7 @@ describe("AnswerPlayback", () => {
 
       playback.advance(STEP);
       expect(playback.phase).toBe("scrolling");
+      expect(playback.isScrolling).toBe(true);
       expect(playback.currentPage).toBe(firstPage);
 
       playback.advance(SETTINGS.scrollSeconds);

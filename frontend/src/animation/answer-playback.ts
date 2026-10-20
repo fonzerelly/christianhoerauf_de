@@ -6,6 +6,7 @@ import type { PageSource } from "./page-source";
 import { paceOf } from "./pace";
 import { pulseOf } from "./pulse";
 import type { PlaybackSettings } from "./playback-settings";
+import type { PlaybackView } from "./playback-view";
 import { RouteWalker } from "./route-walker";
 import { Trail } from "./trail";
 
@@ -38,7 +39,7 @@ function easeInOut(part: number): number {
  * Schnelldurchlauf zu Ende, und Seiten der alten Antwort, die noch nicht zu sehen sind, entfallen.
  * Bei mehreren Fragen hintereinander zählt nur die Antwort auf die neueste.
  */
-export class AnswerPlayback {
+export class AnswerPlayback implements PlaybackView {
   private pages: MazePage[] = [];
   private pageIndex = 0;
   private currentPhase: Phase = "waiting";
@@ -77,6 +78,19 @@ export class AnswerPlayback {
     return this.walker.progress;
   }
 
+  /** Gibt es etwas zu zeichnen oder zu bewegen? Nur im Stillstand (`waiting`) nicht. */
+  public get isAnimating(): boolean {
+    return this.currentPhase !== "waiting";
+  }
+
+  public get isScrolling(): boolean {
+    return this.currentPhase === "scrolling";
+  }
+
+  public get isResting(): boolean {
+    return this.currentPhase === "resting";
+  }
+
   /** Ist der Lichtpunkt zu sehen? Er läuft oder wartet am Haltepunkt. */
   public get isDotVisible(): boolean {
     return this.currentPhase === "writing" || this.currentPhase === "resting";
@@ -90,23 +104,21 @@ export class AnswerPlayback {
 
   /** Wie weit das Weiterschieben ist, von 0 (alte Seite steht) bis 1 (neue Seite steht), sanft angefahren. */
   public get scrollPart(): number {
-    if (this.currentPhase !== "scrolling") return 0;
+    if (!this.isScrolling) return 0;
     if (this.settings.scrollSeconds <= 0) return 1;
     return easeInOut(Math.min(1, this.secondsInPhase() / this.settings.scrollSeconds));
   }
 
   /** Wie lange der Lichtpunkt schon am Haltepunkt wartet; 0, solange er nicht dort steht. */
   public get restingSeconds(): number {
-    return this.currentPhase === "resting" ? this.secondsInPhase() : 0;
+    return this.isResting ? this.secondsInPhase() : 0;
   }
 
   /**
    * Wie hell der Lichtpunkt am Haltepunkt gerade pulsiert (0 bis 1); außerhalb des Wartens 0.
    */
   public get restingPulse(): number {
-    return this.currentPhase === "resting"
-      ? pulseOf(this.secondsInPhase(), this.settings.pulseSeconds)
-      : 0;
+    return this.isResting ? pulseOf(this.secondsInPhase(), this.settings.pulseSeconds) : 0;
   }
 
   /** Wo der Lichtpunkt steht, auch zwischen zwei Zellen; `undefined`, solange es keine Seite gibt. */

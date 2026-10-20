@@ -22,9 +22,14 @@ const OPPOSITE_SIDE: Readonly<Record<Side, Side>> = {
   bottom: "top",
 };
 
+/** Die Richtung, die an diesem Rand aus dem Raster hinausführt (je Achse -1, 0 oder 1). */
+export function outwardOf(side: Side): Position {
+  return OUTWARD[side];
+}
+
 /** Die Zelle, die `distance` Schritte außerhalb des Rasters vor der Randzelle des Tors liegt. */
 export function cellOutside(gate: Gate, distance: number): Position {
-  const outward = OUTWARD[gate.side];
+  const outward = outwardOf(gate.side);
   return { x: gate.cell.x + outward.x * distance, y: gate.cell.y + outward.y * distance };
 }
 
