@@ -28,6 +28,7 @@ npm run preview    # Produktionsbuild lokal ausliefern
 | `npm run test:unit`          | Unit-Tests (Vitest) mit Abdeckung; bricht unter 100 % ab.                                   |
 | `npm run test:properties`    | Property-based Tests (fast-check) mit vielen Durchläufen.                                   |
 | `npm run test:architecture`  | Abhängigkeitsrichtung der Schichten (dependency-cruiser).                                   |
+| `npm run graph:architecture` | Zeichnet die Abhängigkeiten als Graph nach `reports/architektur/index.html`.                |
 | `npm run test:visual`        | Bildtests mit Playwright im Docker-Image.                                                   |
 | `npm run test:visual:update` | Referenzbilder im Docker-Image neu erzeugen.                                                |
 | `npm run test:lighthouse`    | Lighthouse im Docker-Image gegen den Produktionsbuild; Bericht in `reports/lighthouse/`.    |

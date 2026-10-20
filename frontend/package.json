@@ -17,6 +17,7 @@
     "test:unit": "vitest run --coverage",
     "test:properties": "vitest run --config vitest.properties.config.ts",
     "test:architecture": "depcruise src --config .dependency-cruiser.cjs",
+    "graph:architecture": "./scripts/architecture-graph.sh",
     "test:visual": "./scripts/in-playwright-docker.sh npx playwright test",
     "test:visual:update": "./scripts/in-playwright-docker.sh npx playwright test --update-snapshots",
     "test:lighthouse": "./scripts/in-playwright-docker.sh ./scripts/lighthouse.sh",

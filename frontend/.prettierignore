@@ -8,3 +8,4 @@ visual/**/*-snapshots/
 tests/structure/__snapshots__/
 package-lock.json
 tests/structure/schaubilder/
+experimente/**/bilder/
