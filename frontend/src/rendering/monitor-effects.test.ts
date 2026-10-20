@@ -128,13 +128,28 @@ describe("MonitorEffects", () => {
       expect(calls.filter((call) => call.startsWith("drawImage"))).toEqual([]);
     });
 
+    it("kopiert dann auch das Bild nicht", () => {
+      const layers = new FakeLayers();
+
+      new MonitorEffects(layers.create, scriptedRandom()).drawGlitch(
+        recordingContext().context,
+        CANVAS,
+        { part: 0, bandHeight: 8 },
+        TEST_LAYOUT,
+        TEST_SETTINGS,
+      );
+
+      expect(layers.created).toEqual([]);
+    });
+
     it("verschiebt im Störbalken schmale Streifen des fertigen Bildes seitlich", () => {
+      const layers = new FakeLayers();
       const { context, calls } = recordingContext();
       // Streifen 1: Höhe 2 + floor(0 * 6) = 2, Versatz (0,75 - 0,5) * 2 * 8 = 4
       // Streifen 2: Höhe 2 + floor(0,5 * 6) = 5, Versatz (0 - 0,5) * 2 * 8 = -8
       const random = scriptedRandom(0, 0.75, 0.5, 0);
 
-      new MonitorEffects(new FakeLayers().create, random).drawGlitch(
+      new MonitorEffects(layers.create, random).drawGlitch(
         context,
         CANVAS,
         { part: 0.5, bandHeight: 8 },
@@ -142,12 +157,80 @@ describe("MonitorEffects", () => {
         TEST_SETTINGS,
       );
 
-      // Balken von 36 bis 44; Pixeldichte 2, das Bild ist 200 Geräte-Pixel breit
+      // Balken von 36 bis 44; Pixeldichte 2, das Bild ist 200 Geräte-Pixel breit.
+      // Die Streifen stammen aus der Kopie des Bildes (Fläche 1), nicht aus dem Bild selbst.
       const strips = calls.filter((call) => call.startsWith("drawImage"));
       expect(strips.slice(0, 2)).toEqual([
-        "drawImage(<Bild>, 0, 72, 200, 4, 4, 36, 100, 2)",
-        "drawImage(<Bild>, 0, 76, 200, 10, -8, 38, 100, 5)",
+        "drawImage(<Fläche 1>, 0, 72, 200, 4, 4, 36, 100, 2)",
+        "drawImage(<Fläche 1>, 0, 76, 200, 10, -8, 38, 100, 5)",
       ]);
+    });
+
+    it("kopiert das fertige Bild dafür einmal auf eine eigene Fläche in Bildgröße", () => {
+      const layers = new FakeLayers();
+
+      new MonitorEffects(layers.create, scriptedRandom()).drawGlitch(
+        recordingContext().context,
+        CANVAS,
+        { part: 0.5, bandHeight: 8 },
+        TEST_LAYOUT,
+        TEST_SETTINGS,
+      );
+
+      expect(layers.created).toHaveLength(1);
+      expect(layers.created[0]?.width).toBe(200);
+      expect(layers.created[0]?.height).toBe(160);
+      expect(layers.created[0]?.calls).toEqual(["drawImage(<Bild>, 0, 0)"]);
+    });
+
+    it("legt die Fläche nur einmal an, solange die Bildgröße gleich bleibt", () => {
+      const layers = new FakeLayers();
+      const effects = new MonitorEffects(layers.create, scriptedRandom());
+      const { context } = recordingContext();
+      const glitch = { part: 0.5, bandHeight: 8 };
+
+      effects.drawGlitch(context, CANVAS, glitch, TEST_LAYOUT, TEST_SETTINGS);
+      effects.drawGlitch(context, CANVAS, glitch, TEST_LAYOUT, TEST_SETTINGS);
+
+      expect(layers.created).toHaveLength(1);
+      expect(layers.created[0]?.calls).toEqual([
+        "drawImage(<Bild>, 0, 0)",
+        "drawImage(<Bild>, 0, 0)",
+      ]);
+    });
+
+    it("legt die Fläche neu an, wenn die Bildgröße sich ändert oder die Bilder verworfen wurden", () => {
+      const layers = new FakeLayers();
+      const effects = new MonitorEffects(layers.create, scriptedRandom());
+      const { context } = recordingContext();
+      const glitch = { part: 0.5, bandHeight: 8 };
+      effects.drawGlitch(context, CANVAS, glitch, TEST_LAYOUT, TEST_SETTINGS);
+
+      effects.drawGlitch(
+        context,
+        CANVAS,
+        glitch,
+        { ...TEST_LAYOUT, viewWidth: 120 },
+        TEST_SETTINGS,
+      );
+      expect(layers.created).toHaveLength(2);
+      effects.drawGlitch(
+        context,
+        CANVAS,
+        glitch,
+        { ...TEST_LAYOUT, viewHeight: 90 },
+        TEST_SETTINGS,
+      );
+      expect(layers.created).toHaveLength(3);
+      effects.discardPreparedImages();
+      effects.drawGlitch(
+        context,
+        CANVAS,
+        glitch,
+        { ...TEST_LAYOUT, viewHeight: 90 },
+        TEST_SETTINGS,
+      );
+      expect(layers.created).toHaveLength(4);
     });
 
     it("legt über den Balken einen hellen Schleier und ein paar Rausch-Striche", () => {

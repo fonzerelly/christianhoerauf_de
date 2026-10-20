@@ -191,7 +191,7 @@ describe("CanvasRenderer", () => {
 
     it("zeichnet eine Bildstörung, die der Zufall auslöst, solange die Animation läuft", () => {
       // 600 Störungen pro Minute, 0,1 s je Bild: Wahrscheinlichkeit 1 je Bild
-      const { renderer, calls } = setup({
+      const { renderer, calls, layers } = setup({
         glitchesPerMinute: 600,
         random: [0.2, 0, 0.5, 0, 0, 0, 0, 0],
       });
@@ -199,10 +199,14 @@ describe("CanvasRenderer", () => {
 
       renderer.draw(view, 0.1);
       expect(renderer.isGlitching).toBe(true);
-      expect(calls.some((call) => call.startsWith("drawImage(<Leinwand>"))).toBe(false);
+      expect(layers.created).toHaveLength(1); // nur die Glasscheibe
       renderer.draw(view, 0.2);
 
-      expect(calls.some((call) => call.startsWith("drawImage(<Leinwand>"))).toBe(true);
+      // Das Bild wird auf eine eigene Fläche kopiert, die Streifen kommen von dort
+      expect(layers.created.flatMap((layer) => layer.calls)).toContain(
+        "drawImage(<Leinwand>, 0, 0)",
+      );
+      expect(calls.some((call) => call.startsWith("drawImage(<Fläche 2>, 0,"))).toBe(true);
     });
 
     it("meldet, dass keine Störung läuft, wenn keine beginnt", () => {

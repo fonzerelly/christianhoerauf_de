@@ -44,6 +44,7 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 | `mehrere-seiten-haltepunkt`     | Haltepunkt der zweiten Seite.                                                                                    |
 | `frage-weiterschieben`          | Eine Frage am Haltepunkt: Der Lichtpunkt läuft hinaus, mitten im Weiterschieben zur Antwort.                     |
 | `nochmal-weiterschieben`        | „Nochmal“ schreibt die Antwort in einem frischen Labyrinth.                                                      |
+| `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                       |
 | `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                |
 
 Zeichensätze: `zeichensatz-1` (A–Z), `zeichensatz-2` (ÄÖÜ, 0–9, `-.?!`), `ersatzglyphe` (`A € B €€ C`).

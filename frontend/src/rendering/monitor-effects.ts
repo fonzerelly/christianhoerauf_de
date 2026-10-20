@@ -22,6 +22,8 @@ interface Overlay {
  */
 export class MonitorEffects {
   private overlay: Overlay | undefined;
+  /** Kopie des fertigen Bildes, aus der eine Bildstörung ihre Streifen liest. */
+  private glitchSource: { readonly layer: Layer; readonly size: string } | undefined;
 
   public constructor(
     private readonly createLayer: LayerFactory,
@@ -52,6 +54,12 @@ export class MonitorEffects {
   /**
    * Zeichnet die laufende Störung über das fertige Bild (`canvas`): Im Störbalken verrutschen die
    * Bildzeilen seitlich, dazu kommen ein heller Schleier und ein paar Rausch-Striche.
+   *
+   * Die Streifen werden aus einer einmal angelegten Kopie des Bildes gelesen, nicht aus dem Canvas
+   * selbst. Zeichnet man ein Canvas auf sich selbst, legt der Browser vor jedem Streifen eine
+   * Kopie des ganzen Canvas an; bei dreißig Streifen je Bild kostete das auf einem Handy mehrere
+   * hundert Millisekunden. Das Ergebnis ist dasselbe, denn jeder Streifen liest Zeilen, die ein
+   * früherer Streifen nicht überschrieben hat.
    */
   public drawGlitch(
     context: DrawingContext,
@@ -60,29 +68,20 @@ export class MonitorEffects {
     layout: StageLayout,
     settings: RenderSettings,
   ): void {
-    const { viewWidth: width, viewHeight: height, pixelRatio } = layout;
-    const deviceWidth = Math.round(width * pixelRatio);
+    const { viewWidth: width, viewHeight: height } = layout;
     // Der Balken startet knapp über dem Bild und endet knapp darunter
     const bandTop = Math.max(0, glitch.part * (height + glitch.bandHeight) - glitch.bandHeight);
     const bandBottom = Math.min(height, glitch.part * (height + glitch.bandHeight));
 
-    // Verrutschte Zeilen: schmale Streifen des fertigen Bildes werden seitlich versetzt über sich selbst kopiert.
-    let y = bandTop;
-    while (y < bandBottom) {
-      const stripHeight = 2 + Math.floor(this.random.next() * 6);
-      const shift = (this.random.next() - 0.5) * 2 * settings.glitchStrength;
-      context.drawImage(
-        canvas,
-        0,
-        y * pixelRatio,
-        deviceWidth,
-        stripHeight * pixelRatio, // Ausschnitt in Geräte-Pixeln
-        shift,
-        y,
-        width,
-        stripHeight,
+    if (bandTop < bandBottom) {
+      this.drawShiftedRows(
+        context,
+        this.copyOfImage(canvas, layout),
+        bandTop,
+        bandBottom,
+        layout,
+        settings,
       );
-      y += stripHeight;
     }
 
     context.save();
@@ -98,9 +97,53 @@ export class MonitorEffects {
     context.restore();
   }
 
-  /** Wirft die vorab gezeichnete Glasscheibe weg; sie entsteht beim nächsten Bild neu. */
+  /** Verrutschte Zeilen: schmale Streifen des Bildes `source` werden seitlich versetzt darübergelegt. */
+  private drawShiftedRows(
+    context: DrawingContext,
+    source: Layer,
+    bandTop: number,
+    bandBottom: number,
+    layout: StageLayout,
+    settings: RenderSettings,
+  ): void {
+    const { viewWidth: width, pixelRatio } = layout;
+    const deviceWidth = Math.round(width * pixelRatio);
+    let y = bandTop;
+    while (y < bandBottom) {
+      const stripHeight = 2 + Math.floor(this.random.next() * 6);
+      const shift = (this.random.next() - 0.5) * 2 * settings.glitchStrength;
+      context.drawImage(
+        source.image,
+        0,
+        y * pixelRatio,
+        deviceWidth,
+        stripHeight * pixelRatio, // Ausschnitt in Geräte-Pixeln
+        shift,
+        y,
+        width,
+        stripHeight,
+      );
+      y += stripHeight;
+    }
+  }
+
+  /** Kopiert das fertige Bild auf die Fläche für Bildstörungen (angelegt beim ersten Mal und bei neuer Bildgröße). */
+  private copyOfImage(canvas: CanvasImageSource, layout: StageLayout): Layer {
+    const width = Math.round(layout.viewWidth * layout.pixelRatio);
+    const height = Math.round(layout.viewHeight * layout.pixelRatio);
+    const size = `${String(width)}x${String(height)}`;
+    if (this.glitchSource?.size !== size) {
+      this.glitchSource = { layer: this.createLayer(width, height), size };
+    }
+    const { layer } = this.glitchSource;
+    layer.context.drawImage(canvas, 0, 0);
+    return layer;
+  }
+
+  /** Wirft die vorab gezeichnete Glasscheibe und die Kopie für Bildstörungen weg; sie entstehen beim nächsten Bild neu. */
   public discardPreparedImages(): void {
     this.overlay = undefined;
+    this.glitchSource = undefined;
   }
 
   private renderOverlay(layout: StageLayout, settings: RenderSettings): Layer {

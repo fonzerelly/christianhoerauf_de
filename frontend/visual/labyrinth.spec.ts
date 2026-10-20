@@ -180,6 +180,17 @@ test.describe("Frage und Antwort", () => {
   });
 });
 
+test.describe("Bildstörung", () => {
+  test("mitten in einer Bildstörung", async ({ page }) => {
+    // 100.000 Störungen pro Minute: Es läuft vom ersten Bild an eine, der Störbalken ist nach 0,25 s im Bild.
+    await open(page, "zeichensatz-1", { glitchesPerMinute: 100_000 });
+
+    await advance(page, 0.25);
+
+    await expect(page).toHaveScreenshot("bildstoerung.png");
+  });
+});
+
 test.describe("weniger Bewegung gewünscht", () => {
   test.use({ reducedMotion: "reduce" });
 
