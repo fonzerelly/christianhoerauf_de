@@ -17,3 +17,10 @@ auf `_properties.py`.
 | `domain/test_cost_protection.py` | Grenzen, Schlüssel, Aufbereitung der Frage; Hypothesis: gleiche IP/Tag gleiches Kürzel, anderer Tag/andere IP/anderes Geheimnis anderes Kürzel, Kürzel kurz und ohne IP. |
 | `domain/test_reply_check.py` | Emojis weg, Leerraum, Umlaute bleiben, Kürzen an Satzgrenze, Wort oder hart; Hypothesis: nie länger als 200 Zeichen. |
 | `domain/test_gimmick.py` | Leere Anmeldung; angemeldetes Gimmick erscheint samt Beschreibung. |
+| `fakes.py`, `test_fakes.py` | Testhelfer `FakeLanguageModel` (antwortet der Reihe nach, wirft Exceptions aus der Liste, merkt sich Aufrufe) und `failing_model()`; `test_fakes.py` prüft beides. |
+| `adapters/test_openai_compatible.py` | `OpenAiCompatibleModel` gegen einen kleinen HTTP-Server auf localhost (kein Internet): Pfad, Modell, `reasoning_effort`, Bearer-Header, Fehlerfälle (HTTP 500 ohne Schlüssel in der Meldung, nicht erreichbar, Zeitlimit, unbrauchbare Antworten). |
+| `adapters/test_bedrock_token.py` | Mit erfundenen Zugangsdaten beginnt der Schlüssel mit `bedrock-api-key-` (rein lokal). |
+| `pipeline/test_prompts.py` | Prompt-Dateien vorhanden, nennen alle Wörter und die Längen-/Sprachregel. |
+| `pipeline/test_intent_classifier.py` | Antwort zu Absicht (auch mit Satzzeichen, Markdown, Text drumherum), unlesbar gleich unzulässig, gesendete Nachrichten, Modellausfall. |
+| `pipeline/test_general_answerer.py` | Antworttext, gesendete Nachrichten, Modellausfall. |
+| `integration/test_lm_studio.py` | Markiert `integration`, läuft nur mit `pytest -m integration --no-cov` und erreichbarem LM Studio: Absicht und Antwort (Canberra) gegen das echte Modell. |
