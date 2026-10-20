@@ -9,6 +9,24 @@
 //   main.ts    kennt alles, wird von niemandem importiert
 //
 // Dazu: keine Zyklen, nichts von außerhalb von src/ (z. B. der Prototyp), keine Node-Module.
+//
+// Zusätzlich gelten Regeln aus der empfohlenen Sammlung von dependency-cruiser, alle als Fehler:
+//   no-orphans              Datei, die niemand importiert (toter Code); main.ts ist ausgenommen
+//   not-to-deprecated       veraltetes npm-Paket
+//   no-deprecated-core      veraltetes Node-Modul
+//   no-non-package-json     Paket, das nicht in package.json steht
+//   no-duplicate-dep-types  Paket in package.json doppelt eingetragen (z. B. dependencies und devDependencies)
+
+/** Eine Regel aus der empfohlenen Sammlung, als Fehler statt als Warnung. */
+function recommended(fileName, changes = {}) {
+  // Über den Dateipfad, denn das Paket gibt seine Regeldateien nicht als Export frei.
+  const rule = require(
+    `${__dirname}/node_modules/dependency-cruiser/configs/rules/${fileName}.cjs`,
+  );
+  return { ...rule, severity: "error", ...changes };
+}
+
+const noOrphans = recommended("no-orphans");
 
 /** Alle Schichten außer den genannten, als regulärer Ausdruck für "path". */
 function layersExcept(...allowed) {
@@ -78,6 +96,16 @@ module.exports = {
       from: { path: "^src/", pathNot: "\\.test\\.ts$" },
       to: { dependencyTypes: ["core"] },
     },
+    {
+      ...noOrphans,
+      comment:
+        "Toter Code. main.ts ist der Einstiegspunkt und darf von niemandem importiert werden.",
+      from: { ...noOrphans.from, pathNot: [noOrphans.from.pathNot, "^src/main\\.ts$"] },
+    },
+    recommended("not-to-deprecated"),
+    recommended("no-deprecated-core"),
+    recommended("no-non-package-json"),
+    recommended("no-duplicate-dependency-types"),
     {
       name: "no-unresolvable",
       severity: "error",
