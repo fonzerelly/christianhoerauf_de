@@ -48,7 +48,8 @@ src/
   animation/    Ablauf über die Zeit
   rendering/    Zeichnen
   answering/    woher die Antworten kommen
-  ui/           Fragefeld, Knöpfe, Fenstergröße
+  sound/        das Brummen der Bildröhre (Web Audio)
+  ui/           Fragefeld, Knöpfe (auch Ton-Knopf), Fenstergröße
 tests/          Tests über mehrere Teile hinweg (siehe tests/doc.md)
 visual/         Bildtests (Playwright), siehe visual/doc.md
 ```
@@ -63,6 +64,10 @@ npm run build && npm run preview             # der Produktionsbuild, wie er ausg
 Adress-Parameter: `?seed=123` (Startwert der Begrüßung; dasselbe Labyrinth bei gleicher Fenstergröße),
 `?profil=handy` oder `?profil=desktop` (erzwingt das Geräteprofil, etwa zum Ausprobieren am Rechner).
 Die Antworten stehen in `public/content.json`.
+
+Ton: Der runde Knopf oben rechts auf der Bühne schaltet das Brummen der Bildröhre an und aus. Beim
+Laden ist es aus, die Wahl wird nicht gespeichert. Die Lautstärke (`humVolume`) steht in
+`src/config/tuning.ts`.
 
 Abhängigkeiten zeigen nur nach innen zur Domäne; `npm run test:architecture` prüft das.
 Jeder Ordner unter `src/` hat eine `doc.md`, die seine Klassen und Methoden beschreibt.

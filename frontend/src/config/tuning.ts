@@ -83,6 +83,18 @@ export interface Tuning {
   readonly restingDistance: number;
   /** Eine Schwingung des pulsierenden, wartenden Lichtpunkts dauert so lange. */
   readonly pulseSeconds: number;
+
+  // Brummen
+  /** Höchster Pegel des Brummens (Verstärkung von 0 bis 1 vor dem Lautsprecher). Leise gewählt: Es soll im Hintergrund bleiben. */
+  readonly humVolume: number;
+  /** Grundton des Brummens in Hertz (Netzfrequenz); die Obertöne liegen bei 2- und 3-fachem Wert. */
+  readonly humBaseHertz: number;
+  /** So weit wandert die Frequenz höchstens vom Grundton weg, in Hertz. */
+  readonly humDriftHertz: number;
+  /** So leise wird das Brummen beim Wandern höchstens, als Anteil des Höchstpegels. */
+  readonly humMinLevel: number;
+  /** Alle so viele Sekunden würfelt das Brummen ein neues Ziel für Frequenz und Lautstärke. */
+  readonly humDriftSeconds: number;
 }
 
 /** Die Grundwerte; das Profil `handy` überschreibt einige davon. */
@@ -119,6 +131,11 @@ const BASE: Tuning = {
   blurInputAfterSending: false,
   restingDistance: 2,
   pulseSeconds: 1.6,
+  humVolume: 0.04,
+  humBaseHertz: 50,
+  humDriftHertz: 0.4,
+  humMinLevel: 0.5,
+  humDriftSeconds: 3,
 };
 
 /**

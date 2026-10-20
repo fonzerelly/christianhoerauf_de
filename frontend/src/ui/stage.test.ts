@@ -97,6 +97,7 @@ function setup(baseSeed = 100) {
   const renderer = new FakeRenderer();
   const shownPhases: Phase[] = [];
   const playbacks: FakePlayback[] = [];
+  const humUpdates: { seconds: number; isGlitching: boolean }[] = [];
   let nextLayout = LAYOUT;
   const stage = new Stage({
     renderer,
@@ -112,10 +113,16 @@ function setup(baseSeed = 100) {
         shownPhases.push(phase);
       },
     },
+    hum: {
+      update: (seconds, isGlitching) => {
+        humUpdates.push({ seconds, isGlitching });
+      },
+    },
   });
   return {
     stage,
     shownPhases,
+    humUpdates,
     renderer,
     playbacks,
     current: () => lastOf(playbacks),
@@ -195,6 +202,21 @@ describe("Stage", () => {
       stage.tick(0.1);
 
       expect(renderer.drawn).toHaveLength(2);
+    });
+  });
+
+  describe("Brummen", () => {
+    it("meldet dem Brummen in jedem Bild die vergangene Zeit und ob eine Bildstörung läuft", () => {
+      const { stage, renderer, humUpdates } = setup();
+
+      stage.tick(0.1);
+      renderer.isGlitching = true;
+      stage.tick(0.2);
+
+      expect(humUpdates).toEqual([
+        { seconds: 0.1, isGlitching: false },
+        { seconds: 0.2, isGlitching: true },
+      ]);
     });
   });
 

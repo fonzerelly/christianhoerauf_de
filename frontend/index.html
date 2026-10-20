@@ -22,6 +22,38 @@
       <canvas id="maze" aria-hidden="true"></canvas>
       <!-- Screenreader sehen das Canvas nicht: Hier steht jede Antwort zusätzlich als Text. -->
       <div id="spoken-answer" class="visually-hidden" aria-live="polite"></div>
+      <!-- Schaltet das Brummen der Bildröhre an und aus. Beim Laden ist es aus. -->
+      <button
+        type="button"
+        id="sound-toggle"
+        aria-label="Brummen der Bildröhre"
+        title="Brummen der Bildröhre an- und ausschalten"
+        aria-pressed="false"
+      >
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+          <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
+          <g
+            class="waves"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          >
+            <path d="M16 9a4 4 0 0 1 0 6" />
+            <path d="M18.5 6.5a8 8 0 0 1 0 11" />
+          </g>
+          <g
+            class="muted"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          >
+            <path d="M16 9l5 6" />
+            <path d="M21 9l-5 6" />
+          </g>
+        </svg>
+      </button>
     </main>
     <form id="ask-form" autocomplete="off">
       <input

@@ -66,6 +66,45 @@ body {
   display: block;
 }
 
+/* Der Ton-Knopf: rund, oben rechts auf der Bühne. Das Symbol zeigt den Zustand (aria-pressed). */
+#sound-toggle {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  color: #7fdc97;
+  background: rgba(2, 10, 4, 0.75);
+  border: 1px solid #1f7a40;
+  border-radius: 50%;
+}
+
+#sound-toggle:hover {
+  border-color: #33ff66;
+}
+
+#sound-toggle:focus-visible {
+  outline: 2px solid #33ff66;
+  outline-offset: 2px;
+}
+
+#sound-toggle[aria-pressed="true"] {
+  color: #33ff66;
+  border-color: #33ff66;
+  box-shadow: 0 0 10px rgba(43, 220, 90, 0.5);
+}
+
+#sound-toggle[aria-pressed="true"] .muted,
+#sound-toggle[aria-pressed="false"] .waves {
+  display: none;
+}
+
 .noscript-hint {
   grid-area: stage;
   align-self: center;

@@ -4,6 +4,7 @@
 //   animation  darf domain
 //   rendering  darf domain, animation
 //   answering  darf domain
+//   sound      darf domain
 //   ui         darf alles außer main
 //   config     darf von allen gelesen werden und importiert selbst nichts
 //   main.ts    kennt alles, wird von niemandem importiert
@@ -30,7 +31,7 @@ const noOrphans = recommended("no-orphans");
 
 /** Alle Schichten außer den genannten, als regulärer Ausdruck für "path". */
 function layersExcept(...allowed) {
-  const layers = ["domain", "animation", "rendering", "answering", "ui", "config"];
+  const layers = ["domain", "animation", "rendering", "answering", "sound", "ui", "config"];
   const forbidden = layers.filter((layer) => !allowed.includes(layer));
   return `^src/(${forbidden.join("|")})/`;
 }
@@ -62,6 +63,13 @@ module.exports = {
       severity: "error",
       from: { path: "^src/answering/" },
       to: { path: layersExcept("answering", "domain", "config") },
+    },
+    {
+      name: "sound-uses-domain-only",
+      comment: "Der Ton kennt weder Animation noch Zeichnen noch die Oberfläche.",
+      severity: "error",
+      from: { path: "^src/sound/" },
+      to: { path: layersExcept("sound", "domain", "config") },
     },
     {
       name: "config-imports-nothing",

@@ -10,6 +10,7 @@ werden. `main.ts` übergibt die echten Elemente.
 | `device-profile-selector.ts` | `selectProfile`: Geräteprofil nach Fensterbreite.                           |
 | `question-form.ts`           | `QuestionForm`: Fragefeld und „Senden“.                                     |
 | `replay-button.ts`           | `connectReplayButton`: der Knopf „Nochmal“.                                 |
+| `sound-toggle.ts`            | `connectSoundToggle`: der Ton-Knopf (Brummen an/aus, `aria-pressed`).       |
 | `spoken-answer.ts`           | `SpokenAnswer`: der `aria-live`-Bereich für Screenreader.                   |
 | `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Screenreader.             |
 | `stage.ts`                   | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe. |
@@ -26,14 +27,15 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 `selectProfile(windowWidth, requested?)` gibt den Wunsch aus der Adresse zurück, sonst `desktop` ab
 700 px, darunter `handy`. Gewählt wird einmal beim Laden.
 
-## QuestionForm, connectReplayButton, SpokenAnswer
+## QuestionForm, connectReplayButton, connectSoundToggle, SpokenAnswer
 
-| Name                                             | Was sie konkret tut                                                                                                                                                                   |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `QuestionForm.constructor(form, input, options)` | Hört auf `submit` des Formulars (verhindert das Neuladen) und `blur` des Felds (schiebt die Seite ganz nach oben - iOS verschiebt sie sonst, um das Feld über die Tastatur zu heben). |
-| `QuestionForm.submit` (privat)                   | Schneidet Leerraum ab; leer: nichts. Sonst die Frage melden, das Feld leeren und - am Handy - das Feld verlassen (schließt die Tastatur).                                             |
-| `connectReplayButton(button, onReplay)`          | Ruft `onReplay` bei jedem Klick.                                                                                                                                                      |
-| `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                        |
+| Name                                             | Was sie konkret tut                                                                                                                                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QuestionForm.constructor(form, input, options)` | Hört auf `submit` des Formulars (verhindert das Neuladen) und `blur` des Felds (schiebt die Seite ganz nach oben - iOS verschiebt sie sonst, um das Feld über die Tastatur zu heben).       |
+| `QuestionForm.submit` (privat)                   | Schneidet Leerraum ab; leer: nichts. Sonst die Frage melden, das Feld leeren und - am Handy - das Feld verlassen (schließt die Tastatur).                                                   |
+| `connectReplayButton(button, onReplay)`          | Ruft `onReplay` bei jedem Klick.                                                                                                                                                            |
+| `connectSoundToggle(button, toggle)`             | Bei jedem Klick: ruft `toggle` (schaltet das Brummen um und sagt, ob es jetzt an ist) und schreibt das Ergebnis nach `aria-pressed`. Der Knopf steht beim Laden auf `aria-pressed="false"`. |
+| `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                              |
 
 ## closesKeyboardAfterSending
 
@@ -53,14 +55,14 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 
 ## Stage
 
-| Methode              | Was sie konkret tut                                                                                                                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `constructor(parts)` | Misst die Bühne und baut den Ablauf mit dem Grundstartwert.                                                                                                                                                                           |
-| `builtFor`           | Die Größe der Bühne in Pixeln, für die gebaut wurde.                                                                                                                                                                                  |
-| `tick(seconds)`      | Lässt die Animation weiterlaufen und zeichnet ein Bild - aber nur, wenn sich etwas bewegt (oder eben bewegt hat), eine Bildstörung läuft oder neu gezeichnet werden muss.                                                             |
-| `show(reply)`        | Eine Frage wurde gestellt: merkt sich das Versprechen und gibt es dem Ablauf.                                                                                                                                                         |
-| `refresh()`          | Wirft das Vorgezeichnete weg und zeichnet das nächste Bild neu.                                                                                                                                                                       |
-| `rebuild()`          | Die Bühne hat eine andere Größe: misst neu, stellt den Renderer um und baut einen neuen Ablauf, der die aktuelle Antwort (oder die, auf die gewartet wird) von vorn schreibt. Startwert wie bei einem frischen Laden in dieser Größe. |
+| Methode              | Was sie konkret tut                                                                                                                                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(parts)` | Misst die Bühne und baut den Ablauf mit dem Grundstartwert.                                                                                                                                                                                                   |
+| `builtFor`           | Die Größe der Bühne in Pixeln, für die gebaut wurde.                                                                                                                                                                                                          |
+| `tick(seconds)`      | Lässt die Animation weiterlaufen und zeichnet ein Bild - aber nur, wenn sich etwas bewegt (oder eben bewegt hat), eine Bildstörung läuft oder neu gezeichnet werden muss. Danach meldet es dem Brummen die Zeit und ob eine Bildstörung läuft (`hum.update`). |
+| `show(reply)`        | Eine Frage wurde gestellt: merkt sich das Versprechen und gibt es dem Ablauf.                                                                                                                                                                                 |
+| `refresh()`          | Wirft das Vorgezeichnete weg und zeichnet das nächste Bild neu.                                                                                                                                                                                               |
+| `rebuild()`          | Die Bühne hat eine andere Größe: misst neu, stellt den Renderer um und baut einen neuen Ablauf, der die aktuelle Antwort (oder die, auf die gewartet wird) von vorn schreibt. Startwert wie bei einem frischen Laden in dieser Größe.                         |
 
 ## PhaseIndicator
 

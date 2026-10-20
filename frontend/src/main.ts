@@ -18,6 +18,9 @@ import { CanvasRenderer } from "./rendering/canvas-renderer";
 import { MediaQueryMotionPreference } from "./rendering/motion-preference";
 import { layoutStage } from "./rendering/stage-layout";
 import type { StageLayout } from "./rendering/stage-layout";
+import { HumControl } from "./sound/hum-control";
+import { HumDrift } from "./sound/hum-drift";
+import { WebAudioHum } from "./sound/web-audio-hum";
 import { AnimationLoop } from "./ui/animation-loop";
 import { Conversation } from "./ui/conversation";
 import { selectProfile } from "./ui/device-profile-selector";
@@ -27,6 +30,7 @@ import { closesKeyboardAfterSending } from "./ui/on-screen-keyboard";
 import { connectReplayButton } from "./ui/replay-button";
 import { requireElement } from "./ui/required-element";
 import { SpokenAnswer } from "./ui/spoken-answer";
+import { connectSoundToggle } from "./ui/sound-toggle";
 import { Stage } from "./ui/stage";
 import { StageSizeWatcher } from "./ui/stage-size-watcher";
 import { readTestHooks } from "./ui/test-hooks";
@@ -52,6 +56,7 @@ const form = requireElement(document, "ask-form", HTMLFormElement);
 const questionInput = requireElement(document, "question", HTMLInputElement);
 const replayButton = requireElement(document, "replay", HTMLButtonElement);
 const spokenRegion = requireElement(document, "spoken-answer", HTMLElement);
+const soundToggle = requireElement(document, "sound-toggle", HTMLButtonElement);
 
 function createContext2d(target: HTMLCanvasElement): CanvasRenderingContext2D {
   const context = target.getContext("2d");
@@ -68,6 +73,16 @@ function measureStage(): StageLayout {
   );
 }
 
+// Zufall für Flimmern, Bildstörung und Brummen; ein Test legt den Startwert fest
+const randomSeed = testHooks?.randomSeed ?? Math.floor(Math.random() * 2 ** 32);
+
+// Brummen: Der Ton-Ausgang entsteht erst beim ersten Klick auf den Ton-Knopf (Autoplay-Regeln)
+const hum = new HumControl(
+  new WebAudioHum(() => new AudioContext(), tuning),
+  new HumDrift(new Mulberry32(randomSeed + 1), tuning),
+);
+connectSoundToggle(soundToggle, () => hum.toggle());
+
 // Zeichnen
 const renderer = new CanvasRenderer({
   canvas,
@@ -78,7 +93,7 @@ const renderer = new CanvasRenderer({
     layer.height = height;
     return { context: createContext2d(layer), image: layer };
   },
-  random: new Mulberry32(testHooks?.randomSeed ?? Math.floor(Math.random() * 2 ** 32)),
+  random: new Mulberry32(randomSeed),
   motion: new MediaQueryMotionPreference(window.matchMedia("(prefers-reduced-motion: reduce)")),
   settings: tuning,
   layout: measureStage(),
@@ -107,6 +122,7 @@ const stage = new Stage({
     ),
   baseSeed: tuning.seed,
   phaseDisplay: new PhaseIndicator(stageElement),
+  hum,
 });
 
 // Frage und Antwort
@@ -166,7 +182,9 @@ const loop = new AnimationLoop(
     }),
 );
 document.addEventListener("visibilitychange", () => {
-  loop.pageVisibilityChanged(document.visibilityState === "visible");
+  const isVisible = document.visibilityState === "visible";
+  loop.pageVisibilityChanged(isVisible);
+  hum.pageVisibilityChanged(isVisible);
 });
 // Der Browser meldet hiermit, dass er den Zeichenzustand des Canvas verloren und neu angelegt hat.
 canvas.addEventListener("contextrestored", () => {
