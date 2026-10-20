@@ -24,3 +24,7 @@ auf `_properties.py`.
 | `pipeline/test_intent_classifier.py` | Antwort zu Absicht (auch mit Satzzeichen, Markdown, Text drumherum), unlesbar gleich unzulässig, gesendete Nachrichten, Modellausfall. |
 | `pipeline/test_general_answerer.py` | Antworttext, gesendete Nachrichten, Modellausfall. |
 | `integration/test_lm_studio.py` | Markiert `integration`, läuft nur mit `pytest -m integration --no-cov` und erreichbarem LM Studio: Absicht und Antwort (Canberra) gegen das echte Modell. |
+| `testsammlung/test_cases.py` | `load_cases` liest alle Felder; die echte `cases.yaml` hat mindestens 25 Fälle, alle Absichten und Rechenfragen. |
+| `testsammlung/test_runner.py` | `run_case` (Treffer, Fehlgriff, Wortprüfung, Modellausfall) und `summarize` (Quote, Fehlgriffe, Rechenfragen). |
+| `testsammlung/test_main.py` | `main` druckt die Zusammenfassung und reicht das Ziel an die Modellfabrik weiter. |
+| `testsammlung/test_models.py` | `build_model` baut für `lmstudio` und `bedrock` ein Modell, sonst `ValueError`. |

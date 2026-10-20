@@ -16,3 +16,8 @@ def bedrock_token_provider(region: str) -> Callable[[], str]:
         return str(provide_token(region=region, expiry=_TOKEN_LIFETIME))
 
     return create_token
+
+
+BEDROCK_REGION = "eu-central-1"
+BEDROCK_BASE_URL = "https://bedrock-mantle.eu-central-1.api.aws/openai/v1"
+BEDROCK_MODEL = "google.gemma-4-26b-a4b"
