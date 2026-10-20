@@ -1,0 +1,10 @@
+{
+  "greeting": "A € B €€ C",
+  "unknownAnswer": "Weiß ich nicht",
+  "answers": [
+    {
+      "keywords": ["hallo"],
+      "answer": "HALLO"
+    }
+  ]
+}

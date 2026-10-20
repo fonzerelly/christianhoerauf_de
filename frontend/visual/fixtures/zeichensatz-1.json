@@ -1,0 +1,10 @@
+{
+  "greeting": "ABCDEFG HIJKLMN OPQRSTU VWXYZ",
+  "unknownAnswer": "Weiß ich nicht",
+  "answers": [
+    {
+      "keywords": ["hallo"],
+      "answer": "HALLO"
+    }
+  ]
+}

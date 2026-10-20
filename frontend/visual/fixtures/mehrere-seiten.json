@@ -1,0 +1,10 @@
+{
+  "greeting": "Das ist ein langer Platzhalter-Text zum Ausprobieren mehrerer Seiten",
+  "unknownAnswer": "Weiß ich nicht",
+  "answers": [
+    {
+      "keywords": ["hallo"],
+      "answer": "HALLO"
+    }
+  ]
+}

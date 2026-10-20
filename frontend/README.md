@@ -50,8 +50,19 @@ src/
   answering/    woher die Antworten kommen
   ui/           Fragefeld, Knöpfe, Fenstergröße
 tests/          Tests über mehrere Teile hinweg (siehe tests/doc.md)
-visual/         Bildtests (Playwright)
+visual/         Bildtests (Playwright), siehe visual/doc.md
 ```
+
+## Seite lokal ansehen
+
+```bash
+npm run dev                                  # Entwicklungsserver, Adresse steht in der Ausgabe
+npm run build && npm run preview             # der Produktionsbuild, wie er ausgeliefert wird
+```
+
+Adress-Parameter: `?seed=123` (Startwert der Begrüßung; dasselbe Labyrinth bei gleicher Fenstergröße),
+`?profil=handy` oder `?profil=desktop` (erzwingt das Geräteprofil, etwa zum Ausprobieren am Rechner).
+Die Antworten stehen in `public/content.json`.
 
 Abhängigkeiten zeigen nur nach innen zur Domäne; `npm run test:architecture` prüft das.
 Jeder Ordner unter `src/` hat eine `doc.md`, die seine Klassen und Methoden beschreibt.

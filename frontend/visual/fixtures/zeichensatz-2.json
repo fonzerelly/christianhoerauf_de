@@ -1,0 +1,10 @@
+{
+  "greeting": "ÄÖÜ 0123 4567 89-.?!",
+  "unknownAnswer": "Weiß ich nicht",
+  "answers": [
+    {
+      "keywords": ["hallo"],
+      "answer": "HALLO"
+    }
+  ]
+}
