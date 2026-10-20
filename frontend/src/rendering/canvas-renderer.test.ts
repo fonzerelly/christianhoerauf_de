@@ -202,10 +202,12 @@ describe("CanvasRenderer", () => {
       expect(layers.created).toHaveLength(1); // nur die Glasscheibe
       renderer.draw(view, 0.2);
 
-      // Das Bild wird auf eine eigene Fläche kopiert, die Streifen kommen von dort
-      expect(layers.created.flatMap((layer) => layer.calls)).toContain(
-        "drawImage(<Leinwand>, 0, 0)",
-      );
+      // Der Balken wird auf eine eigene Fläche kopiert, die Streifen kommen von dort
+      expect(
+        layers.created
+          .flatMap((layer) => layer.calls)
+          .some((call) => call.startsWith("drawImage(<Leinwand>, 0, ")),
+      ).toBe(true);
       expect(calls.some((call) => call.startsWith("drawImage(<Fläche 2>, 0,"))).toBe(true);
     });
 

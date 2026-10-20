@@ -8,6 +8,13 @@ import type { StageLayout } from "./stage-layout";
 const SCANLINE_SPACING = 3;
 /** Das Flimmern dunkelt das Bild höchstens um diesen Anteil der eingestellten Stärke ab. */
 const FLICKER_PART = 0.25;
+/** Ein Streifen der Bildstörung ist mindestens so hoch und höchstens so viel höher (Pixel, ganzzahlig). */
+const SHORTEST_STRIP = 2;
+const STRIP_RANGE = 6;
+/** Der Streifen am Ende des Balkens kann so weit über ihn hinausragen. */
+const LONGEST_OVERHANG = SHORTEST_STRIP + STRIP_RANGE - 1;
+/** Bei der Kopie des Balkens kommen so viele Geräte-Zeilen Rand dazu, weil das Skalieren Nachbarzeilen mitliest. */
+const COPY_MARGIN = 2;
 /** So viele Rausch-Striche liegen in einem Störbalken. */
 const NOISE_DASHES = 12;
 
@@ -55,11 +62,12 @@ export class MonitorEffects {
    * Zeichnet die laufende Störung über das fertige Bild (`canvas`): Im Störbalken verrutschen die
    * Bildzeilen seitlich, dazu kommen ein heller Schleier und ein paar Rausch-Striche.
    *
-   * Die Streifen werden aus einer einmal angelegten Kopie des Bildes gelesen, nicht aus dem Canvas
-   * selbst. Zeichnet man ein Canvas auf sich selbst, legt der Browser vor jedem Streifen eine
-   * Kopie des ganzen Canvas an; bei dreißig Streifen je Bild kostete das auf einem Handy mehrere
-   * hundert Millisekunden. Das Ergebnis ist dasselbe, denn jeder Streifen liest Zeilen, die ein
-   * früherer Streifen nicht überschrieben hat.
+   * Die Streifen werden aus einer Kopie des Balkens gelesen, nicht aus dem Canvas selbst. Zeichnet
+   * man ein Canvas auf sich selbst, legt der Browser vor jedem Streifen eine Kopie des ganzen Canvas
+   * an; bei dreißig Streifen je Bild kostete das auf einem Handy mehrere hundert Millisekunden.
+   * Das Ergebnis ist dasselbe, denn jeder Streifen liest Zeilen, die ein früherer Streifen nicht
+   * überschrieben hat. Kopiert werden nur die Zeilen des Balkens, das spart gegenüber dem ganzen
+   * Bild noch einmal gut eine Millisekunde je Bild.
    */
   public drawGlitch(
     context: DrawingContext,
@@ -76,7 +84,7 @@ export class MonitorEffects {
     if (bandTop < bandBottom) {
       this.drawShiftedRows(
         context,
-        this.copyOfImage(canvas, layout),
+        this.copyOfBand(canvas, layout, bandTop, bandBottom),
         bandTop,
         bandBottom,
         layout,
@@ -110,7 +118,7 @@ export class MonitorEffects {
     const deviceWidth = Math.round(width * pixelRatio);
     let y = bandTop;
     while (y < bandBottom) {
-      const stripHeight = 2 + Math.floor(this.random.next() * 6);
+      const stripHeight = SHORTEST_STRIP + Math.floor(this.random.next() * STRIP_RANGE);
       const shift = (this.random.next() - 0.5) * 2 * settings.glitchStrength;
       context.drawImage(
         source.image,
@@ -127,16 +135,33 @@ export class MonitorEffects {
     }
   }
 
-  /** Kopiert das fertige Bild auf die Fläche für Bildstörungen (angelegt beim ersten Mal und bei neuer Bildgröße). */
-  private copyOfImage(canvas: CanvasImageSource, layout: StageLayout): Layer {
-    const width = Math.round(layout.viewWidth * layout.pixelRatio);
-    const height = Math.round(layout.viewHeight * layout.pixelRatio);
+  /**
+   * Kopiert die Zeilen des Balkens (samt Rand und dem Überhang des letzten Streifens) aus dem fertigen
+   * Bild an dieselbe Stelle der Fläche für Bildstörungen. Sie wird beim ersten Mal und bei neuer
+   * Bildgröße angelegt. Die Kopie liegt auf ganzen Geräte-Zeilen, damit sie die Pixel unverändert übernimmt;
+   * übrige Zeilen der Fläche sind veraltet, werden aber von keinem Streifen gelesen.
+   */
+  private copyOfBand(
+    canvas: CanvasImageSource,
+    layout: StageLayout,
+    bandTop: number,
+    bandBottom: number,
+  ): Layer {
+    const { pixelRatio } = layout;
+    const width = Math.round(layout.viewWidth * pixelRatio);
+    const height = Math.round(layout.viewHeight * pixelRatio);
     const size = `${String(width)}x${String(height)}`;
     if (this.glitchSource?.size !== size) {
       this.glitchSource = { layer: this.createLayer(width, height), size };
     }
     const { layer } = this.glitchSource;
-    layer.context.drawImage(canvas, 0, 0);
+
+    const top = Math.max(0, Math.floor(bandTop * pixelRatio) - COPY_MARGIN);
+    const bottom = Math.min(
+      height,
+      Math.ceil((bandBottom + LONGEST_OVERHANG) * pixelRatio) + COPY_MARGIN,
+    );
+    layer.context.drawImage(canvas, 0, top, width, bottom - top, 0, top, width, bottom - top);
     return layer;
   }
 

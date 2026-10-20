@@ -158,7 +158,7 @@ describe("MonitorEffects", () => {
       );
 
       // Balken von 36 bis 44; Pixeldichte 2, das Bild ist 200 Geräte-Pixel breit.
-      // Die Streifen stammen aus der Kopie des Bildes (Fläche 1), nicht aus dem Bild selbst.
+      // Die Streifen stammen aus der Kopie des Balkens (Fläche 1), nicht aus dem Bild selbst.
       const strips = calls.filter((call) => call.startsWith("drawImage"));
       expect(strips.slice(0, 2)).toEqual([
         "drawImage(<Fläche 1>, 0, 72, 200, 4, 4, 36, 100, 2)",
@@ -166,7 +166,7 @@ describe("MonitorEffects", () => {
       ]);
     });
 
-    it("kopiert das fertige Bild dafür einmal auf eine eigene Fläche in Bildgröße", () => {
+    it("kopiert dafür nur die Zeilen des Balkens (mit Rand für die längsten Streifen) an dieselbe Stelle einer eigenen Fläche in Bildgröße", () => {
       const layers = new FakeLayers();
 
       new MonitorEffects(layers.create, scriptedRandom()).drawGlitch(
@@ -180,7 +180,38 @@ describe("MonitorEffects", () => {
       expect(layers.created).toHaveLength(1);
       expect(layers.created[0]?.width).toBe(200);
       expect(layers.created[0]?.height).toBe(160);
-      expect(layers.created[0]?.calls).toEqual(["drawImage(<Bild>, 0, 0)"]);
+      // Balken 36 bis 44, Streifen bis 7 hoch, dazu 2 Zeilen Rand: Geräte-Zeilen 70 bis 104
+      expect(layers.created[0]?.calls).toEqual([
+        "drawImage(<Bild>, 0, 70, 200, 34, 0, 70, 200, 34)",
+      ]);
+    });
+
+    it("beginnt die Kopie am oberen Bildrand, wenn der Balken noch nicht ganz im Bild ist, und endet am unteren", () => {
+      const layers = new FakeLayers();
+      const effects = new MonitorEffects(layers.create, scriptedRandom());
+      const { context } = recordingContext();
+
+      // Balken von 0 bis 4,4 (mit Streifen und Rand bis Geräte-Zeile 25)
+      effects.drawGlitch(
+        context,
+        CANVAS,
+        { part: 0.05, bandHeight: 8 },
+        TEST_LAYOUT,
+        TEST_SETTINGS,
+      );
+      // Balken von 75,6 bis 80 (ab Geräte-Zeile 149): Der Rand reicht nicht über das Bild hinaus
+      effects.drawGlitch(
+        context,
+        CANVAS,
+        { part: 0.95, bandHeight: 8 },
+        TEST_LAYOUT,
+        TEST_SETTINGS,
+      );
+
+      expect(layers.created[0]?.calls).toEqual([
+        "drawImage(<Bild>, 0, 0, 200, 25, 0, 0, 200, 25)",
+        "drawImage(<Bild>, 0, 149, 200, 11, 0, 149, 200, 11)",
+      ]);
     });
 
     it("legt die Fläche nur einmal an, solange die Bildgröße gleich bleibt", () => {
@@ -194,8 +225,8 @@ describe("MonitorEffects", () => {
 
       expect(layers.created).toHaveLength(1);
       expect(layers.created[0]?.calls).toEqual([
-        "drawImage(<Bild>, 0, 0)",
-        "drawImage(<Bild>, 0, 0)",
+        "drawImage(<Bild>, 0, 70, 200, 34, 0, 70, 200, 34)",
+        "drawImage(<Bild>, 0, 70, 200, 34, 0, 70, 200, 34)",
       ]);
     });
 
