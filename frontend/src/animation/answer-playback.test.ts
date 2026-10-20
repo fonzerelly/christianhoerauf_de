@@ -73,6 +73,12 @@ describe("AnswerPlayback", () => {
       expect(playback.isResting).toBe(false);
     });
 
+    it("hat noch keine Antwort geschrieben", () => {
+      const playback = new AnswerPlayback(new FakePageSource(), SETTINGS);
+
+      expect(playback.answersWritten).toBe(0);
+    });
+
     it("lässt die Uhr trotzdem weiterlaufen, ohne etwas zu tun", () => {
       const playback = new AnswerPlayback(new FakePageSource(), SETTINGS);
 
@@ -210,6 +216,17 @@ describe("AnswerPlayback", () => {
       playback.advance(STEP);
 
       expect(playback.progress).toBe(8);
+    });
+
+    it("zählt die Antworten, deren Seiten angekommen sind", async () => {
+      const { playback } = await restingPlayback();
+      expect(playback.answersWritten).toBe(1);
+
+      playback.request(Promise.resolve("B"));
+      expect(playback.answersWritten).toBe(1);
+      await settle();
+
+      expect(playback.answersWritten).toBe(2);
     });
 
     it("zählt den Startwert bei jeder Antwort um eins hoch", async () => {

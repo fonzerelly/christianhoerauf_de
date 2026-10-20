@@ -1,0 +1,33 @@
+import { describe, expect, it } from "vitest";
+import { readTestHooks } from "./test-hooks";
+
+const VALID = {
+  clock: { now: () => 0 },
+  requestFrame: () => undefined,
+  randomSeed: 7,
+};
+
+describe("readTestHooks", () => {
+  it("liest Uhr, Bildtakt und Startwert, die ein Test vor dem Laden der Seite bereitstellt", () => {
+    const hooks = readTestHooks({ labyrinthTestHooks: VALID });
+
+    expect(hooks?.clock).toBe(VALID.clock);
+    expect(hooks?.requestFrame).toBe(VALID.requestFrame);
+    expect(hooks?.randomSeed).toBe(7);
+  });
+
+  it("liefert nichts, wenn die Seite nicht von einem Test geladen wird", () => {
+    expect(readTestHooks({})).toBeUndefined();
+  });
+
+  it.each([
+    ["kein Objekt", "text"],
+    ["null", null],
+    ["Uhr fehlt", { ...VALID, clock: undefined }],
+    ["Uhr ohne now", { ...VALID, clock: {} }],
+    ["Bildtakt fehlt", { ...VALID, requestFrame: undefined }],
+    ["Startwert ist kein Zahl", { ...VALID, randomSeed: "7" }],
+  ])("liefert nichts, wenn die Bereitstellung unvollständig ist: %s", (_name, hooks) => {
+    expect(readTestHooks({ labyrinthTestHooks: hooks })).toBeUndefined();
+  });
+});

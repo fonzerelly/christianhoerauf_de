@@ -20,6 +20,8 @@
     </noscript>
     <main id="stage">
       <canvas id="maze" aria-hidden="true"></canvas>
+      <!-- Screenreader sehen das Canvas nicht: Hier steht jede Antwort zusätzlich als Text. -->
+      <div id="spoken-answer" class="visually-hidden" aria-live="polite"></div>
     </main>
     <form id="ask-form" autocomplete="off">
       <input
@@ -27,9 +29,21 @@
         id="question"
         placeholder="Deine Frage …"
         aria-label="Deine Frage"
+        maxlength="200"
         enterkeyhint="send"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
       />
       <button type="submit" id="send">Senden</button>
+      <button
+        type="button"
+        id="replay"
+        title="Das zuletzt Geschriebene nochmal schreiben"
+        aria-label="Das zuletzt Geschriebene nochmal schreiben"
+      >
+        Nochmal
+      </button>
     </form>
     <script type="module" src="/src/main.ts"></script>
   </body>

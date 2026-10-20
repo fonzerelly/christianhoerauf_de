@@ -26,9 +26,9 @@ export interface Prototype {
   call<Result>(functionName: string, ...args: unknown[]): Result;
 }
 
-export function loadPrototype(): Prototype {
+export function loadPrototype(scripts: readonly string[] = SCRIPTS): Prototype {
   const context = createContext({});
-  for (const fileName of SCRIPTS) {
+  for (const fileName of scripts) {
     const code = readFileSync(join(PROTOTYPE_DIR, fileName), "utf8");
     runInContext(code, context, { filename: fileName });
   }

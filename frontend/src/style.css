@@ -127,3 +127,15 @@ body {
 #ask-form button:hover {
   background: #33ff66;
 }
+
+/* „Nochmal“ ist ein Nebenknopf: gedämpft, damit „Senden“ der Hauptknopf bleibt. */
+#ask-form #replay {
+  color: #7fdc97;
+  background: #0a2a15;
+  border-color: #14502a;
+  font-weight: 400;
+}
+
+#ask-form #replay:hover {
+  background: #0f3d1f;
+}

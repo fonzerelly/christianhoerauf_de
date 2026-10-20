@@ -1,0 +1,76 @@
+# ui
+
+Die Verbindung zur Seite: Fragefeld, Bühne, Takt, Fenstergröße. Die Klassen nehmen schmale Schnittstellen
+statt echter DOM-Elemente (`{ addEventListener }`, `{ textContent }` …), damit sie ohne Browser getestet
+werden. `main.ts` übergibt die echten Elemente.
+
+| Datei                        | Was sie tut                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| `url-parameters.ts`          | `readUrlParameters`: `?seed=` und `?profil=`.                               |
+| `device-profile-selector.ts` | `selectProfile`: Geräteprofil nach Fensterbreite.                           |
+| `question-form.ts`           | `QuestionForm`: Fragefeld und „Senden“.                                     |
+| `replay-button.ts`           | `connectReplayButton`: der Knopf „Nochmal“.                                 |
+| `spoken-answer.ts`           | `SpokenAnswer`: der `aria-live`-Bereich für Screenreader.                   |
+| `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Screenreader.             |
+| `stage.ts`                   | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe. |
+| `stage-size-watcher.ts`      | `StageSizeWatcher`: Tastatur-Falle am Handy.                                |
+| `animation-loop.ts`          | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                      |
+| `required-element.ts`        | `requireElement`: Element der Seite holen und prüfen.                       |
+| `test-hooks.ts`              | `readTestHooks`: Uhr, Bildtakt und Startwert, die ein Test mitgibt.         |
+
+## readUrlParameters, selectProfile
+
+`readUrlParameters(query)` liest `?seed=<ganze Zahl ab 0>` und `?profil=handy|desktop`. Fehlendes oder
+Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
+`selectProfile(windowWidth, requested?)` gibt den Wunsch aus der Adresse zurück, sonst `desktop` ab
+700 px, darunter `handy`. Gewählt wird einmal beim Laden.
+
+## QuestionForm, connectReplayButton, SpokenAnswer
+
+| Name                                             | Was sie konkret tut                                                                                                                                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QuestionForm.constructor(form, input, options)` | Hört auf `submit` des Formulars (verhindert das Neuladen) und `blur` des Felds (schiebt die Seite ganz nach oben - iOS verschiebt sie sonst, um das Feld über die Tastatur zu heben). |
+| `QuestionForm.submit` (privat)                   | Schneidet Leerraum ab; leer: nichts. Sonst die Frage melden, das Feld leeren und - am Handy - das Feld verlassen (schließt die Tastatur).                                             |
+| `connectReplayButton(button, onReplay)`          | Ruft `onReplay` bei jedem Klick.                                                                                                                                                      |
+| `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                        |
+
+## Conversation
+
+| Methode                              | Was sie konkret tut                                                                                                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `constructor(source, stage, spoken)` | Nimmt Antwortquelle, Bühne und Screenreader-Bereich.                                                                                                                                 |
+| `start()`                            | Holt die Begrüßung (leere Frage).                                                                                                                                                    |
+| `ask(question)`                      | Holt die Antwort auf die Frage.                                                                                                                                                      |
+| `replay()`                           | Schreibt die zuletzt eingetroffene Antwort noch einmal, wie eine neue. Ohne Antwort: nichts.                                                                                         |
+| `present` (privat)                   | Gibt der Bühne das Versprechen für den Text. Sobald die Antwort da ist (und keine neuere Frage gestellt wurde), merkt sie sie sich und liest sie vor. Das Gimmick bleibt unbeachtet. |
+
+## Stage
+
+| Methode              | Was sie konkret tut                                                                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(parts)` | Misst die Bühne und baut den Ablauf mit dem Grundstartwert.                                                                                                                                                                           |
+| `builtFor`           | Die Größe der Bühne in Pixeln, für die gebaut wurde.                                                                                                                                                                                  |
+| `tick(seconds)`      | Lässt die Animation weiterlaufen und zeichnet ein Bild - aber nur, wenn sich etwas bewegt (oder eben bewegt hat), eine Bildstörung läuft oder neu gezeichnet werden muss.                                                             |
+| `show(reply)`        | Eine Frage wurde gestellt: merkt sich das Versprechen und gibt es dem Ablauf.                                                                                                                                                         |
+| `refresh()`          | Wirft das Vorgezeichnete weg und zeichnet das nächste Bild neu.                                                                                                                                                                       |
+| `rebuild()`          | Die Bühne hat eine andere Größe: misst neu, stellt den Renderer um und baut einen neuen Ablauf, der die aktuelle Antwort (oder die, auf die gewartet wird) von vorn schreibt. Startwert wie bei einem frischen Laden in dieser Größe. |
+
+## StageSizeWatcher
+
+`notifyChange()` wartet 0,3 s, bis die Größe ruhig ist (jede neue Meldung bricht das Warten ab), und prüft
+dann: andere Breite → `rebuild`; nur andere Höhe und gerade nicht im Fragefeld → `rebuild`; nur andere Höhe
+während getippt wird (Bildschirmtastatur) → nichts.
+
+## AnimationLoop
+
+| Methode                            | Was sie konkret tut                                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `start()`                          | Fordert ein Bild an. In jedem Bild: `stage.tick(Zeit seit dem vorigen Bild)`, dann das nächste Bild anfordern.                        |
+| `pageVisibilityChanged(isVisible)` | Setzt die Zeitmessung zurück; kommt die Seite zurück, wirft die Bühne das Vorgezeichnete weg (der Browser könnte es verworfen haben). |
+
+## requireElement, readTestHooks
+
+`requireElement(root, id, type)` liefert das Element oder scheitert mit `Auf der Seite fehlt das Element
+"<id>"` bzw. `… ist von der falschen Art`. `readTestHooks(scope)` liest `scope.labyrinthTestHooks`
+(`clock`, `requestFrame`, `randomSeed`), das nur ein Test per Playwright-`addInitScript` setzt; fehlt es
+oder ist es unvollständig: `undefined`.

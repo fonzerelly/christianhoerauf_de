@@ -31,3 +31,13 @@ export interface PlaybackView {
   /** Das erste Wegstück der aktuellen Seite, das noch leuchtet. */
   firstGlowingStep(): number;
 }
+
+/** Der Ablauf der Animation, wie die Bühne ihn steuert: Fragen stellen, Zeit vergehen lassen, ansehen. */
+export interface Playback extends PlaybackView {
+  /** Eine Frage wurde gestellt; `reply` liefert den Text der Antwort. */
+  request(reply: Promise<string>): void;
+  /** Lässt `seconds` Sekunden vergehen. */
+  advance(seconds: number): void;
+  /** Wie viele Antworten schon angekommen sind (die Begrüßung eingerechnet). */
+  readonly answersWritten: number;
+}

@@ -1,0 +1,39 @@
+{
+  "greeting": "Hier ent|steht die Inter|net|prä|senz von Chris|tian Hör|auf",
+  "unknownAnswer": "Ich bin noch ein Pro|to|typ. Ich kann noch nicht ant|wor|ten.",
+  "answers": [
+    {
+      "keywords": ["wer bist du", "wie heißt du", "wie heisst du", "dein name", "name"],
+      "answer": "CHRISTIAN HÖRAUF"
+    },
+    {
+      "keywords": [
+        "hallo",
+        "hi",
+        "hey",
+        "moin",
+        "servus",
+        "guten tag",
+        "guten morgen",
+        "guten abend"
+      ],
+      "answer": "HALLO"
+    },
+    {
+      "keywords": ["wie geht es dir", "wie gehts", "wie geht's"],
+      "answer": "GUT UND DIR?"
+    },
+    {
+      "keywords": ["danke", "dankeschön", "vielen dank"],
+      "answer": "GERN GESCHEHEN"
+    },
+    {
+      "keywords": ["tschüss", "tschüs", "ciao", "auf wiedersehen", "bis bald"],
+      "answer": "BIS BALD"
+    },
+    {
+      "keywords": ["lang", "lange", "langer", "seiten"],
+      "answer": "DAS IST EIN LANGER PLATZHALTER-TEXT ZUM AUSPROBIEREN MEHRERER SEITEN"
+    }
+  ]
+}

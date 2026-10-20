@@ -6,7 +6,7 @@ import type { PageSource } from "./page-source";
 import { paceOf } from "./pace";
 import { pulseOf } from "./pulse";
 import type { PlaybackSettings } from "./playback-settings";
-import type { PlaybackView } from "./playback-view";
+import type { Playback } from "./playback-view";
 import { RouteWalker } from "./route-walker";
 import { Trail } from "./trail";
 
@@ -39,13 +39,13 @@ function easeInOut(part: number): number {
  * Schnelldurchlauf zu Ende, und Seiten der alten Antwort, die noch nicht zu sehen sind, entfallen.
  * Bei mehreren Fragen hintereinander zählt nur die Antwort auf die neueste.
  */
-export class AnswerPlayback implements PlaybackView {
+export class AnswerPlayback implements Playback {
   private pages: MazePage[] = [];
   private pageIndex = 0;
   private currentPhase: Phase = "waiting";
   private phaseStartedAt = 0;
   private clock = 0;
-  private answersWritten = 0;
+  private arrivedAnswers = 0;
   private latestQuestion = 0;
   private walker = new RouteWalker(NO_ROUTE);
   private readonly trail: Trail;
@@ -57,6 +57,11 @@ export class AnswerPlayback implements PlaybackView {
     private readonly settings: PlaybackSettings,
   ) {
     this.trail = new Trail(settings);
+  }
+
+  /** Wie viele Antworten schon angekommen sind (die Begrüßung eingerechnet). */
+  public get answersWritten(): number {
+    return this.arrivedAnswers;
   }
 
   public get phase(): Phase {
@@ -199,8 +204,8 @@ export class AnswerPlayback implements PlaybackView {
 
   private acceptAnswer(text: string): void {
     const exitBefore = this.pages.length > 0 ? lastOf(this.pages).exit : undefined;
-    const seed = this.settings.seed + this.answersWritten;
-    this.answersWritten++;
+    const seed = this.settings.seed + this.arrivedAnswers;
+    this.arrivedAnswers++;
     const hadPages = this.pages.length > 0;
     this.pages.push(...this.pageSource.paginate(text, seed, exitBefore).pages);
 
