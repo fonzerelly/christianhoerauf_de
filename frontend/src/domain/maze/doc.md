@@ -30,21 +30,24 @@ zu ihr gebrochen oder sie von Hand mit `touch` belegt wurde.
 ## RectangularGrid
 
 Zellen sind zeilenweise von oben links nummeriert (`x + y * columns`). Durchgänge nach rechts und
-nach unten stehen in zwei Listen; der Durchgang gehört der linken bzw. oberen Zelle.
+nach unten stehen in zwei Listen (`Uint8Array`, 1 = offen); der Durchgang gehört der linken bzw. oberen
+Zelle. Ebenso die Markierung „berührt“. Die Listen sind aus Leistungsgründen kein `Array<boolean>`:
+Jede Wegsuche legt ein Wegwerf-Raster an, und ein `Uint8Array` ist sofort mit Nullen gefüllt.
 
-| Methode                                | Was sie konkret tut                                                                                 |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `constructor(columns, rows)`           | Legt ein Raster aus lauter zugemauerten, unberührten Zellen an.                                     |
-| `contains(x, y)`                       | Liegt die Stelle im Raster?                                                                         |
-| `idOf(x, y)`                           | Die Nummer der Zelle an der Stelle. Wirft, wenn sie außerhalb liegt.                                |
-| `positionOf(cell)`                     | Die Stelle der Zelle.                                                                               |
-| `isOpenRight(x, y)`                    | Ist die Wand rechts neben der Zelle offen? (Für das Zeichnen der Wände.)                            |
-| `isOpenDown(x, y)`                     | Ist die Wand unter der Zelle offen?                                                                 |
-| `neighboursOf(cell)`                   | Rechts, links, unten, oben, soweit im Raster. Die Reihenfolge ist Teil des Golden Masters.          |
-| `isConnected(first, second)`           | Durchgang zwischen zwei Nachbarn? Für Zellen, die nicht nebeneinander liegen: `false`.              |
-| `connect(first, second)`               | Setzt den Durchgang und berührt beide. Wirft, wenn die Zellen nicht nebeneinander liegen.           |
-| `isTouched` / `touch` / `touchedCells` | Wie in `CellGraph`.                                                                                 |
-| `passageBetween` (privat)              | Findet für zwei Nachbarn die Liste (rechts oder unten) und den Eintrag, in dem ihr Durchgang steht. |
+| Methode                                | Was sie konkret tut                                                                                                                                                                            |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(columns, rows)`           | Legt ein Raster aus lauter zugemauerten, unberührten Zellen an.                                                                                                                                |
+| `contains(x, y)`                       | Liegt die Stelle im Raster?                                                                                                                                                                    |
+| `idOf(x, y)`                           | Die Nummer der Zelle an der Stelle. Wirft, wenn sie außerhalb liegt.                                                                                                                           |
+| `positionOf(cell)`                     | Die Stelle der Zelle.                                                                                                                                                                          |
+| `isOpenRight(x, y)`                    | Ist die Wand rechts neben der Zelle offen? (Für das Zeichnen der Wände.)                                                                                                                       |
+| `isOpenDown(x, y)`                     | Ist die Wand unter der Zelle offen?                                                                                                                                                            |
+| `neighboursOf(cell)`                   | Rechts, links, unten, oben, soweit im Raster (gerechnet mit Nummern, ohne Stellen anzulegen). Die Reihenfolge ist Teil des Golden Masters.                                                     |
+| `isConnected(first, second)`           | Durchgang zwischen zwei Nachbarn? Für Zellen, die nicht nebeneinander liegen: `false`.                                                                                                         |
+| `connect(first, second)`               | Setzt den Durchgang und berührt beide. Wirft, wenn die Zellen nicht nebeneinander liegen.                                                                                                      |
+| `isTouched` / `touch` / `touchedCells` | Wie in `CellGraph`.                                                                                                                                                                            |
+| `passageBetween` (privat)              | Findet für zwei Nachbarn die Liste (rechts oder unten) und den Eintrag, in dem ihr Durchgang steht. Rechnet mit dem Unterschied der Nummern; der Unterschied 1 gilt nur innerhalb einer Zeile. |
+| `isSet` (Funktion)                     | Ist das Flag an der Stelle gesetzt? Wirft einen `RangeError`, wenn es die Stelle nicht gibt (wie `itemAt`).                                                                                    |
 
 ## MazeGrower
 
@@ -59,7 +62,7 @@ nach unten stehen in zwei Listen; der Durchgang gehört der linken bzw. oberen Z
 | Methode                 | Was sie konkret tut                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `find(graph, from, to)` | Breitensuche durch die Durchgänge. Liefert die Zellen von `from` bis `to`. Wirft, wenn es keinen Weg gibt. |
-| `walkBack` (privat)     | Geht von `to` über die gemerkten Vorgänger zurück bis `from`.                                              |
+| `walkBack` (privat)     | Geht von `to` über die gemerkten Vorgänger zurück bis `from` und dreht den Weg am Ende einmal um.          |
 
 ## WindingPathFinder
 

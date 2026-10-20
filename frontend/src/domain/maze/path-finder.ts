@@ -29,8 +29,8 @@ export class PathFinder {
       cell !== null && cell !== undefined;
       cell = cameFrom.get(cell)
     ) {
-      path.unshift(cell);
+      path.push(cell);
     }
-    return path;
+    return path.reverse();
   }
 }

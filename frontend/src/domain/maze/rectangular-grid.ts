@@ -1,25 +1,36 @@
-import { itemAt } from "../lists";
 import type { CellGraph, CellId } from "./cell-graph";
 import type { Position } from "./position";
+
+/** Ist das Flag an der Stelle gesetzt? Wirft, wenn es die Stelle nicht gibt (wie `itemAt`). */
+function isSet(flags: Uint8Array, index: number): boolean {
+  if (index < 0 || index >= flags.length) {
+    throw new RangeError(
+      `Stelle ${String(index)} liegt nicht in einer Liste der Länge ${String(flags.length)}`,
+    );
+  }
+  return flags[index] === 1;
+}
 
 /**
  * Ein Labyrinth aus `columns` mal `rows` quadratischen Zellen. Die Zellen sind zeilenweise von
  * oben links durchnummeriert. Zwischen benachbarten Zellen steht eine Wand oder ein Durchgang.
  */
 export class RectangularGrid implements CellGraph {
-  /** Durchgang von der Zelle nach rechts. */
-  private readonly openRight: boolean[];
-  /** Durchgang von der Zelle nach unten. */
-  private readonly openDown: boolean[];
-  private readonly touched: boolean[];
+  // Die Flags liegen in Uint8Array statt in Array<boolean>: Das Raster wird oft angelegt (jede
+  // Wegsuche braucht ein Wegwerf-Labyrinth) und ist dann sofort mit Nullen gefüllt.
+  /** Durchgang von der Zelle nach rechts (1) oder Wand (0). */
+  private readonly openRight: Uint8Array;
+  /** Durchgang von der Zelle nach unten (1) oder Wand (0). */
+  private readonly openDown: Uint8Array;
+  private readonly touched: Uint8Array;
 
   public constructor(
     public readonly columns: number,
     public readonly rows: number,
   ) {
-    this.openRight = new Array<boolean>(columns * rows).fill(false);
-    this.openDown = new Array<boolean>(columns * rows).fill(false);
-    this.touched = new Array<boolean>(columns * rows).fill(false);
+    this.openRight = new Uint8Array(columns * rows);
+    this.openDown = new Uint8Array(columns * rows);
+    this.touched = new Uint8Array(columns * rows);
   }
 
   public contains(x: number, y: number): boolean {
@@ -39,30 +50,27 @@ export class RectangularGrid implements CellGraph {
 
   /** Ist die Wand rechts neben der Zelle (x, y) offen? */
   public isOpenRight(x: number, y: number): boolean {
-    return itemAt(this.openRight, this.idOf(x, y));
+    return isSet(this.openRight, this.idOf(x, y));
   }
 
   /** Ist die Wand unter der Zelle (x, y) offen? */
   public isOpenDown(x: number, y: number): boolean {
-    return itemAt(this.openDown, this.idOf(x, y));
+    return isSet(this.openDown, this.idOf(x, y));
   }
 
   public neighboursOf(cell: CellId): readonly CellId[] {
-    const { x, y } = this.positionOf(cell);
-    const candidates: Position[] = [
-      { x: x + 1, y },
-      { x: x - 1, y },
-      { x, y: y + 1 },
-      { x, y: y - 1 },
-    ];
-    return candidates
-      .filter((candidate) => this.contains(candidate.x, candidate.y))
-      .map((candidate) => this.idOf(candidate.x, candidate.y));
+    const x = cell % this.columns;
+    const neighbours: CellId[] = [];
+    if (x + 1 < this.columns) neighbours.push(cell + 1);
+    if (x > 0) neighbours.push(cell - 1);
+    if (cell + this.columns < this.columns * this.rows) neighbours.push(cell + this.columns);
+    if (cell >= this.columns) neighbours.push(cell - this.columns);
+    return neighbours;
   }
 
   public isConnected(first: CellId, second: CellId): boolean {
     const passage = this.passageBetween(first, second);
-    return passage !== undefined && itemAt(passage.openings, passage.cell);
+    return passage !== undefined && isSet(passage.openings, passage.cell);
   }
 
   public connect(first: CellId, second: CellId): void {
@@ -72,21 +80,25 @@ export class RectangularGrid implements CellGraph {
         `Die Zellen ${String(first)} und ${String(second)} liegen nicht nebeneinander`,
       );
     }
-    passage.openings[passage.cell] = true;
+    passage.openings[passage.cell] = 1;
     this.touch(first);
     this.touch(second);
   }
 
   public isTouched(cell: CellId): boolean {
-    return itemAt(this.touched, cell);
+    return isSet(this.touched, cell);
   }
 
   public touch(cell: CellId): void {
-    this.touched[cell] = true;
+    this.touched[cell] = 1;
   }
 
   public touchedCells(): readonly CellId[] {
-    return this.touched.flatMap((isTouched, cell) => (isTouched ? [cell] : []));
+    const cells: CellId[] = [];
+    this.touched.forEach((isTouched, cell) => {
+      if (isTouched === 1) cells.push(cell);
+    });
+    return cells;
   }
 
   /**
@@ -96,16 +108,18 @@ export class RectangularGrid implements CellGraph {
   private passageBetween(
     first: CellId,
     second: CellId,
-  ): { openings: boolean[]; cell: CellId } | undefined {
-    const from = this.positionOf(first);
-    const to = this.positionOf(second);
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-
-    if (dy === 0 && dx === 1) return { openings: this.openRight, cell: first };
-    if (dy === 0 && dx === -1) return { openings: this.openRight, cell: second };
-    if (dx === 0 && dy === 1) return { openings: this.openDown, cell: first };
-    if (dx === 0 && dy === -1) return { openings: this.openDown, cell: second };
+  ): { openings: Uint8Array; cell: CellId } | undefined {
+    // Gerechnet wird mit den Nummern statt mit Stellen: `connect` läuft für jede Zelle des
+    // Rasters, und Stellen als Objekte anzulegen wäre dort der größte Posten.
+    const difference = second - first;
+    if (difference === 1 && first % this.columns < this.columns - 1) {
+      return { openings: this.openRight, cell: first };
+    }
+    if (difference === -1 && second % this.columns < this.columns - 1) {
+      return { openings: this.openRight, cell: second };
+    }
+    if (difference === this.columns) return { openings: this.openDown, cell: first };
+    if (difference === -this.columns) return { openings: this.openDown, cell: second };
     return undefined;
   }
 }

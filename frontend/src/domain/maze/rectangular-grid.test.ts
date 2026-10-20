@@ -103,6 +103,13 @@ describe("RectangularGrid", () => {
     }).toThrow(RangeError);
   });
 
+  it("wirft, wenn die Zelle nicht im Raster liegt", () => {
+    const grid = new RectangularGrid(2, 2);
+
+    expect(() => grid.isTouched(4)).toThrow(RangeError);
+    expect(() => grid.isTouched(-1)).toThrow(RangeError);
+  });
+
   it("berührt eine Zelle ohne Durchgang", () => {
     const grid = new RectangularGrid(2, 2);
 
