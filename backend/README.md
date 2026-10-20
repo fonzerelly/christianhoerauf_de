@@ -45,7 +45,9 @@ src/bot/
   handler.py    Einstieg des Lambdas, steckt alles zusammen
 schema/         JSON-Schema des Vertrags (answer.schema.json)
 tests/          Unit-Tests
-scripts/        Prüfen, Paket bauen, Kaltstart messen
+scripts/        Prüfen, Paket bauen, Kaltstart messen, Testsammlung
+testsammlung/   Fälle (cases.yaml) und Läufer
+infra/          OpenTofu (tofu.sh, State verschlüsselt im Repo)
 ```
 
 Regeln der Abhängigkeiten (`pyproject.toml`, `[tool.importlinter]`): `domain` importiert nur
