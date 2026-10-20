@@ -124,13 +124,10 @@ export class CanvasRenderer implements Renderer {
     );
     this.drawPage(page, shifts.outgoing, view);
 
+    // Die Wände der nächsten Seite sollten über `prepare` schon da sein; sonst entstehen sie erst
+    // beim Weiterschieben, und dessen erstes Bild ruckelt.
     const next = view.nextPage;
-    if (next !== undefined) {
-      // Die Wände der nächsten Seite entstehen schon vorab. Erst beim Weiterschieben gezeichnet,
-      // würde dessen erstes Bild ruckeln.
-      if (view.isScrolling) this.drawPage(next, shifts.incoming, undefined);
-      else this.walls.imageOf(next, this.layout, this.parts.settings);
-    }
+    if (next !== undefined && view.isScrolling) this.drawPage(next, shifts.incoming, undefined);
     this.walls.keepOnly(next === undefined ? [page] : [page, next]);
   }
 

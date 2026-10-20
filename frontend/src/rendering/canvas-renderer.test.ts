@@ -189,15 +189,36 @@ describe("CanvasRenderer", () => {
       expect(calls.filter((call) => call === "clip()")).toHaveLength(1);
     });
 
-    it("zeichnet die Wände der nächsten Seite schon vorab, damit das Weiterschieben nicht ruckelt", () => {
+    it("zeichnet die Wände der nächsten Seite nicht im Bild, solange nicht weitergeschoben wird", () => {
       const { renderer, layers } = setup();
       const view = playbackView({ currentPage: PAGE, nextPage: NEXT_PAGE });
 
       renderer.draw(view, 0);
       renderer.draw(view, 0);
 
-      // eine Fläche für die aktuelle Seite, eine für die nächste, eine für die Glasscheibe
-      expect(layers.created).toHaveLength(3);
+      // nur eine Fläche für die aktuelle Seite und eine für die Glasscheibe
+      expect(layers.created).toHaveLength(2);
+    });
+
+    it("hat die Wände der nächsten Seite schon, wenn sie vorab gezeichnet wurden, und zeichnet sie beim Weiterschieben nicht neu", () => {
+      const { renderer, layers } = setup();
+      const prepare = renderer.prepare(NEXT_PAGE);
+      while (prepare.next().done !== true) {
+        // alle Stücke abarbeiten
+      }
+      expect(layers.created).toHaveLength(2); // Glasscheibe und Wände
+
+      renderer.draw(
+        playbackView({
+          currentPage: PAGE,
+          nextPage: NEXT_PAGE,
+          isScrolling: true,
+          scrollPart: 0.5,
+        }),
+        0,
+      );
+
+      expect(layers.created).toHaveLength(3); // dazu die Wände der aktuellen Seite
     });
 
     it("wirft die Wandbilder von Seiten weg, die nicht mehr gebraucht werden", () => {

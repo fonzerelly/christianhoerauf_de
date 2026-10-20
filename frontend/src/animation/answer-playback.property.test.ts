@@ -32,8 +32,7 @@ const event = fc.oneof(
 );
 
 async function settle(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let tick = 0; tick < 6; tick++) await Promise.resolve();
 }
 
 describe("AnswerPlayback (breit gestreut)", () => {

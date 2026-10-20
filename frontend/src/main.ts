@@ -25,6 +25,7 @@ import { AnimationLoop } from "./ui/animation-loop";
 import { Conversation } from "./ui/conversation";
 import { selectProfile } from "./ui/device-profile-selector";
 import { PhaseIndicator } from "./ui/phase-indicator";
+import { PreparedPageSource } from "./ui/prepared-page-source";
 import { QuestionForm } from "./ui/question-form";
 import { closesKeyboardAfterSending } from "./ui/on-screen-keyboard";
 import { connectReplayButton } from "./ui/replay-button";
@@ -32,6 +33,7 @@ import { requireElement } from "./ui/required-element";
 import { SpokenAnswer } from "./ui/spoken-answer";
 import { connectSoundToggle } from "./ui/sound-toggle";
 import { Stage } from "./ui/stage";
+import type { ScheduleTask } from "./ui/step-runner";
 import { StageSizeWatcher } from "./ui/stage-size-watcher";
 import { readTestHooks } from "./ui/test-hooks";
 import { readUrlParameters } from "./ui/url-parameters";
@@ -110,7 +112,13 @@ const renderer = new CanvasRenderer({
   layout: measureStage(),
 });
 
-// Bühne: Ablauf der Animation und Zeichnen
+// Bühne: Ablauf der Animation und Zeichnen. Die Seiten einer Antwort entstehen und werden vorab
+// gezeichnet in lauter kleinen Aufgaben, damit der Browser dazwischen arbeiten kann.
+const scheduleTask: ScheduleTask =
+  testHooks?.scheduleTask ??
+  ((task) => {
+    window.setTimeout(task, 0);
+  });
 const font = createDefaultFont();
 const normalizer = new TextNormalizer(font, (unknownCharacters) => {
   console.warn(
@@ -120,15 +128,20 @@ const normalizer = new TextNormalizer(font, (unknownCharacters) => {
 });
 const stage = new Stage({
   renderer,
+  scheduleTask,
   measure: measureStage,
   createPlayback: (layout, firstSeed) =>
     new AnswerPlayback(
-      new AnswerPaginator(font, normalizer, (seed) => new Mulberry32(seed), {
-        columns: layout.columns,
-        rows: layout.rows,
-        restingDistance: tuning.restingDistance,
-        maze: tuning,
-      }),
+      new PreparedPageSource(
+        new AnswerPaginator(font, normalizer, (seed) => new Mulberry32(seed), {
+          columns: layout.columns,
+          rows: layout.rows,
+          restingDistance: tuning.restingDistance,
+          maze: tuning,
+        }),
+        renderer,
+        scheduleTask,
+      ),
       { ...tuning, seed: firstSeed },
     ),
   baseSeed: tuning.seed,

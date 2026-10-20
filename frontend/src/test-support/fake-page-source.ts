@@ -14,7 +14,8 @@ export const RESTING_STEP = LAST_GLYPH_END + 2;
 /**
  * Eine Attrappe für die Seitenquelle der Animation: Jedes Zeichen des Texts wird eine kleine
  * Seite mit einer Route von 12 Wegstücken auf einer Linie. Jede Seite hat einen eigenen
- * Ausgang, und jede Anfrage wird in `requests` festgehalten.
+ * Ausgang, und jede Anfrage wird in `requests` festgehalten. Die Seiten kommen sofort, oder auf
+ * Wunsch erst nach `releaseResults()` (so lässt sich das Warten auf die Seiten nachstellen).
  */
 export class FakePageSource implements PageSource {
   public readonly requests: {
@@ -24,11 +25,32 @@ export class FakePageSource implements PageSource {
   }[] = [];
 
   private pagesCreated = 0;
+  private isHolding = false;
+  private readonly held: (() => void)[] = [];
 
-  public paginate(answer: string, seed: number, exitBefore?: Gate): PaginatedAnswer {
+  public paginate(answer: string, seed: number, exitBefore?: Gate): Promise<PaginatedAnswer> {
     this.requests.push({ text: answer, seed, exitBefore });
     const pages = Array.from(answer, () => this.createPage());
-    return { pages, restingStepIndex: RESTING_STEP };
+    const result = { pages, restingStepIndex: RESTING_STEP };
+    if (!this.isHolding) return Promise.resolve(result);
+    return new Promise((resolve) => {
+      this.held.push(() => {
+        resolve(result);
+      });
+    });
+  }
+
+  /** Ab jetzt liefern Anfragen ihre Seiten erst nach `releaseResults()`. */
+  public holdResults(): void {
+    this.isHolding = true;
+  }
+
+  /** Löst alle zurückgehaltenen Anfragen ein. */
+  public releaseResults(): void {
+    this.isHolding = false;
+    this.held.splice(0).forEach((release) => {
+      release();
+    });
   }
 
   public restingStepOf(page: MazePage): number {

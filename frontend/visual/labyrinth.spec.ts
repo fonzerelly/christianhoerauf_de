@@ -27,7 +27,7 @@ const LONG_TRAIL = { holdSeconds: 25, fadeSeconds: 5 };
 /** Längste Zeit in Sekunden, die auf einen Abschnitt gewartet wird. */
 const LONGEST_WAIT_SECONDS = 180;
 
-/** Läuft in der Seite, bevor ihre Skripte laufen: Uhr und Bildtakt, die nur der Test weiterstellt. */
+/** Läuft in der Seite, bevor ihre Skripte laufen: Uhr und Bildtakt, die nur der Test weiterstellt, und Aufgaben ohne Verzögerung. */
 function installTestHooks(tuning: Record<string, number>): void {
   let time = 0;
   let pendingFrame: (() => void) | undefined;
@@ -35,6 +35,10 @@ function installTestHooks(tuning: Record<string, number>): void {
     clock: { now: () => time },
     requestFrame: (callback: () => void) => {
       pendingFrame = callback;
+    },
+    // Die Seiten einer Antwort entstehen sonst in lauter kleinen Aufgaben; der Test führt sie sofort aus.
+    scheduleTask: (task: () => void) => {
+      task();
     },
     randomSeed: 2026,
     tuning,

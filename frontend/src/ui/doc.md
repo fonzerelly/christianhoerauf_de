@@ -4,21 +4,23 @@ Die Verbindung zur Seite: Fragefeld, Bühne, Takt, Fenstergröße. Die Klassen n
 statt echter DOM-Elemente (`{ addEventListener }`, `{ textContent }` …), damit sie ohne Browser getestet
 werden. `main.ts` übergibt die echten Elemente.
 
-| Datei                        | Was sie tut                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------- |
-| `url-parameters.ts`          | `readUrlParameters`: `?seed=` und `?profil=`.                               |
-| `device-profile-selector.ts` | `selectProfile`: Geräteprofil nach Fensterbreite.                           |
-| `question-form.ts`           | `QuestionForm`: Fragefeld und „Senden“.                                     |
-| `replay-button.ts`           | `connectReplayButton`: der Knopf „Nochmal“.                                 |
-| `sound-toggle.ts`            | `connectSoundToggle`: der Ton-Knopf (Brummen an/aus, `aria-pressed`).       |
-| `spoken-answer.ts`           | `SpokenAnswer`: der `aria-live`-Bereich für Screenreader.                   |
-| `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Screenreader.             |
-| `stage.ts`                   | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe. |
-| `phase-indicator.ts`         | `PhaseIndicator`: Abschnitt der Animation als `data-phase`.                 |
-| `stage-size-watcher.ts`      | `StageSizeWatcher`: Tastatur-Falle am Handy.                                |
-| `animation-loop.ts`          | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                      |
-| `required-element.ts`        | `requireElement`: Element der Seite holen und prüfen.                       |
-| `test-hooks.ts`              | `readTestHooks`: Uhr, Bildtakt und Startwert, die ein Test mitgibt.         |
+| Datei                        | Was sie tut                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `url-parameters.ts`          | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
+| `device-profile-selector.ts` | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
+| `question-form.ts`           | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
+| `replay-button.ts`           | `connectReplayButton`: der Knopf „Nochmal“.                                                                |
+| `sound-toggle.ts`            | `connectSoundToggle`: der Ton-Knopf (Brummen an/aus, `aria-pressed`).                                      |
+| `spoken-answer.ts`           | `SpokenAnswer`: der `aria-live`-Bereich für Screenreader.                                                  |
+| `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Screenreader.                                            |
+| `stage.ts`                   | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe.                                |
+| `step-runner.ts`             | `runInTasks`: rechnet eine Berechnung in Stücken, jedes in einer eigenen Aufgabe.                          |
+| `prepared-page-source.ts`    | `PreparedPageSource`: die Seitenquelle der Bühne (Seiten in Stücken erzeugen, erste Seite vorab zeichnen). |
+| `phase-indicator.ts`         | `PhaseIndicator`: Abschnitt der Animation als `data-phase`.                                                |
+| `stage-size-watcher.ts`      | `StageSizeWatcher`: Tastatur-Falle am Handy.                                                               |
+| `animation-loop.ts`          | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                                                     |
+| `required-element.ts`        | `requireElement`: Element der Seite holen und prüfen.                                                      |
+| `test-hooks.ts`              | `readTestHooks`: Uhr, Bildtakt und Startwert, die ein Test mitgibt.                                        |
 
 ## readUrlParameters, selectProfile
 
@@ -55,14 +57,24 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 
 ## Stage
 
-| Methode              | Was sie konkret tut                                                                                                                                                                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `constructor(parts)` | Misst die Bühne und baut den Ablauf mit dem Grundstartwert.                                                                                                                                                                                                   |
-| `builtFor`           | Die Größe der Bühne in Pixeln, für die gebaut wurde.                                                                                                                                                                                                          |
-| `tick(seconds)`      | Lässt die Animation weiterlaufen und zeichnet ein Bild - aber nur, wenn sich etwas bewegt (oder eben bewegt hat), eine Bildstörung läuft oder neu gezeichnet werden muss. Danach meldet es dem Brummen die Zeit und ob eine Bildstörung läuft (`hum.update`). |
-| `show(reply)`        | Eine Frage wurde gestellt: merkt sich das Versprechen und gibt es dem Ablauf.                                                                                                                                                                                 |
-| `refresh()`          | Wirft das Vorgezeichnete weg und zeichnet das nächste Bild neu.                                                                                                                                                                                               |
-| `rebuild()`          | Die Bühne hat eine andere Größe: misst neu, stellt den Renderer um und baut einen neuen Ablauf, der die aktuelle Antwort (oder die, auf die gewartet wird) von vorn schreibt. Startwert wie bei einem frischen Laden in dieser Größe.                         |
+| Methode                    | Was sie konkret tut                                                                                                                                                                                                                                                                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(parts)`       | Misst die Bühne und baut den Ablauf mit dem Grundstartwert.                                                                                                                                                                                                                                                                                     |
+| `builtFor`                 | Die Größe der Bühne in Pixeln, für die gebaut wurde.                                                                                                                                                                                                                                                                                            |
+| `tick(seconds)`            | Lässt die Animation weiterlaufen und zeichnet ein Bild - aber nur, wenn sich etwas bewegt (oder eben bewegt hat), eine Bildstörung läuft oder neu gezeichnet werden muss. Danach meldet es dem Brummen die Zeit und ob eine Bildstörung läuft (`hum.update`) und lässt die Wände einer neuen nächsten Seite vorab zeichnen (`prepareNextPage`). |
+| `show(reply)`              | Eine Frage wurde gestellt: merkt sich das Versprechen und gibt es dem Ablauf.                                                                                                                                                                                                                                                                   |
+| `prepareNextPage` (privat) | Gibt es eine nächste Seite, die noch nicht vorbereitet wird, startet es `renderer.prepare(seite)` über `runInTasks`: Stück für Stück in eigenen Aufgaben (`scheduleTask`), damit das Bild nicht stockt. Dieselbe Seite wird nur einmal vorbereitet; nach `refresh` und `rebuild` gilt wieder alles als neu.                                     |
+| `refresh()`                | Wirft das Vorgezeichnete weg und zeichnet das nächste Bild neu.                                                                                                                                                                                                                                                                                 |
+| `rebuild()`                | Die Bühne hat eine andere Größe: misst neu, stellt den Renderer um und baut einen neuen Ablauf, der die aktuelle Antwort (oder die, auf die gewartet wird) von vorn schreibt. Startwert wie bei einem frischen Laden in dieser Größe.                                                                                                           |
+
+## runInTasks, PreparedPageSource
+
+| Name                                                               | Was sie konkret tut                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runInTasks(steps, scheduleTask)`                                  | Rechnet eine Berechnung in Stücken (`Steps` der Domäne) ab: Jedes Stück läuft in einer eigenen Aufgabe, die `scheduleTask` einreiht (im Browser `setTimeout(…, 0)`). Dazwischen kann der Browser Bilder zeichnen und Eingaben bearbeiten. Das Versprechen liefert das Ergebnis; wirft ein Stück, scheitert es mit dem Fehler. |
+| `PreparedPageSource.constructor(producer, preparer, scheduleTask)` | Nimmt den Erzeuger der Seiten (der `AnswerPaginator`), den Vorbereiter (der `Renderer`) und die Einreihung von Aufgaben.                                                                                                                                                                                                      |
+| `PreparedPageSource.paginate(answer, seed, exitBefore?)`           | Erzeugt die Seiten mit `paginateInSteps` (jedes Stück eine Aufgabe), lässt danach die erste Seite vorab zeichnen (`renderer.prepare`, ebenfalls Stück für Stück) und löst das Versprechen erst dann ein. Wenn die Animation die Seite zeigt, kostet das erste Bild so nur noch das Kopieren.                                  |
+| `PreparedPageSource.restingStepOf(page)`                           | Reicht die Anfrage an den Erzeuger weiter (Haltepunkt einer Seite).                                                                                                                                                                                                                                                           |
 
 ## PhaseIndicator
 
@@ -87,5 +99,5 @@ während getippt wird (Bildschirmtastatur) → nichts.
 
 `requireElement(root, id, type)` liefert das Element oder scheitert mit `Auf der Seite fehlt das Element
 "<id>"` bzw. `… ist von der falschen Art`. `readTestHooks(scope)` liest `scope.labyrinthTestHooks`
-(`clock`, `requestFrame`, `randomSeed` und optional `tuning`, Abstimmungswerte, die den des Profils ersetzen), das nur ein Test per Playwright-`addInitScript` setzt; fehlt es
+(`clock`, `requestFrame`, `scheduleTask`, `randomSeed` und optional `tuning`, Abstimmungswerte, die den des Profils ersetzen), das nur ein Test per Playwright-`addInitScript` setzt; fehlt es
 oder ist es unvollständig: `undefined`.

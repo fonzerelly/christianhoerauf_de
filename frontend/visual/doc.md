@@ -18,6 +18,8 @@ Die Seite liest vor dem Start `window.labyrinthTestHooks`, das Playwright per `a
 
 - eine **Uhr**, die nur weiterläuft, wenn der Test es sagt,
 - einen **Bildtakt**, der nur auf Befehl ein Bild liefert (kein `requestAnimationFrame`),
+- eine **Aufgaben-Einreihung**, die Aufgaben sofort ausführt: Die Seiten einer Antwort entstehen sonst in lauter
+  kleinen Aufgaben (`setTimeout`), deren Ende der Test nicht abwarten könnte, ohne Bilder anzustoßen,
 - einen **festen Startwert** für Flimmern und Bildstörung,
 - optional **Abstimmungswerte**, die die des Geräteprofils ersetzen (eine Leuchtspur, die nicht verglimmt).
 
@@ -27,12 +29,12 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 
 ## Hilfsfunktionen in `labyrinth.spec.ts`
 
-| Funktion                      | Was sie konkret tut                                                                                                                                                                                                |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `installTestHooks(tuning)`    | Läuft in der Seite vor ihren Skripten und legt `labyrinthTestHooks` an. `advance(seconds, step)` stellt die Uhr in Bildern zu höchstens `step` Sekunden weiter und löst je Bild den Bildtakt aus.                  |
-| `open(page, fixture, tuning)` | Liefert die Antwort-Datei, öffnet die Seite und löst Bilder aus, bis der Lichtpunkt zu schreiben beginnt (die Begrüßung kommt über das Netz, die Uhr steht still). Prüft, dass es keine Fehler in der Konsole gab. |
-| `advance(page, seconds)`      | Stellt die Uhr der Seite um `seconds` weiter.                                                                                                                                                                      |
-| `advanceUntil(page, phase)`   | Stellt die Uhr in Schritten zu 0,1 s weiter, bis die Bühne im Abschnitt ist (höchstens 180 s); scheitert, wenn er nicht erreicht wird.                                                                             |
+| Funktion                      | Was sie konkret tut                                                                                                                                                                                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `installTestHooks(tuning)`    | Läuft in der Seite vor ihren Skripten und legt `labyrinthTestHooks` an (auch `scheduleTask`: führt Aufgaben sofort aus). `advance(seconds, step)` stellt die Uhr in Bildern zu höchstens `step` Sekunden weiter und löst je Bild den Bildtakt aus. |
+| `open(page, fixture, tuning)` | Liefert die Antwort-Datei, öffnet die Seite und löst Bilder aus, bis der Lichtpunkt zu schreiben beginnt (die Begrüßung kommt über das Netz, die Uhr steht still). Prüft, dass es keine Fehler in der Konsole gab.                                 |
+| `advance(page, seconds)`      | Stellt die Uhr der Seite um `seconds` weiter.                                                                                                                                                                                                      |
+| `advanceUntil(page, phase)`   | Stellt die Uhr in Schritten zu 0,1 s weiter, bis die Bühne im Abschnitt ist (höchstens 180 s); scheitert, wenn er nicht erreicht wird.                                                                                                             |
 
 ## Momente
 

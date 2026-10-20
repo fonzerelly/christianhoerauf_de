@@ -143,7 +143,7 @@ export class AnswerPlayback implements Playback {
     if (this.isMoving()) this.rushVisiblePages();
 
     void reply.then((text) => {
-      if (question === this.latestQuestion) this.acceptAnswer(text);
+      if (question === this.latestQuestion) this.acceptAnswer(text, question);
     });
   }
 
@@ -192,12 +192,25 @@ export class AnswerPlayback implements Playback {
     this.pages.forEach((page) => this.rushedPages.add(page));
   }
 
-  private acceptAnswer(text: string): void {
+  /**
+   * Die Antwort auf die neueste Frage ist da: Die Seiten dazu entstehen (das dauert und läuft in
+   * Stücken, siehe `PageSource`), und sobald sie bereit sind, werden sie geschrieben - es sei
+   * denn, inzwischen kam eine neuere Frage. Bis dahin geht die Animation unverändert weiter
+   * (der Lichtpunkt pulsiert am Haltepunkt, oder es steht still).
+   */
+  private acceptAnswer(text: string, question: number): void {
     const exitBefore = this.pages.length > 0 ? lastOf(this.pages).exit : undefined;
     const seed = this.settings.seed + this.arrivedAnswers;
+
+    void this.pageSource.paginate(text, seed, exitBefore).then(({ pages }) => {
+      if (question === this.latestQuestion) this.startAnswer(pages);
+    });
+  }
+
+  private startAnswer(newPages: readonly MazePage[]): void {
     this.arrivedAnswers++;
     const hadPages = this.pages.length > 0;
-    this.pages.push(...this.pageSource.paginate(text, seed, exitBefore).pages);
+    this.pages.push(...newPages);
 
     if (this.currentPhase === "resting") this.enterPhase("writing");
     if (this.currentPhase === "waiting") {

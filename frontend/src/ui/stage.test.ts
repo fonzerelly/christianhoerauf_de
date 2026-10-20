@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { Phase, Playback } from "../animation/playback-view";
 import { lastOf } from "../domain/lists";
 import type { Steps } from "../domain/steps";
+import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { Renderer } from "../rendering/renderer";
 import type { StageLayout } from "../rendering/stage-layout";
 import { playbackView } from "../test-support/fake-playback-view";
+import { ManualTaskQueue } from "../test-support/manual-task-queue";
+import { mazePage } from "../test-support/maze-page-builder";
 import { Stage } from "./stage";
 
 const LAYOUT: StageLayout = {
@@ -25,6 +28,8 @@ class FakePlayback implements Playback {
   public phase: Phase = "waiting";
   public isAnimating = false;
   public answersWritten = 0;
+  /** Die Seite, die als nächste folgt; der Test setzt sie. */
+  public next: MazePage | undefined;
   private readonly view = playbackView({});
 
   public constructor(
@@ -50,7 +55,7 @@ class FakePlayback implements Playback {
     return this.view.currentPage;
   }
   public get nextPage() {
-    return this.view.nextPage;
+    return this.next;
   }
   public get progress() {
     return this.view.progress;
@@ -89,8 +94,12 @@ class FakeRenderer implements Renderer {
     this.drawn.push({ view, seconds });
   }
 
-  public *prepare(): Steps<void> {
-    yield; // Die Bühne bereitet nichts vor; das tut die Seitenquelle.
+  /** Die Seiten, deren Vorbereitung ganz durchgelaufen ist. */
+  public readonly prepared: MazePage[] = [];
+
+  public *prepare(page: MazePage): Steps<void> {
+    yield;
+    this.prepared.push(page);
   }
 
   public discardPreparedImages(): void {
@@ -104,8 +113,10 @@ function setup(baseSeed = 100) {
   const playbacks: FakePlayback[] = [];
   const humUpdates: { seconds: number; isGlitching: boolean }[] = [];
   let nextLayout = LAYOUT;
+  const queue = new ManualTaskQueue();
   const stage = new Stage({
     renderer,
+    scheduleTask: queue.schedule,
     measure: () => nextLayout,
     createPlayback: (layout, firstSeed) => {
       const playback = new FakePlayback(layout, firstSeed);
@@ -129,6 +140,7 @@ function setup(baseSeed = 100) {
     shownPhases,
     humUpdates,
     renderer,
+    queue,
     playbacks,
     current: () => lastOf(playbacks),
     resizeTo: (layout: StageLayout) => {
@@ -207,6 +219,82 @@ describe("Stage", () => {
       stage.tick(0.1);
 
       expect(renderer.drawn).toHaveLength(2);
+    });
+  });
+
+  describe("die nächste Seite vorbereiten", () => {
+    const NEXT = mazePage({});
+
+    it("lässt die Wände der nächsten Seite in eigenen Aufgaben vorab zeichnen, sobald es sie gibt", () => {
+      const { stage, renderer, queue, current } = setup();
+      current().next = NEXT;
+
+      stage.tick(0.1);
+      expect(renderer.prepared).toEqual([]);
+      expect(queue.waiting).toBe(1);
+
+      queue.runAll();
+      expect(renderer.prepared).toEqual([NEXT]);
+    });
+
+    it("tut nichts, solange es keine nächste Seite gibt", () => {
+      const { stage, queue } = setup();
+
+      stage.tick(0.1);
+
+      expect(queue.waiting).toBe(0);
+    });
+
+    it("bereitet dieselbe Seite nur einmal vor, auch über viele Bilder", () => {
+      const { stage, renderer, queue, current } = setup();
+      current().next = NEXT;
+
+      stage.tick(0.1);
+      stage.tick(0.1);
+      stage.tick(0.1);
+      queue.runAll();
+
+      expect(renderer.prepared).toEqual([NEXT]);
+    });
+
+    it("bereitet eine andere nächste Seite wieder vor", () => {
+      const { stage, renderer, queue, current } = setup();
+      const other = mazePage({});
+      current().next = NEXT;
+      stage.tick(0.1);
+
+      current().next = other;
+      stage.tick(0.1);
+      queue.runAll();
+
+      expect(renderer.prepared).toEqual([NEXT, other]);
+    });
+
+    it("bereitet sie nach `refresh` wieder vor, denn das Vorgezeichnete ist weg", () => {
+      const { stage, renderer, queue, current } = setup();
+      current().next = NEXT;
+      stage.tick(0.1);
+      queue.runAll();
+
+      stage.refresh();
+      stage.tick(0.1);
+      queue.runAll();
+
+      expect(renderer.prepared).toEqual([NEXT, NEXT]);
+    });
+
+    it("bereitet nach dem Neuaufbau die nächste Seite des neuen Ablaufs vor", () => {
+      const { stage, renderer, queue, current } = setup();
+      current().next = NEXT;
+      stage.tick(0.1);
+      queue.runAll();
+
+      stage.rebuild();
+      current().next = NEXT;
+      stage.tick(0.1);
+      queue.runAll();
+
+      expect(renderer.prepared).toEqual([NEXT, NEXT]);
     });
   });
 

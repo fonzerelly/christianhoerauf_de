@@ -25,8 +25,7 @@ const TRAIL_LIFETIME = 1;
 
 /** Lässt alle wartenden Versprechen ihre Folgen ausführen. */
 async function settle(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let tick = 0; tick < 6; tick++) await Promise.resolve();
 }
 
 /** Ein Versprechen, das der Test selbst einlöst - so lässt sich bestimmen, wann die Antwort "kommt". */
@@ -261,6 +260,74 @@ describe("AnswerPlayback", () => {
       expect(playback.phase).toBe("writing");
       playback.advance(TO_RESTING);
       expect(playback.phase).toBe("resting");
+    });
+  });
+
+  describe("solange die Seiten der Antwort entstehen", () => {
+    it("wartet, ohne Seite und ohne Lichtpunkt, und beginnt zu schreiben, sobald die Seiten da sind", async () => {
+      const source = new FakePageSource();
+      source.holdResults();
+      const playback = new AnswerPlayback(source, SETTINGS);
+
+      playback.request(Promise.resolve("A"));
+      await settle();
+      expect(source.requests).toHaveLength(1);
+      expect(playback.phase).toBe("waiting");
+      expect(playback.currentPage).toBeUndefined();
+
+      source.releaseResults();
+      await settle();
+      expect(playback.phase).toBe("writing");
+      expect(playback.currentPage).toBeDefined();
+    });
+
+    it("zählt die Antwort erst, wenn ihre Seiten da sind", async () => {
+      const source = new FakePageSource();
+      source.holdResults();
+      const playback = new AnswerPlayback(source, SETTINGS);
+      playback.request(Promise.resolve("A"));
+      await settle();
+      expect(playback.answersWritten).toBe(0);
+
+      source.releaseResults();
+      await settle();
+
+      expect(playback.answersWritten).toBe(1);
+    });
+
+    it("pulsiert am Haltepunkt weiter, bis die Seiten der Antwort da sind", async () => {
+      const { playback, source } = await restingPlayback();
+      source.holdResults();
+
+      playback.request(Promise.resolve("B"));
+      await settle();
+      playback.advance(5);
+      expect(playback.phase).toBe("resting");
+
+      source.releaseResults();
+      await settle();
+      expect(playback.phase).toBe("writing");
+    });
+
+    it("schreibt nach einer neueren Frage nur deren Seiten und zählt die überholte Antwort nicht", async () => {
+      const { playback, source } = await restingPlayback();
+      source.holdResults();
+
+      playback.request(Promise.resolve("B"));
+      await settle();
+      playback.request(Promise.resolve("CC"));
+      await settle();
+      source.releaseResults();
+      await settle();
+
+      expect(source.requests.map(({ text, seed }) => [text, seed])).toEqual([
+        ["A", 100],
+        ["B", 101],
+        ["CC", 101],
+      ]);
+      expect(playback.phase).toBe("writing");
+      expect(playback.nextPage).toBeDefined(); // "CC" sind zwei Seiten, "B" wäre nur eine
+      expect(playback.answersWritten).toBe(2);
     });
   });
 

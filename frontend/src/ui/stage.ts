@@ -1,6 +1,9 @@
 import type { Phase, Playback } from "../animation/playback-view";
+import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { Renderer } from "../rendering/renderer";
 import type { StageLayout } from "../rendering/stage-layout";
+import { runInTasks } from "./step-runner";
+import type { ScheduleTask } from "./step-runner";
 
 export interface StageParts {
   readonly renderer: Renderer;
@@ -12,6 +15,8 @@ export interface StageParts {
   readonly baseSeed: number;
   /** Zeigt den Abschnitt der Animation an (`data-phase`). */
   readonly phaseDisplay: { show(phase: Phase): void };
+  /** Reiht Aufgaben ein, in denen die Wände der nächsten Seite vorab gezeichnet werden. */
+  readonly scheduleTask: ScheduleTask;
   /** Das Brummen: bekommt in jedem Bild die vergangene Zeit und ob gerade eine Bildstörung läuft. */
   readonly hum: { update(seconds: number, isGlitching: boolean): void };
 }
@@ -31,6 +36,8 @@ export class Stage {
   private lastText: string | undefined;
   private needsDraw = true;
   private wasAnimating = false;
+  /** Die nächste Seite, deren Wände schon vorab gezeichnet werden (oder wurden). */
+  private nextPageInPreparation: MazePage | undefined;
 
   public constructor(private readonly parts: StageParts) {
     this.layout = parts.measure();
@@ -57,6 +64,7 @@ export class Stage {
     this.parts.hum.update(seconds, this.parts.renderer.isGlitching);
     this.wasAnimating = isAnimating;
     this.needsDraw = false;
+    this.prepareNextPage();
   }
 
   /** Eine Frage wurde gestellt, `reply` liefert den Text der Antwort. */
@@ -73,6 +81,7 @@ export class Stage {
   /** Das Vorgezeichnete ist nicht mehr verlässlich (Seite war im Hintergrund): neu zeichnen. */
   public refresh(): void {
     this.parts.renderer.discardPreparedImages();
+    this.nextPageInPreparation = undefined;
     this.needsDraw = true;
   }
 
@@ -92,6 +101,19 @@ export class Stage {
     if (reply !== undefined) this.playback.request(reply);
     this.needsDraw = true;
     this.wasAnimating = false;
+    this.nextPageInPreparation = undefined;
+  }
+
+  /**
+   * Gibt es eine neue nächste Seite, lässt die Bühne deren Wände vorab zeichnen: in eigenen,
+   * kleinen Aufgaben, damit das Bild nicht stockt. Sie werden erst beim Weiterschieben gebraucht.
+   */
+  private prepareNextPage(): void {
+    const next = this.playback.nextPage;
+    if (next === undefined || next === this.nextPageInPreparation) return;
+
+    this.nextPageInPreparation = next;
+    void runInTasks(this.parts.renderer.prepare(next), this.parts.scheduleTask);
   }
 
   private lastReply(): Promise<string> | undefined {
