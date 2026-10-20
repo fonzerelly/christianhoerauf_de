@@ -1,0 +1,101 @@
+[project]
+name = "christianhoerauf-backend"
+version = "0.0.0"
+description = "Backend des Bots auf christianhoerauf.de (AWS Lambda)"
+requires-python = "==3.14.*"
+# Laufzeitabhängigkeiten des Lambda-Pakets. Bewusst leer; DSPy gehört nie hierher (ADR 0002).
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "hypothesis==6.168.5",
+    "mypy==2.4.0",
+    "ruff==0.16.10",
+    "import-linter==2.15",
+]
+# DSPy läuft nur beim Entwickeln und Optimieren (ADR 0002), nie im Lambda-Paket.
+dspy = ["dspy==3.4.0"]
+
+[tool.uv]
+# Nur Versionen, die mindestens zwei Wochen alt sind.
+exclude-newer = "2 weeks"
+default-groups = ["dev"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "--cov=bot --cov-branch --cov-report=term-missing --cov-fail-under=100"
+
+[tool.coverage.run]
+source = ["bot"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+mypy_path = "src"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4", "RET", "PT", "N"]
+
+[tool.importlinter]
+root_package = "bot"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "domain importiert nur domain"
+type = "forbidden"
+source_modules = ["bot.domain"]
+forbidden_modules = ["bot.ports", "bot.adapters", "bot.pipeline", "bot.handler"]
+
+[[tool.importlinter.contracts]]
+name = "ports importieren nur domain"
+type = "forbidden"
+source_modules = ["bot.ports"]
+forbidden_modules = ["bot.adapters", "bot.pipeline", "bot.handler"]
+
+[[tool.importlinter.contracts]]
+name = "pipeline darf domain und ports"
+type = "forbidden"
+source_modules = ["bot.pipeline"]
+forbidden_modules = ["bot.adapters", "bot.handler"]
+
+[[tool.importlinter.contracts]]
+name = "adapters dürfen domain und ports"
+type = "forbidden"
+source_modules = ["bot.adapters"]
+forbidden_modules = ["bot.pipeline", "bot.handler"]
+
+[[tool.importlinter.contracts]]
+name = "pipeline und adapters kennen sich nicht"
+type = "independence"
+modules = ["bot.pipeline", "bot.adapters"]
+
+[[tool.importlinter.contracts]]
+name = "domain und ports kennen weder AWS noch DSPy noch HTTP-Clients"
+type = "forbidden"
+source_modules = ["bot.domain", "bot.ports"]
+forbidden_modules = ["boto3", "botocore", "dspy", "openai", "requests", "httpx"]
+
+[[tool.importlinter.contracts]]
+name = "Nichts importiert handler"
+type = "forbidden"
+source_modules = ["bot.domain", "bot.ports", "bot.pipeline", "bot.adapters"]
+forbidden_modules = ["bot.handler"]
