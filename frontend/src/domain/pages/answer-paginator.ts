@@ -37,6 +37,14 @@ export class AnswerPaginator {
   ) {}
 
   /**
+   * Der Haltepunkt einer Seite: das Wegstück `restingDistance` hinter dem Ende ihrer letzten
+   * Glyphe. Auch eine Seite mitten in einer Antwort hat einen, falls die Antwort an ihr endet.
+   */
+  public restingStepOf(page: MazePage): number {
+    return page.lastGlyphEnd + this.settings.restingDistance;
+  }
+
+  /**
    * Bereitet die Antwort auf, bricht sie um und erzeugt für die Zeilen so viele Seiten, wie sie
    * braucht. Aller Zufall folgt aus `seed`.
    *
@@ -45,7 +53,7 @@ export class AnswerPaginator {
    * der Ausgang der letzten Seite der vorigen Antwort ist.
    */
   public paginate(answer: string, seed: number, exitBefore?: Gate): PaginatedAnswer {
-    const { columns, rows, maze, restingDistance } = this.settings;
+    const { columns, rows, maze } = this.settings;
     const random = this.createRandom(seed);
     const borderCellPicker = new BorderCellPicker(random);
     const generator = new MazePageGenerator(columns, rows, random, this.font, maze);
@@ -64,6 +72,6 @@ export class AnswerPaginator {
       previousExit = page.exit;
     }
 
-    return { pages, restingStepIndex: lastOf(pages).lastGlyphEnd + restingDistance };
+    return { pages, restingStepIndex: this.restingStepOf(lastOf(pages)) };
   }
 }

@@ -106,4 +106,17 @@ describe("AnswerPaginator", () => {
 
     expect(far.restingStepIndex - near.restingStepIndex).toBe(2);
   });
+
+  it("nennt den Haltepunkt für jede beliebige Seite, auch eine mitten in der Antwort", () => {
+    const paginator = createPaginator();
+    const { pages, restingStepIndex } = paginator.paginate(
+      "Das ist ein langer Platzhalter-Text zum Ausprobieren mehrerer Seiten und noch viel mehr",
+      1,
+    );
+
+    expect(pages.length).toBeGreaterThan(1);
+    const firstPage = itemAt(pages, 0);
+    expect(paginator.restingStepOf(firstPage)).toBe(firstPage.lastGlyphEnd + 2);
+    expect(paginator.restingStepOf(itemAt(pages, pages.length - 1))).toBe(restingStepIndex);
+  });
 });
