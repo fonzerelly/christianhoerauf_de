@@ -94,4 +94,16 @@ describe("TextNormalizer (Eigenschaften)", () => {
       { numRuns: 2000 },
     );
   });
+
+  it("zerlegt Text aus einfachen Zeichen ohne Zerleger genauso wie der Zerleger", () => {
+    const simpleText = fc.stringMatching(/^[\u0020-\u007e\u00c0-\u00ff]{0,40}$/);
+    fc.assert(
+      fc.property(simpleText, (text) => {
+        expect(Array.from(text)).toEqual(
+          [...segmenter.segment(text)].map(({ segment }) => segment),
+        );
+      }),
+      { numRuns: 2000 },
+    );
+  });
 });

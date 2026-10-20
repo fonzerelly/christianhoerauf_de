@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDefaultFont } from "../font/font";
 import { TextNormalizer } from "./text-normalizer";
 
@@ -96,5 +96,30 @@ describe("TextNormalizer", () => {
     reporting.normalize("Hallo Welt, ä é");
 
     expect(reportedUnknown).toEqual([]);
+  });
+
+  describe("Zerlegen in Grapheme", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("braucht für Text aus einfachen Zeichen (Ziffern, Satzzeichen, lateinische Buchstaben mit Umlauten und Akzenten) keinen Zerleger", () => {
+      const constructed = vi.spyOn(Intl, "Segmenter");
+      const { normalizer: fresh } = createNormalizer();
+
+      expect(fresh.normalize("Hallo, schöne Welt! 123 ÄÖÜ é")).toBe("HALLO SCHÖNE WELT! 123 ÄÖÜ E");
+
+      expect(constructed).not.toHaveBeenCalled();
+    });
+
+    it("legt den Zerleger erst an, wenn ein Text ihn braucht, und benutzt ihn dann weiter", () => {
+      const constructed = vi.spyOn(Intl, "Segmenter");
+      const { normalizer: fresh } = createNormalizer();
+
+      expect(fresh.normalize("日本")).toBe("██");
+      expect(fresh.normalize("a€b")).toBe("A█B");
+
+      expect(constructed).toHaveBeenCalledTimes(1);
+    });
   });
 });

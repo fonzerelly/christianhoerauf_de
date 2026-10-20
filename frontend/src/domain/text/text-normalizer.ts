@@ -6,6 +6,11 @@ const INVISIBLE_ONLY = /^[\p{White_Space}\p{Cc}\p{Cf}]+$/u;
 const WHITESPACE = /\p{White_Space}/u;
 const IGNORABLE_MARKS = /[\p{M}\p{Cf}\p{Cc}]/gu;
 const SEPARATORS = new Set([",", ";", ":"]);
+/**
+ * Text aus druckbarem ASCII und den lateinischen Buchstaben von À bis ÿ: Hier ist jedes Zeichen
+ * für sich ein Graphem (nichts davon hängt sich an ein Nachbarzeichen an).
+ */
+const ONE_CHARACTER_PER_GRAPHEME = /^[\u0020-\u007e\u00c0-\u00ff]*$/;
 
 /**
  * Macht aus beliebigem Text einen Text, den die Schrift darstellen kann.
@@ -20,7 +25,9 @@ const SEPARATORS = new Set([",", ";", ":"]);
  * - Bleibt nichts Sichtbares übrig, ist das Ergebnis ein Fragezeichen.
  */
 export class TextNormalizer {
-  private readonly segmenter = new Intl.Segmenter();
+  // Der Zerleger kostet beim Anlegen einige Millisekunden (er lädt Unicode-Daten). Aus Leistungs-
+  // gründen entsteht er erst, wenn ein Text ihn wirklich braucht; die Begrüßung braucht ihn nicht.
+  private segmenter: Intl.Segmenter | undefined;
 
   /**
    * @param font bestimmt, was darstellbar ist
@@ -33,14 +40,21 @@ export class TextNormalizer {
 
   public normalize(text: string): string {
     const unknownCharacters: string[] = [];
-    const normalized = [...this.segmenter.segment(text)]
-      .map(({ segment }) => this.normalizeGrapheme(segment, unknownCharacters))
+    const normalized = this.graphemesOf(text)
+      .map((grapheme) => this.normalizeGrapheme(grapheme, unknownCharacters))
       .join("")
       .replace(/ +/g, " ")
       .trim();
 
     if (unknownCharacters.length > 0) this.reportUnknown(unknownCharacters);
     return /[^ |]/.test(normalized) ? normalized : "?";
+  }
+
+  private graphemesOf(text: string): string[] {
+    if (ONE_CHARACTER_PER_GRAPHEME.test(text)) return Array.from(text);
+
+    this.segmenter ??= new Intl.Segmenter();
+    return [...this.segmenter.segment(text)].map(({ segment }) => segment);
   }
 
   private normalizeGrapheme(grapheme: string, unknownCharacters: string[]): string {
