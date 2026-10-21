@@ -162,7 +162,8 @@ const answerSource: AnswerSource =
     ? staticAnswers
     : new HttpAnswerSource({
         url: answerUrl,
-        fetchFunction: fetch,
+        // Als eigene Funktion: `fetch` muss mit `window` als `this` laufen, sonst „Illegal invocation“.
+        fetchFunction: (url, init) => fetch(url, init),
         greetingSource: staticAnswers,
         timeoutMillis: ANSWER_TIMEOUT_MILLIS,
         timeoutSignal: (millis) => AbortSignal.timeout(millis),
