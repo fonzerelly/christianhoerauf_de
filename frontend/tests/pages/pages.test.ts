@@ -21,8 +21,8 @@ describe("Hinweis unter dem Fragefeld", () => {
   });
 
   it("verlinkt Datenschutz und Impressum", () => {
-    expect(index).toMatch(/<a href="\/datenschutz\.html"[^>]*>Datenschutz<\/a>/);
-    expect(index).toMatch(/<a href="\/impressum\.html"[^>]*>Impressum<\/a>/);
+    expect(index).toMatch(/<a href="datenschutz\.html"[^>]*>Datenschutz<\/a>/);
+    expect(index).toMatch(/<a href="impressum\.html"[^>]*>Impressum<\/a>/);
   });
 
   it("steht hinter dem Fragefeld, nicht davor", () => {
@@ -52,8 +52,12 @@ describe.each([
     expect(page).not.toMatch(/\[(NAME|ANSCHRIFT|E-MAIL)\]/);
   });
 
-  it("führt zurück zur Startseite", () => {
-    expect(page).toMatch(/<a [^>]*href="\/"/);
+  it("führt zurück zur Startseite, mit relativem Pfad", () => {
+    expect(page).toMatch(/<a [^>]*href="\.\/"/);
+  });
+
+  it("verlinkt keine Seite mit absolutem Pfad, damit sie auch unter einem Unterpfad funktioniert", () => {
+    expect(page).not.toMatch(/<a [^>]*href="\/[^/]/);
   });
 });
 
@@ -77,6 +81,20 @@ describe("datenschutz.html", () => {
     "Aufsichtsbehörde",
   ])("nennt %s", (term) => {
     expect(privacy).toContain(term);
+  });
+});
+
+describe("Pfade", () => {
+  it("baut mit relativen Pfaden, damit die Seite unter christianhoerauf.de und unter fonzerelly.github.io/christianhoerauf_de/ läuft", () => {
+    expect(read("vite.config.ts")).toContain('base: "./"');
+  });
+
+  it("lädt content.json relativ zur Seite", () => {
+    expect(read("src/main.ts")).toContain('fetchJson("content.json"');
+  });
+
+  it("verlinkt von der Startseite keine Seite mit absolutem Pfad", () => {
+    expect(index).not.toMatch(/<a [^>]*href="\/[^/]/);
   });
 });
 

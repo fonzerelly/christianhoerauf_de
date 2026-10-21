@@ -155,7 +155,7 @@ const stage = new Stage({
 // (beim Bauen aus VITE_ANSWER_URL) fragt die Seite das Backend. Begrüßung und leere Frage kommen
 // immer aus der Datei.
 const ANSWER_TIMEOUT_MILLIS = 15_000;
-const staticAnswers = new StaticContentAnswerSource(() => fetchJson("/content.json", fetch));
+const staticAnswers = new StaticContentAnswerSource(() => fetchJson("content.json", fetch));
 const answerUrl = import.meta.env.VITE_ANSWER_URL;
 const answerSource: AnswerSource =
   answerUrl === undefined || answerUrl === ""
