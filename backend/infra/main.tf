@@ -2,8 +2,10 @@ data "aws_caller_identity" "current" {}
 
 locals {
   name = "christianhoerauf-bot"
+  # fonzerelly.github.io: Vorschau-Adresse von GitHub Pages (…/christianhoerauf_de/), über die das
+  # Frontend vor dem Umzug der Domain ausprobiert wird.
   cors_origins = concat(
-    ["https://christianhoerauf.de", "https://www.christianhoerauf.de"],
+    ["https://christianhoerauf.de", "https://www.christianhoerauf.de", "https://fonzerelly.github.io"],
     var.allow_localhost ? ["http://localhost:5173"] : [],
   )
 }
