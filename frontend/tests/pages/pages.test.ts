@@ -43,10 +43,13 @@ describe.each([
     expect(page).toContain('name="viewport"');
   });
 
-  it("führt die Platzhalter für Name, Anschrift und E-Mail auf, die Christian selbst füllt", () => {
-    expect(page).toContain("[NAME]");
-    expect(page).toContain("[ANSCHRIFT]");
-    expect(page).toContain("[E-MAIL]");
+  it("nennt Christian als Verantwortlichen mit E-Mail-Adresse", () => {
+    expect(page).toContain("Christian Hörauf");
+    expect(page).toContain("christianhoerauf.gpt@gmail.com");
+  });
+
+  it("enthält keinen Platzhalter mehr", () => {
+    expect(page).not.toMatch(/\[(NAME|ANSCHRIFT|E-MAIL)\]/);
   });
 
   it("führt zurück zur Startseite", () => {
