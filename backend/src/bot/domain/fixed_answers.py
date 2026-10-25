@@ -44,9 +44,8 @@ def fixed_answer(kind: FixedAnswerKind, language: Language) -> Answer:
 # Flirt, sexuell und Bild sind Gimmicks; ihre Texte gelten nur, bis das Frontend sie zeigen kann.
 _INTENT_TEXTS: dict[Intent, dict[Language, str]] = {
     Intent.BOT: {
-        "de": "Ich bin der Bot dieser Seite. Christian hat mich gebaut, damit du hier etwas über "
-        "ihn erfährst.",
-        "en": "I'm the bot of this page. Chris built me so that you can ask me about him.",
+        "de": "Ich bin ChrisBot. Chris hat mich gebaut, damit du hier etwas über ihn erfährst.",
+        "en": "I'm ChrisBot. Chris built me so that you can ask me about him.",
     },
     Intent.ADVICE: {
         "de": "Dafür bin ich nicht der Richtige, bitte frag Fachleute. In einer Krise hilft die "
@@ -107,7 +106,7 @@ _INTENT_TEXTS: dict[Intent, dict[Language, str]] = {
         "en": "I'm the wrong bot for this kind of question.",
     },
     Intent.PICTURE: {
-        "de": "Ein Foto von Christian zeige ich dir bald. Ich lerne gerade noch, wie das geht.",
+        "de": "Ein Foto von Chris zeige ich dir bald. Ich lerne gerade noch, wie das geht.",
         "en": "I hope I'll be able to show you a picture of him soon.",
     },
 }

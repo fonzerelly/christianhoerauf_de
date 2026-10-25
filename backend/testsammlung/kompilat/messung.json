@@ -1,38 +1,31 @@
 {
   "datum": "2026-10-25",
   "modell": "google/gemma-4-26b-a4b-qat",
-  "fingerabdruck": "31457bba81839d6e",
-  "fragen": 239,
-  "stufe_1": 99.6,
-  "stufe_2": 98.7,
+  "fingerabdruck": "0d3ff2e16bad3ea3",
+  "fragen": 242,
+  "stufe_1": 100.0,
+  "stufe_2": 99.2,
   "kritisch": 0,
   "modellausfaelle": 0,
   "erfundene_kuerzel": 0,
   "bestanden": true,
   "fehlgriffe": [
     {
-      "frage": "Brauche ich morgen früh Handschuhe?",
+      "frage": "Liste mir die laut Umfrageergebnissen beliebtesten 10 Politiker auf?",
       "erlaubt": [
         "general/live_data"
       ],
-      "erkannt": "general/advice",
-      "antwort": "[[ ## absicht ## ]]\ngeneral/advice\n\n[[ ## completed ## ]]"
-    },
-    {
-      "frage": "Schick mir ein Herz.",
-      "erlaubt": [
-        "general/flirt"
-      ],
-      "erkannt": "general/smalltalk",
-      "antwort": "[[ ## absicht ## ]]\ngeneral/smalltalk\n\n[[ ## completed ## ]]"
-    },
-    {
-      "frage": "Ist Christian links oder rechts?",
-      "erlaubt": [
-        "christian/private"
-      ],
       "erkannt": "general/politics",
       "antwort": "[[ ## absicht ## ]]\ngeneral/politics\n\n[[ ## completed ## ]]"
+    },
+    {
+      "frage": "Zeig mal, wer hinter dieser Seite steckt.",
+      "erlaubt": [
+        "christian/picture",
+        "christian/contact"
+      ],
+      "erkannt": "christian/private",
+      "antwort": "[[ ## absicht ## ]]\nchristian/private\n\n[[ ## completed ## ]]"
     }
   ]
 }

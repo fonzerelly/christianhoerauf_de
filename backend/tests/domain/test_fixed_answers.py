@@ -7,9 +7,8 @@ from bot.domain.reaction import ReactionKind, reaction_for
 # Die festen Texte aus docs/backend/ABSICHTEN.md, Abschnitt „Feste Texte“.
 EXPECTED: dict[Intent, tuple[str, str]] = {
     Intent.BOT: (
-        "Ich bin der Bot dieser Seite. Christian hat mich gebaut, damit du hier etwas über ihn "
-        "erfährst.",
-        "I'm the bot of this page. Chris built me so that you can ask me about him.",
+        "Ich bin ChrisBot. Chris hat mich gebaut, damit du hier etwas über ihn erfährst.",
+        "I'm ChrisBot. Chris built me so that you can ask me about him.",
     ),
     Intent.ADVICE: (
         "Dafür bin ich nicht der Richtige, bitte frag Fachleute. In einer Krise hilft die "
@@ -55,7 +54,7 @@ EXPECTED: dict[Intent, tuple[str, str]] = {
         "I'm the wrong bot for this kind of question.",
     ),
     Intent.PICTURE: (
-        "Ein Foto von Christian zeige ich dir bald. Ich lerne gerade noch, wie das geht.",
+        "Ein Foto von Chris zeige ich dir bald. Ich lerne gerade noch, wie das geht.",
         "I hope I'll be able to show you a picture of him soon.",
     ),
 }
