@@ -10,6 +10,7 @@ Aufruf aus `backend/`:
 uv run --group dspy --with optuna python experiments/absichten/lauf.py          # alle Schritte
 uv run --group dspy --with optuna python experiments/absichten/lauf.py gemma_dspy   # nur ein Schritt
 uv run python experiments/absichten/auswertung.py                  # Bericht schreiben
+uv run --group dspy python experiments/absichten/export_prompt.py   # Türsteher fürs Lambda exportieren
 ```
 
 ## Dateien
@@ -99,3 +100,18 @@ Spielt jede Variante über alle Testfragen nach und schreibt `ergebnisse/auswert
   Gemmas Antwort und dem Prüfergebnis.
 - Die Dauer je Frage ist Türsteher plus, falls Gemma antwortet, Antwort plus, falls geprüft,
   Prüfung. Gemessen am Mac mini, nicht auf Bedrock.
+
+## export_prompt.py
+
+Exportiert das DSPy-Programm `ergebnisse/gemma_dspy_programm.json` für das Lambda (ADR 0002).
+DSPy kommt nicht ins Lambda; dort wird nur noch die Frage eingesetzt.
+
+- `main()`: lädt das Programm wie `lauf.py`, lässt DSPys `ChatAdapter` die Nachrichten für einen
+  Platzhalter bauen und teilt die letzte Nachricht am Platzhalter in Anfang und Ende. Schreibt
+  `src/bot/pipeline/prompts/intent_program.json` (Kürzel, feste Nachrichten, Anfang, Ende) und
+  `tests/pipeline/intent_golden.json` (DSPys Nachrichten für drei Beispielfragen, auch mit
+  Zeilenumbruch und Feldmarkierung) als Golden Master für den Unit-Test.
+- `_schreibe(pfad, daten)`: JSON mit Umlauten und Einrückung.
+
+Nach jedem neuen Training: exportieren, dann `scripts/check.sh` – der Golden-Master-Test zeigt,
+ob der Laufzeit-Baustein noch dieselben Nachrichten baut.

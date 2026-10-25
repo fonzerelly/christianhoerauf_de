@@ -32,7 +32,7 @@ from bot.domain.language import guess_language
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
-from bot.pipeline.prompts import load_prompt
+from bot.pipeline.prompts import load_intent_program, load_prompt
 
 MAX_QUESTION_LENGTH = 500
 _STORE_TTL_SECONDS = 2 * 24 * 60 * 60  # Zähler und Zwischenspeicher verfallen nach zwei Tagen
@@ -89,19 +89,25 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
     region = environ.get("AWS_REGION", BEDROCK_REGION)
     token_provider = None if environ.get("LLM_AUTH") == "none" else bedrock_token_provider(region)
 
-    def make_model() -> OpenAiCompatibleModel:
-        # Eine Instanz je Schritt, damit sich die Denkphase je Schritt einstellen lässt.
+    def make_model(
+        temperature: float | None = None, max_tokens: int | None = None
+    ) -> OpenAiCompatibleModel:
+        # Eine Instanz je Schritt, damit sich Denkphase und Einstellungen je Schritt setzen lassen.
         return OpenAiCompatibleModel(
             base_url=environ.get("LLM_BASE_URL", BEDROCK_BASE_URL),
             model=environ.get("LLM_MODEL", BEDROCK_MODEL),
             token_provider=token_provider,
             timeout_seconds=float(environ.get("LLM_TIMEOUT_SECONDS", "10")),
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
     clock = SystemClock()
     return Bot(
-        IntentClassifier(make_model(), load_prompt("intent")),
+        # Der Türsteher wie bei der Messung (AUSWERTUNG_ABSICHTEN.md): temperature 0, kurze Ausgabe.
+        IntentClassifier(make_model(temperature=0.0, max_tokens=100), load_intent_program()),
         GeneralAnswerer(make_model(), load_prompt("general_answer")),
+        GeneralAnswerer(make_model(), load_prompt("task_answer")),
         DynamoDbStore(
             boto3.client("dynamodb", region_name=region),
             table,

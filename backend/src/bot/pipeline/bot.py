@@ -10,9 +10,10 @@ from bot.domain.cost_protection import (
     visitor_limit_reached,
     visitor_tag,
 )
-from bot.domain.fixed_answers import FixedAnswerKind, fixed_answer
+from bot.domain.fixed_answers import FixedAnswerKind, fixed_answer, intent_answer
 from bot.domain.intent import Intent
 from bot.domain.language import Language, guess_language
+from bot.domain.reaction import ReactionKind, reaction_for
 from bot.domain.reply_check import check_reply
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
@@ -32,19 +33,23 @@ class _Outcome:
 
 
 class Bot:
-    """Der Ablauf einer Frage (Plan, „Ablauf einer Frage“) für Stufe 1."""
+    """Der Ablauf einer Frage (Plan, „Ablauf einer Frage“ und „Absichten neu“)."""
 
     def __init__(
         self,
         classifier: IntentClassifier,
         answerer: GeneralAnswerer,
+        task_answerer: GeneralAnswerer,
         store: CounterStore,
         clock: Clock,
         log: Log,
         secret: str,
     ) -> None:
         self._classifier = classifier
-        self._answerer = answerer
+        self._answerers = {
+            ReactionKind.GENERAL_ANSWER: answerer,
+            ReactionKind.TASK_ANSWER: task_answerer,
+        }
         self._store = store
         self._clock = clock
         self._log = log
@@ -77,29 +82,36 @@ class Bot:
         cached = self._store.read(cache_key(question, day))
         if cached is not None:
             return _Outcome(Answer(text=cached), "cache")
-        # 3. Absicht, 4. je nach Absicht.
+        # 3. Absicht bestimmen.
         try:
             intent = self._classifier.classify(question)
-            if intent is Intent.ABOUT_CHRISTIAN:
-                return self._fixed(
-                    FixedAnswerKind.ABOUT_CHRISTIAN, language, "about_christian", intent
-                )
-            if intent is Intent.DISALLOWED:
-                return self._fixed(FixedAnswerKind.DISALLOWED, language, "disallowed", intent)
-            return self._answer_general(question, tag, day, language, intent)
         except LanguageModelError:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable")
+        # 4. Reaktion: fester Text oder Gimmick ohne weiteren Modellaufruf, sonst das Modell.
+        reaction = reaction_for(intent)
+        if reaction not in self._answerers:
+            return _Outcome(intent_answer(intent, language), reaction.value, intent)
+        return self._answer_with_model(question, tag, day, language, intent, reaction)
 
-    def _answer_general(
-        self, question: str, tag: str, day: date, language: Language, intent: Intent
+    def _answer_with_model(
+        self,
+        question: str,
+        tag: str,
+        day: date,
+        language: Language,
+        intent: Intent,
+        reaction: ReactionKind,
     ) -> _Outcome:
-        """Allgemeine Frage (und, bis es Gimmicks gibt, Gimmick-Frage): Besuchergrenze, Modell,
-        Prüfung der Antwort, Zwischenspeicher."""
+        """Besuchergrenze, Antwort des Modells mit dem Prompt der Reaktion, Prüfung der Antwort,
+        Zwischenspeicher."""
         if visitor_limit_reached(self._store.increment(visitor_counter_key(tag, day))):
             return self._fixed(
                 FixedAnswerKind.VISITOR_LIMIT_REACHED, language, "visitor_limit", intent
             )
-        reply = check_reply(self._answerer.answer(question))
+        try:
+            reply = check_reply(self._answerers[reaction].answer(question))
+        except LanguageModelError:
+            reply = ""
         if not reply:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable", intent)
         self._store.write(cache_key(question, day), reply)

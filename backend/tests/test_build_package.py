@@ -30,7 +30,8 @@ def test_package_is_well_below_the_lambda_size_limit() -> None:
 def test_package_contains_the_prompts_and_boto3() -> None:
     names = build_package()
 
-    assert "bot/pipeline/prompts/intent.md" in names
+    assert "bot/pipeline/prompts/intent_program.json" in names
     assert "bot/pipeline/prompts/general_answer.md" in names
+    assert "bot/pipeline/prompts/task_answer.md" in names
     assert any(name.startswith("boto3/") for name in names)
     assert not any(name.startswith("testsammlung") for name in names)

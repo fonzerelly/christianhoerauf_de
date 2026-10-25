@@ -15,7 +15,7 @@ from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.domain.intent import Intent
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
-from bot.pipeline.prompts import load_prompt
+from bot.pipeline.prompts import load_intent_program, load_prompt
 from bot.ports.language_model import LanguageModel, LanguageModelError
 from testsammlung.cases import CASES_FILE, Case, load_cases
 
@@ -32,7 +32,7 @@ class CaseResult:
 
     @property
     def intent_ok(self) -> bool:
-        return self.actual == self.case.intent
+        return self.actual in self.case.intents
 
 
 def run_case(case: Case, classifier: IntentClassifier, answerer: GeneralAnswerer) -> CaseResult:
@@ -65,9 +65,9 @@ def summarize(results: Sequence[CaseResult]) -> str:
     for result in results:
         if not result.intent_ok:
             got = result.actual.value if result.actual else "Modellausfall"
+            expected = " oder ".join(intent.value for intent in result.case.intents)
             lines.append(
-                f"  Fehlgriff: {result.case.question} "
-                f"(erwartet {result.case.intent.value}, bekommen {got})"
+                f"  Fehlgriff: {result.case.question} (erwartet {expected}, bekommen {got})"
             )
     arithmetic = [result for result in results if result.case.group == "arithmetic"]
     right = sum(result.answer_ok is True for result in arithmetic)
@@ -100,7 +100,7 @@ def main(argv: Sequence[str], model_factory: Callable[[str], LanguageModel] = bu
     parser.add_argument("--cases", type=Path, default=CASES_FILE)
     arguments = parser.parse_args(argv)
     model = model_factory(arguments.target)
-    classifier = IntentClassifier(model, load_prompt("intent"))
+    classifier = IntentClassifier(model, load_intent_program())
     answerer = GeneralAnswerer(model, load_prompt("general_answer"))
     results = [run_case(case, classifier, answerer) for case in load_cases(arguments.cases)]
     print(summarize(results))

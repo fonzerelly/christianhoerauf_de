@@ -11,19 +11,24 @@ from bot.handler import build_bot, handle
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
+from bot.pipeline.prompts import load_intent_program, load_prompt
 from bot.ports.language_model import LanguageModelError
+from tests.conftest import FakeServer, reply_body
 from tests.fakes import FakeClock, FakeLanguageModel, ListLog
 
 SCHEMAS = Path(__file__).parents[1] / "schema"
 ANSWER_SCHEMA = Draft202012Validator(json.loads((SCHEMAS / "answer.schema.json").read_text()))
 REQUEST_SCHEMA = Draft202012Validator(json.loads((SCHEMAS / "request.schema.json").read_text()))
 IP = "203.0.113.7"
+# So meldet der Türsteher eine Wissensfrage (Format von DSPys ChatAdapter).
+KNOWLEDGE = "[[ ## absicht ## ]]\ngeneral/knowledge\n\n[[ ## completed ## ]]"
 
 
 def make_bot(intents: list[str | Exception], answers: list[str | Exception] | None = None) -> Bot:
     return Bot(
-        IntentClassifier(FakeLanguageModel(intents), "P"),
+        IntentClassifier(FakeLanguageModel(intents), load_intent_program()),
         GeneralAnswerer(FakeLanguageModel(answers or []), "P"),
+        GeneralAnswerer(FakeLanguageModel([]), "T"),
         MemoryStore(),
         FakeClock(),
         ListLog(),
@@ -49,7 +54,7 @@ def body_of(response: dict[str, object]) -> dict[str, object]:
 
 def test_valid_question_gets_200_and_the_answer_as_json() -> None:
     response = handle(
-        event({"question": "Hauptstadt von Australien?"}), make_bot(["general"], ["Canberra."])
+        event({"question": "Hauptstadt von Australien?"}), make_bot([KNOWLEDGE], ["Canberra."])
     )
 
     assert response["statusCode"] == 200
@@ -59,7 +64,7 @@ def test_valid_question_gets_200_and_the_answer_as_json() -> None:
 
 def test_base64_encoded_body_is_decoded() -> None:
     response = handle(
-        event({"question": "Größe?"}, base64_encoded=True), make_bot(["general"], ["Groß."])
+        event({"question": "Größe?"}, base64_encoded=True), make_bot([KNOWLEDGE], ["Groß."])
     )
 
     assert body_of(response) == {"text": "Groß."}
@@ -103,7 +108,7 @@ def test_invalid_utf8_in_base64_body_gets_400() -> None:
 @pytest.mark.parametrize("body", [{"question": "x" * 500}, {"question": "Hä?"}])
 def test_requests_accepted_by_the_handler_match_the_request_schema(body: dict[str, str]) -> None:
     REQUEST_SCHEMA.validate(body)
-    assert handle(event(body), make_bot(["general"], ["Ok."]))["statusCode"] == 200
+    assert handle(event(body), make_bot([KNOWLEDGE], ["Ok."]))["statusCode"] == 200
 
 
 @pytest.mark.parametrize("body", [{}, {"question": " "}, {"question": 5}, {"question": "x" * 501}])
@@ -118,7 +123,7 @@ def test_missing_source_ip_still_works() -> None:
         "requestContext": {"http": {"method": "POST"}},
     }
 
-    assert handle(raw, make_bot(["general"], ["Ok."]))["statusCode"] == 200
+    assert handle(raw, make_bot([KNOWLEDGE], ["Ok."]))["statusCode"] == 200
 
 
 def test_model_failure_is_still_a_200_with_the_fixed_answer() -> None:
@@ -164,7 +169,7 @@ def test_handler_builds_the_bot_once_and_reuses_it(monkeypatch: pytest.MonkeyPat
 
     def fake_build_bot(environ: object) -> Bot:
         builds.append(1)
-        return make_bot(["general", "general"], ["Eins.", "Zwei."])
+        return make_bot([KNOWLEDGE, KNOWLEDGE], ["Eins.", "Zwei."])
 
     monkeypatch.setattr(module, "_bot", None)
     monkeypatch.setattr(module, "build_bot", fake_build_bot)
@@ -174,3 +179,28 @@ def test_handler_builds_the_bot_once_and_reuses_it(monkeypatch: pytest.MonkeyPat
 
     assert (body_of(first)["text"], body_of(second)["text"]) == ("Eins.", "Zwei.")
     assert builds == [1]
+
+
+def test_build_bot_asks_the_gate_with_temperature_0_and_the_answer_without(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer
+) -> None:
+    import bot.handler as module
+
+    monkeypatch.setattr(module, "DynamoDbStore", lambda *args, **kwargs: MemoryStore())
+    server.body = reply_body(KNOWLEDGE)
+    environ = {
+        "TABLE_NAME": "bot",
+        "VISITOR_SECRET": "geheim",
+        "LLM_BASE_URL": server.base_url,
+        "LLM_AUTH": "none",
+    }
+
+    handle(event({"question": "Wie hoch ist die Zugspitze?"}), build_bot(environ))
+
+    gate, answer = (request["body"] for request in server.requests)
+    assert isinstance(gate, dict)
+    assert isinstance(answer, dict)
+    assert gate["messages"][:-1] == list(load_intent_program().messages)
+    assert (gate.get("temperature"), gate.get("max_tokens")) == (0.0, 100)
+    assert answer["messages"][0]["content"] == load_prompt("general_answer")
+    assert "temperature" not in answer

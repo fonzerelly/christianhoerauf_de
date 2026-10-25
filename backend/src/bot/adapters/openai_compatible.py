@@ -21,12 +21,16 @@ class OpenAiCompatibleModel:
         token_provider: Callable[[], str] | None,
         reasoning_effort: str = "none",
         timeout_seconds: float = 10.0,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> None:
         self._url = base_url.rstrip("/") + "/chat/completions"
         self._model = model
         self._token_provider = token_provider
         self._reasoning_effort = reasoning_effort
         self._timeout_seconds = timeout_seconds
+        self._temperature = temperature
+        self._max_tokens = max_tokens
 
     def complete(self, messages: Sequence[Message]) -> str:
         """Schickt die Nachrichten ans Modell und gibt den Text der ersten Antwort zurück."""
@@ -39,11 +43,16 @@ class OpenAiCompatibleModel:
         return self._read_text(self._send(request))
 
     def _request_body(self, messages: Sequence[Message]) -> bytes:
-        body = {
+        body: dict[str, object] = {
             "model": self._model,
             "messages": list(messages),
             "reasoning_effort": self._reasoning_effort,
         }
+        # Nur mitschicken, wenn gesetzt; sonst gilt die Voreinstellung des Modellservers.
+        if self._temperature is not None:
+            body["temperature"] = self._temperature
+        if self._max_tokens is not None:
+            body["max_tokens"] = self._max_tokens
         return json.dumps(body).encode()
 
     def _headers(self) -> dict[str, str]:

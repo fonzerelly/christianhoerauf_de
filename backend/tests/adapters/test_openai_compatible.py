@@ -1,70 +1,15 @@
-import contextlib
-import json
-import threading
-import time
-from collections.abc import Callable, Iterator
-from dataclasses import dataclass, field
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from collections.abc import Callable
 
 import pytest
 
 from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.ports.language_model import LanguageModelError, Message
+from tests.conftest import FakeServer, reply_body
 
 MESSAGES: list[Message] = [
     {"role": "system", "content": "Sei kurz."},
     {"role": "user", "content": "Hallo?"},
 ]
-
-
-@dataclass
-class FakeServer:
-    """Ein kleiner HTTP-Server auf localhost, der Anfragen aufzeichnet (kein Netz nötig)."""
-
-    base_url: str = ""
-    status: int = 200
-    body: bytes = b""
-    delay: float = 0.0
-    requests: list[dict[str, object]] = field(default_factory=list)
-
-
-@pytest.fixture
-def server() -> Iterator[FakeServer]:
-    state = FakeServer()
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_POST(self) -> None:
-            length = int(self.headers["Content-Length"])
-            state.requests.append(
-                {
-                    "path": self.path,
-                    "authorization": self.headers.get("Authorization"),
-                    "body": json.loads(self.rfile.read(length)),
-                }
-            )
-            time.sleep(state.delay)
-            self.send_response(state.status)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            with contextlib.suppress(BrokenPipeError):  # Client legt nach Zeitlimit auf
-                self.wfile.write(state.body)
-
-        def log_message(self, format: str, *args: object) -> None:
-            pass
-
-    httpd = HTTPServer(("127.0.0.1", 0), Handler)
-    state.base_url = f"http://127.0.0.1:{httpd.server_port}/openai/v1"
-    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-    thread.start()
-    yield state
-    httpd.shutdown()
-    httpd.server_close()
-
-
-def reply_body(content: str) -> bytes:
-    return json.dumps(
-        {"choices": [{"message": {"role": "assistant", "content": content}}]}
-    ).encode()
 
 
 def make_model(
@@ -113,6 +58,35 @@ def test_reasoning_effort_can_be_configured_per_model(server: FakeServer) -> Non
     body = server.requests[0]["body"]
     assert isinstance(body, dict)
     assert body["reasoning_effort"] == "low"
+
+
+def test_temperature_and_max_tokens_are_sent_when_configured(server: FakeServer) -> None:
+    server.body = reply_body("ok")
+    model = OpenAiCompatibleModel(
+        base_url=server.base_url,
+        model="m",
+        token_provider=None,
+        temperature=0.0,
+        max_tokens=100,
+    )
+
+    model.complete(MESSAGES)
+
+    body = server.requests[0]["body"]
+    assert isinstance(body, dict)
+    assert body.get("temperature") == 0.0
+    assert body.get("max_tokens") == 100
+
+
+def test_temperature_and_max_tokens_are_left_out_by_default(server: FakeServer) -> None:
+    server.body = reply_body("ok")
+
+    make_model(server).complete(MESSAGES)
+
+    body = server.requests[0]["body"]
+    assert isinstance(body, dict)
+    assert "temperature" not in body
+    assert "max_tokens" not in body
 
 
 def test_token_is_sent_as_bearer_header(server: FakeServer) -> None:

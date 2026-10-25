@@ -14,7 +14,15 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 
 | Name | Was es konkret tut |
 |---|---|
-| `Intent` | Die vier Absichten einer Frage: `GENERAL` (allgemeine Frage), `ABOUT_CHRISTIAN` (Frage über Christian), `GIMMICK`, `DISALLOWED` (unzulässig). |
+| `Intent` | Die 18 Absichten aus `docs/backend/ABSICHTEN.md`. Der Wert ist das Kürzel `gruppe/absicht`, z. B. `general/knowledge`, `christian/career`, `jailbreak`. |
+| `Intent.group` | Die erste Stufe, also der Teil vor dem `/`: `general`, `christian`, `sensitive`, `jailbreak` oder `gibberish`. |
+
+## reaction.py
+
+| Name | Was es konkret tut |
+|---|---|
+| `ReactionKind` | Was der Bot auf eine Absicht tut: `GENERAL_ANSWER` (Modell antwortet mit dem allgemeinen Prompt), `TASK_ANSWER` (Modell antwortet mit dem Auftrags-Prompt), `FIXED_TEXT`, `GIMMICK` (vorerst ein fester Text, bis das Frontend das Gimmick zeigt). |
+| `reaction_for(intent)` | Wissen und Smalltalk → `GENERAL_ANSWER`, Auftrag → `TASK_ANSWER`, Flirt, Bild und sexuell → `GIMMICK`, alles andere → `FIXED_TEXT`. Eine neue Absicht bekommt also einen festen Text, bis sie bewusst eingetragen wird. |
 
 ## language.py
 
@@ -27,8 +35,9 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 
 | Name | Was es konkret tut |
 |---|---|
-| `FixedAnswerKind` | Wofür es eine feste Antwort gibt: Frage über Christian, unzulässig, nicht erreichbar, Tagesgrenze, Besuchergrenze, ungültige Anfrage. |
-| `fixed_answer(kind, language)` | Liefert die feste `Answer` (nur Text, kein Gimmick) für die Art und die Sprache aus einer Tabelle. Die Antwort auf Fragen über Christian lautet „Darüber lerne ich gerade noch.“ |
+| `FixedAnswerKind` | Feste Antworten, die nicht von der Absicht abhängen: nicht erreichbar, Tagesgrenze, Besuchergrenze, ungültige Anfrage. |
+| `fixed_answer(kind, language)` | Liefert die feste `Answer` (nur Text, kein Gimmick) für die Art und die Sprache aus einer Tabelle. |
+| `intent_answer(intent, language)` | Liefert den festen Text einer Absicht (Tabelle „Feste Texte“ in `ABSICHTEN.md`), deutsch oder englisch, ohne Gimmick. Für Wissen, Smalltalk und Auftrag gibt es keinen: `ValueError`. |
 
 ## cost_protection.py
 

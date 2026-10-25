@@ -8,7 +8,7 @@ from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.domain.intent import Intent
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
-from bot.pipeline.prompts import load_prompt
+from bot.pipeline.prompts import load_intent_program, load_prompt
 
 LM_STUDIO_URL = "http://192.168.178.91:1234/v1"
 LM_STUDIO_MODEL = "google/gemma-4-26b-a4b-qat"
@@ -26,9 +26,9 @@ def model() -> OpenAiCompatibleModel:
 
 
 def test_intent_of_a_general_question(model: OpenAiCompatibleModel) -> None:
-    classifier = IntentClassifier(model, load_prompt("intent"))
+    classifier = IntentClassifier(model, load_intent_program())
 
-    assert classifier.classify("Was ist die Hauptstadt von Australien?") == Intent.GENERAL
+    assert classifier.classify("Was ist die Hauptstadt von Australien?") == Intent.KNOWLEDGE
 
 
 def test_general_answer_names_canberra(model: OpenAiCompatibleModel) -> None:

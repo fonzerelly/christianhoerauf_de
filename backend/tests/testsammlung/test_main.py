@@ -12,9 +12,9 @@ def test_main_runs_all_cases_and_prints_the_summary(
 ) -> None:
     cases = tmp_path / "cases.yaml"
     cases.write_text(
-        "- question: Hauptstadt von Australien?\n  intent: general\n", encoding="utf-8"
+        "- question: Hauptstadt von Australien?\n  intent: general/knowledge\n", encoding="utf-8"
     )
-    model = FakeLanguageModel(["general"])
+    model = FakeLanguageModel(["general/knowledge"])
 
     def build_model(target: str) -> LanguageModel:
         assert target == "lmstudio"
@@ -23,17 +23,17 @@ def test_main_runs_all_cases_and_prints_the_summary(
     exit_code = main(["--cases", str(cases)], build_model)
 
     assert exit_code == 0
-    assert "general: 1/1 (100 %)" in capsys.readouterr().out
+    assert "general/knowledge: 1/1 (100 %)" in capsys.readouterr().out
 
 
 def test_main_passes_the_target_to_the_model_builder(tmp_path: Path) -> None:
     cases = tmp_path / "cases.yaml"
-    cases.write_text("- question: Frage?\n  intent: general\n", encoding="utf-8")
+    cases.write_text("- question: Frage?\n  intent: general/knowledge\n", encoding="utf-8")
     seen: list[str] = []
 
     def build_model(target: str) -> LanguageModel:
         seen.append(target)
-        return FakeLanguageModel(["general"])
+        return FakeLanguageModel(["general/knowledge"])
 
     main(["--target", "bedrock", "--cases", str(cases)], build_model)
 

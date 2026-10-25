@@ -2,9 +2,29 @@ from enum import Enum
 
 
 class Intent(Enum):
-    """Wozu eine Frage gestellt wird (siehe CONTEXT.md: Absicht)."""
+    """Wozu eine Frage gestellt wird (CONTEXT.md: Absicht; Liste in docs/backend/ABSICHTEN.md).
+    Der Wert ist das Kürzel `gruppe/absicht`, das auch der Türsteher ausgibt."""
 
-    GENERAL = "general"
-    ABOUT_CHRISTIAN = "about_christian"
-    GIMMICK = "gimmick"
-    DISALLOWED = "disallowed"
+    KNOWLEDGE = "general/knowledge"
+    SMALLTALK = "general/smalltalk"
+    BOT = "general/bot"
+    FLIRT = "general/flirt"
+    TASK = "general/task"
+    ADVICE = "general/advice"
+    POLITICS = "general/politics"
+    CAREER = "christian/career"
+    PRIVATE = "christian/private"
+    TERMS = "christian/terms"
+    CONTACT = "christian/contact"
+    ASSESSMENT = "christian/assessment"
+    PICTURE = "christian/picture"
+    SEXUAL = "sensitive/sexual"
+    DANGEROUS = "sensitive/dangerous"
+    INSULT = "sensitive/insult"
+    JAILBREAK = "jailbreak"
+    GIBBERISH = "gibberish"
+
+    @property
+    def group(self) -> str:
+        """Die erste Stufe: `general`, `christian`, `sensitive`, `jailbreak` oder `gibberish`."""
+        return self.value.split("/")[0]
