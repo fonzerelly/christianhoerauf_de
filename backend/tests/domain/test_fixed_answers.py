@@ -17,6 +17,10 @@ EXPECTED: dict[Intent, tuple[str, str]] = {
         "I'm afraid I can't help you with that. Please ask a professional. If you are in "
         "crisis, please contact a local crisis line or emergency services.",
     ),
+    Intent.LIVE_DATA: (
+        "Aktuelle Daten wie Wetter oder Kurse kann ich nicht abrufen.",
+        "I can't look up live data like the weather or stock prices.",
+    ),
     Intent.POLITICS: ("Das gehört nicht hierher.", "I won't talk about that topic."),
     Intent.CAREER: ("Darüber lerne ich gerade noch.", "I can answer that soon."),
     Intent.PRIVATE: (

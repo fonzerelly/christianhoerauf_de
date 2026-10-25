@@ -18,9 +18,7 @@ from bot.pipeline.intent_classifier import IntentClassifier
 from bot.pipeline.prompts import load_intent_program, load_prompt
 from bot.ports.language_model import LanguageModel, LanguageModelError
 from testsammlung.cases import CASES_FILE, Case, load_cases
-
-LM_STUDIO_URL = "http://192.168.178.91:1234/v1"
-LM_STUDIO_MODEL = "google/gemma-4-26b-a4b-qat"
+from testsammlung.lm_studio import LM_STUDIO_MODEL, LM_STUDIO_URL
 
 
 @dataclass(frozen=True)

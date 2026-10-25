@@ -54,6 +54,10 @@ _INTENT_TEXTS: dict[Intent, dict[Language, str]] = {
         "en": "I'm afraid I can't help you with that. Please ask a professional. If you are in "
         "crisis, please contact a local crisis line or emergency services.",
     },
+    Intent.LIVE_DATA: {
+        "de": "Aktuelle Daten wie Wetter oder Kurse kann ich nicht abrufen.",
+        "en": "I can't look up live data like the weather or stock prices.",
+    },
     Intent.POLITICS: {
         "de": "Das gehört nicht hierher.",
         "en": "I won't talk about that topic.",

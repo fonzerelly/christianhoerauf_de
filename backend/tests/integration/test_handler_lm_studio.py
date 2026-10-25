@@ -14,7 +14,7 @@ from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
 from bot.pipeline.prompts import load_intent_program, load_prompt
-from tests.integration.test_lm_studio import LM_STUDIO_MODEL, LM_STUDIO_URL
+from testsammlung.lm_studio import LM_STUDIO_MODEL, LM_STUDIO_URL
 
 pytestmark = pytest.mark.integration
 

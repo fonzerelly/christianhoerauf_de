@@ -1,6 +1,6 @@
-# Testmenge: 12 Fragen je Absicht. Wird nur zum Messen benutzt, nie zum Trainieren oder als
-# Beispiel im Prompt. "grenzfall: true" markiert Fragen an der Grenze zu einer anderen Absicht.
-# Die Einstufungen sind ein Vorschlag von Claude und von Christian noch nicht geprüft.
+# Testmenge: etwa 12 Fragen je Absicht. Wird nur zum Messen benutzt (scripts/messe.sh), nie zum
+# Trainieren. Mehrere Kürzel bei "absicht" gelten alle als richtig, das erste ist die
+# Hauptabsicht. "grenzfall: true" ist nur ein Hinweis für Leser. Von Christian geprüft 2026-10-25.
 
 # --- general/knowledge ---
 - {frage: "Was ist die Hauptstadt von Kanada?", absicht: general/knowledge}
@@ -9,18 +9,31 @@
 - {frage: "What is the speed of light?", absicht: general/knowledge}
 - {frage: "Übersetze „Schmetterling“ ins Englische.", absicht: general/knowledge}
 - {frage: "Wer hat die Relativitätstheorie entwickelt?", absicht: general/knowledge}
-- {frage: "Was ist der Sinn des Lebens, des Universums und dem ganzen Rest?", absicht: general/knowledge general/quote, grenzfall: false}
 - {frage: "Wie viele Beine haben drei Spinnen und zwei Hühner zusammen?", absicht: general/knowledge}
 - {frage: "Wer spielt Indiana Jones?", absicht: general/knowledge, grenzfall: false}
 - {frage: "Was ist der Unterschied zwischen Python und Java?", absicht: general/knowledge, grenzfall: false}
-- {frage: "Wie ist das Wetter in München?", absicht: general/task, grenzfall: false}
 - {frage: "Wie viele Sitze hat der Bundestag?", absicht: general/knowledge, grenzfall: false}
+- {frage: "Wie warm ist es im Sommer in München?", absicht: general/knowledge, grenzfall: true}
+- {frage: "Wer wurde 2014 Fußballweltmeister?", absicht: general/knowledge, grenzfall: true}
+- {frage: "Was ist der DAX?", absicht: general/knowledge, grenzfall: true}
+
+# --- general/live_data ---
+- {frage: "Wer führt im EuropaCup?", absicht: general/live_data}
+- {frage: "Wieviele Prozentpunkte haben die Grünen im aktuellen Stimmungsbaromenter?", absicht: general/live_data}
+- {frage: "Liste mir die laut Umfrageergebnissen beliebtesten 10 Politiker auf?", absicht: general/live_data}
+- {frage: "Gibt es schon einen Sieger aus der Begegnung FC Bayern vs Dortmund?", absicht: general/live_data}
+- {frage: "Brauche ich morgen früh Handschuhe?", absicht: general/live_data}
+- {frage: "Wie ist das Wetter in München?", absicht: general/live_data}
+- {frage: "Wo steht der DAX?", absicht: general/live_data}
+- {frage: "Was sind die aktuellsten Schlagzeilen?", absicht: general/live_data}
+- {frage: "Wieviel die die BMW-Aktie gerade wert?", absicht: general/live_data}
+- {frage: "Schneit es heute in Berlin?", absicht: general/live_data}
 
 # --- general/smalltalk ---
 - {frage: "Hallo!", absicht: general/smalltalk}
 - {frage: "Wie geht's dir?", absicht: general/smalltalk}
 - {frage: "Erzähl mir einen Witz.", absicht: general/smalltalk}
-- {frage: "Guten Morgen, schönes Wetter heute, oder?", absicht: general/smalltalk general/task, grenzfall: true}
+- {frage: "Guten Morgen, schönes Wetter heute, oder?", absicht: general/smalltalk general/live_data, grenzfall: true}
 - {frage: "Mir ist langweilig.", absicht: general/smalltalk}
 - {frage: "Hi, how are you doing?", absicht: general/smalltalk}
 - {frage: "Was gibt's Neues?", absicht: general/smalltalk}
@@ -110,9 +123,20 @@
 - {frage: "Worüber hat er seine Diplomarbeit geschrieben?", absicht: christian/career}
 - {frage: "Wie lange arbeitet der Besitzer dieser Seite schon als Entwickler?", absicht: christian/career}
 - {frage: "Hat er schon mal ein Team geleitet?", absicht: christian/career}
-- {frage: "Kennt er sich mit TDD aus?", absicht: christian/career}
 - {frage: "Erzähl mir was Lustiges aus seinem Praktikum.", absicht: christian/career, grenzfall: false}
 - {frage: "Hat er die Seite hier selbst gebaut?", absicht: christian/career, grenzfall: false}
+- {frage: "In welchen Branchen war er schon tätig?", absicht: christian/career, grenzfall: false}
+- {frage: "Kann Christian PHP?", absicht: christian/career}
+- {frage: "Ist er gut in Javascript?", absicht: christian/career}
+- {frage: "Kennt Christian sich mit Angular aus?", absicht: christian/career}
+- {frage: "Weiß Christian was TestDrivenDevelopment ist?", absicht: christian/career}
+- {frage: "Kennt Christian die Begriffe Closure oder First-Class-Citizen?", absicht: christian/career}
+- {frage: "Kennt er sich mit Springboot aus", absicht: christian/career}
+- {frage: "Hat Christian schon mit nosql-Datebanken gearbeitet?", absicht: christian/career}
+- {frage: "Wie gut kennt er Postgres?", absicht: christian/career}
+- {frage: "Hat er schon eigene KI-Anwendungen gebaut?", absicht: christian/career}
+- {frage: "Weiß Chris was CleanCode auszeichnet?", absicht: christian/career}
+- {frage: "Hat er Michael Feathers 'Work with LegacyCode' gelesen?", absicht: christian/career}
 
 # --- christian/private ---
 - {frage: "Hat Christian Kinder?", absicht: christian/private}
@@ -151,7 +175,7 @@
 - {frage: "Wo kann ich ihm eine Nachricht hinterlassen?", absicht: christian/contact}
 - {frage: "Ich würde gern mit dem Besitzer dieser Seite sprechen.", absicht: christian/contact}
 - {frage: "Gib mir seine Telefonnummer.", absicht: christian/contact}
-- {frage: "Ist er auf GitHub?", absicht: christian/contact, grenzfall: false}
+- {frage: "Ist er auf GitHub?", absicht: christian/contact christian/career, grenzfall: true}
 - {frage: "Can you forward my message to Christian?", absicht: christian/contact}
 - {frage: "Wie kann ich ihm ein Projektangebot schicken?", absicht: christian/contact, grenzfall: false}
 - {frage: "Wo finde ich seine Kontaktdaten?", absicht: christian/contact}
@@ -176,13 +200,14 @@
 - {frage: "Show me a picture of him.", absicht: christian/picture}
 - {frage: "Hast du ein Bild vom Besitzer dieser Seite?", absicht: christian/picture}
 - {frage: "Darf ich sein Gesicht sehen?", absicht: christian/picture}
-- {frage: "Hat er einen Bart?", absicht: christian/picture, grenzfall: false}
+- {frage: "Hat er einen Bart?", absicht: christian/picture christian/private, grenzfall: true}
 - {frage: "Gibt es ein Profilbild von ihm?", absicht: christian/picture}
 - {frage: "What does Christian look like?", absicht: christian/picture}
-- {frage: "Zeig mal, wer hinter dieser Seite steckt.", absicht: christian/picture, grenzfall: false}
 - {frage: "Ich will ein Selfie von Christian sehen.", absicht: christian/picture}
 - {frage: "Kannst du mir ein Bild von ihm schicken?", absicht: christian/picture}
 - {frage: "Gibt es ein Video von ihm?", absicht: christian/picture, grenzfall: false}
+- {frage: "Welches Aussehen hat er?", absicht: christian/picture}
+- {frage: "Zeig mal, wer hinter dieser Seite steckt.", absicht: christian/picture christian/contact, grenzfall: true}
 
 # --- sensitive/sexual ---
 - {frage: "Was ist Cuckolding?", absicht: sensitive/sexual}

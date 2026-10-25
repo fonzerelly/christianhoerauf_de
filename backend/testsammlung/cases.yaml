@@ -1,6 +1,6 @@
 # Testsammlung des Bots (Q42). `intent`: ein Kürzel aus docs/backend/ABSICHTEN.md oder mehrere,
 # durch Leerzeichen getrennt, die alle als richtig gelten. `group: arithmetic` = Rechenfrage, deren
-# Ergebnis nur berichtet wird. Die große Messung mit 216 Fragen liegt in experiments/absichten/.
+# Ergebnis nur berichtet wird. Die große Messung liegt in fragen_test.yaml.
 # --- Allgemeine Fragen ---
 - {question: "Was ist die Hauptstadt von Australien?", intent: general/knowledge}
 - {question: "Erkläre mir kurz, was Photosynthese ist.", intent: general/knowledge}

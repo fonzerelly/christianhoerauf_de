@@ -37,3 +37,32 @@ Braucht `aws` mit Zugangsdaten und `jq`. Der Zugriff ist nur lesend.
 Synchronisiert die Umgebung und startet `python -m testsammlung.runner` mit den übergebenen
 Argumenten. Ohne Argument gegen LM Studio, mit `--target bedrock` gegen Bedrock (AWS-Aufruf, Kosten
 im Cent-Bereich, nur von Hand).
+
+## trainiere.sh
+
+Holt die Gruppe `dspy` dazu und startet `python -m testsammlung.training`: trainiert den
+Türsteher mit DSPy gegen LM Studio auf dem Mac mini (etwa 25 min), überschreibt das Kompilat in
+`testsammlung/kompilat/` und exportiert es nach `src/bot/pipeline/prompts/intent_program.json`.
+Bricht vorher ab, wenn `absichten.yaml` nicht zu `Intent` passt, eine Absicht zu wenige
+Trainingsfragen hat oder der Mac mini nicht erreichbar ist. Mit `--nur-export` kein Training,
+nur der Export aus dem vorhandenen Kompilat. Ein altes Kompilat muss nicht gelöscht werden.
+
+## messe.sh
+
+Startet `python -m testsammlung.measurement`: stellt alle Testfragen dem Türsteher des Bots
+(LM Studio, etwa 5 min), druckt Quoten und Fehlgriffe und schreibt
+`testsammlung/kompilat/messung.json`. Exit 0 bestanden, 1 nicht bestanden.
+
+## tuersteher_stand.sh
+
+Startet `python -m testsammlung.fingerprint`: zeigt in einer Sekunde und ohne Netz, ob Training
+und Messung zum Stand im Repo passen und ob die Messung bestanden ist, und nennt sonst das
+Skript, das weiterhilft. Exit 0 oder 1.
+
+## Git-Hooks (`/.githooks/`)
+
+Eingeschaltet einmalig mit `git config core.hooksPath .githooks` im Wurzelverzeichnis.
+
+- `pre-commit`: druckt den Stand wie `tuersteher_stand.sh`, hält den Commit nie an.
+- `pre-push`: hält den Push an, wenn Training oder Messung fehlen, veraltet oder nicht bestanden
+  sind. Geprüft wird das Arbeitsverzeichnis. Notausgang: `git push --no-verify`.

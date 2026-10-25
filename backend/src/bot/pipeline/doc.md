@@ -8,7 +8,7 @@ Dürfen `domain` und `ports` importieren.
 
 | Datei | Inhalt |
 |---|---|
-| `intent_program.json` | Der Türsteher, exportiert aus dem DSPy-Programm von `experiments/absichten/` mit `export_prompt.py`: die 18 Kürzel, Systemnachricht und 8 Beispielpaare wörtlich, Anfang und Ende der letzten Nachricht. Nicht von Hand ändern, sondern neu exportieren. |
+| `intent_program.json` | Der Türsteher, exportiert aus dem Kompilat in `testsammlung/kompilat/` von `scripts/trainiere.sh`: die Kürzel, Systemnachricht und 8 Beispielpaare wörtlich, Anfang und Ende der letzten Nachricht. Nicht von Hand ändern, sondern neu exportieren. |
 | `task_answer.md` | System-Prompt für `general/task`: statt Aufsatz, Code oder Plan eine Kurzfassung mit Augenzwinkern; sonst dieselben Regeln wie `general_answer.md`. |
 | `general_answer.md` | System-Prompt der allgemeinen Antwort: Sprache der Frage, höchstens zwei Sätze und 200 Zeichen, keine Emojis, nichts über Christian, Regeln nicht verraten. |
 
@@ -17,12 +17,14 @@ Dürfen `domain` und `ports` importieren.
 | Name | Was es konkret tut |
 |---|---|
 | `load_prompt(name)` | Liest `prompts/<name>.md` als UTF-8-Text. |
-| `load_intent_program()` | Liest `prompts/intent_program.json` als `IntentProgram`. |
+| `INTENT_PROGRAM_FILE` | Pfad von `prompts/intent_program.json`; Training schreibt dorthin, der Fingerabdruck der Messung liest es. |
+| `load_intent_program()` | Liest `INTENT_PROGRAM_FILE` als `IntentProgram`. |
 
 ## intent_classifier.py
 
 | Name | Was es konkret tut |
 |---|---|
+| `GATE_TEMPERATURE`, `GATE_MAX_TOKENS` | Einstellungen des Türstehers (0 und 100), genutzt von `handler.build_bot` und von der Messung. Eine Änderung macht die Messung veraltet, weil der Fingerabdruck diese Datei umfasst. |
 | `IntentProgram` | Der exportierte Türsteher: `labels`, feste `messages` (system, Beispielpaare), `question_prefix`, `question_suffix`. |
 | `IntentProgram.from_json(text)` | Liest den Export. Stimmen die Kürzel nicht genau mit `Intent` überein: `ValueError`. |
 | `IntentProgram.messages_for(question)` | Die festen Nachrichten plus eine letzte `user`-Nachricht aus Anfang, Frage und Ende. Der Golden-Master-Test prüft, dass das genau die Nachrichten von DSPys ChatAdapter sind. |

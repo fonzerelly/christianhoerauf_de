@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Hält den Push an, wenn Training oder Messung des Türstehers fehlen, veraltet oder nicht
+# bestanden sind. Geprüft wird der Stand im Arbeitsverzeichnis, nur über Hashes, ohne Netz.
+# Notausgang:  git push --no-verify
+cd "$(git rev-parse --show-toplevel)/backend" || exit 1
+if ! uv run --no-sync --quiet python -m testsammlung.fingerprint; then
+  echo "Push angehalten. Erst die Befehle oben ausführen, oder bewusst: git push --no-verify"
+  exit 1
+fi

@@ -1,0 +1,20 @@
+{
+  "fingerabdruck": "1fb4f530bd381486",
+  "datum": "2026-10-25",
+  "minuten": 26,
+  "lernfragen": 114,
+  "bewertungsfragen": 94,
+  "einstellungen": {
+    "modell": "google/gemma-4-26b-a4b-qat",
+    "optimierer": "MIPROv2",
+    "auto": "medium",
+    "max_bootstrapped_demos": 4,
+    "max_labeled_demos": 8,
+    "lernfragen_je_absicht": 6,
+    "temperature": 0.0,
+    "max_tokens": 100,
+    "ideengeber_temperature": 1.0,
+    "ideengeber_max_tokens": 4000,
+    "json_nachfrage": false
+  }
+}

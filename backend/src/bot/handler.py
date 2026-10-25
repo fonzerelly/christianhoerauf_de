@@ -31,7 +31,7 @@ from bot.domain.fixed_answers import FixedAnswerKind, fixed_answer
 from bot.domain.language import guess_language
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
-from bot.pipeline.intent_classifier import IntentClassifier
+from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, IntentClassifier
 from bot.pipeline.prompts import load_intent_program, load_prompt
 
 MAX_QUESTION_LENGTH = 500
@@ -104,8 +104,10 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
 
     clock = SystemClock()
     return Bot(
-        # Der Türsteher wie bei der Messung (AUSWERTUNG_ABSICHTEN.md): temperature 0, kurze Ausgabe.
-        IntentClassifier(make_model(temperature=0.0, max_tokens=100), load_intent_program()),
+        IntentClassifier(
+            make_model(temperature=GATE_TEMPERATURE, max_tokens=GATE_MAX_TOKENS),
+            load_intent_program(),
+        ),
         GeneralAnswerer(make_model(), load_prompt("general_answer")),
         GeneralAnswerer(make_model(), load_prompt("task_answer")),
         DynamoDbStore(

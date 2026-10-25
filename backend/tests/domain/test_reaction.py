@@ -24,6 +24,7 @@ def test_every_other_intent_gets_a_fixed_text() -> None:
     assert fixed == {
         Intent.BOT,
         Intent.ADVICE,
+        Intent.LIVE_DATA,
         Intent.POLITICS,
         Intent.CAREER,
         Intent.PRIVATE,

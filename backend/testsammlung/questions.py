@@ -1,0 +1,144 @@
+"""Absichten und Fragen für Training und Messung des Türstehers (Plan „Absichten neu“, Schritt C).
+
+Die Dateien stehen neben diesem Modul:
+- `absichten.yaml`: Regeln und eine Beschreibung je Absicht, Startanweisung für das Training.
+- `fragen_training.yaml`: damit trainiert DSPy (je Absicht 6 zum Lernen, der Rest zum Bewerten).
+- `fragen_test.yaml`: damit wird gemessen; DSPy sieht sie nie.
+"""
+
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+from bot.domain.intent import Intent
+
+TESTSAMMLUNG = Path(__file__).parent
+CATALOG_FILE = TESTSAMMLUNG / "absichten.yaml"
+TRAINING_FILE = TESTSAMMLUNG / "fragen_training.yaml"
+TEST_FILE = TESTSAMMLUNG / "fragen_test.yaml"
+
+# So viele Trainingsfragen je Absicht dienen DSPy als Lernbeispiele; der Rest bewertet Kandidaten.
+LEARN_PER_INTENT = 6
+
+_KNOWN_LABELS = {intent.value for intent in Intent}
+
+
+@dataclass(frozen=True)
+class Question:
+    """Eine Frage mit allen Absichten, die als richtig gelten. Die erste ist die Hauptabsicht."""
+
+    text: str
+    intents: tuple[Intent, ...]
+    borderline: bool
+
+    @property
+    def intent(self) -> Intent:
+        return self.intents[0]
+
+    def reference(self, actual: Intent) -> Intent:
+        """Die erlaubte Absicht, an der `actual` gemessen wird: `actual` selbst, wenn erlaubt;
+        sonst eine erlaubte aus derselben Gruppe; sonst die Hauptabsicht."""
+        if actual in self.intents:
+            return actual
+        same_group = [intent for intent in self.intents if intent.group == actual.group]
+        return same_group[0] if same_group else self.intent
+
+
+@dataclass(frozen=True)
+class Catalog:
+    """Inhalt von `absichten.yaml`: Regeln und die Beschreibung je Absicht (in Code-Reihenfolge)."""
+
+    rules: tuple[str, ...]
+    descriptions: dict[Intent, str]
+
+
+def load_questions(path: Path) -> list[Question]:
+    """Liest eine Fragendatei. `absicht` ist ein Kürzel oder mehrere, als Liste oder durch
+    Leerzeichen/Komma getrennt. Ein unbekanntes Kürzel ergibt `ValueError`."""
+    entries = yaml.safe_load(path.read_text(encoding="utf-8"))
+    questions = []
+    for entry in entries:
+        labels = _labels(entry["absicht"])
+        unknown = [label for label in labels if label not in _KNOWN_LABELS]
+        if unknown:
+            raise ValueError(
+                f"{path.name}: unbekannte Absicht {', '.join(unknown)} bei „{entry['frage']}“"
+            )
+        questions.append(
+            Question(
+                entry["frage"],
+                tuple(Intent(label) for label in labels),
+                bool(entry.get("grenzfall", False)),
+            )
+        )
+    return questions
+
+
+def _labels(value: str | list[str]) -> list[str]:
+    if isinstance(value, list):
+        return value
+    return re.split(r"[\s,]+", value.strip())
+
+
+def load_catalog(path: Path) -> Catalog:
+    """Liest `absichten.yaml`. Die Absichten müssen genau die aus `Intent` sein, in derselben
+    Reihenfolge, denn der Export prüft die Kürzel gegen den Code. Sonst `ValueError`."""
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    labels = list(data["absichten"])
+    expected = [intent.value for intent in Intent]
+    if labels != expected:
+        raise ValueError(
+            f"Die Absichten in {path.name} müssen genau die aus Intent sein, in derselben "
+            f"Reihenfolge.\n  Datei: {labels}\n  Code:  {expected}"
+        )
+    return Catalog(
+        tuple(data["regeln"]),
+        {Intent(label): text for label, text in data["absichten"].items()},
+    )
+
+
+def start_instruction(catalog: Catalog) -> str:
+    """Die Anweisung, mit der das Training beginnt. DSPy schreibt sie beim Training um."""
+    rules = "\n".join(f"- {rule}" for rule in catalog.rules)
+    intents = "\n".join(
+        f"- {intent.value}: {text}" for intent, text in catalog.descriptions.items()
+    )
+    return (
+        "Du ordnest Fragen, die Besucher auf der Webseite von Christian Hörauf einem Bot stellen, "
+        "genau einer Absicht zu.\n\n"
+        f"Regeln:\n{rules}\n\n"
+        f"Absichten:\n{intents}"
+    )
+
+
+def split_training(questions: list[Question]) -> tuple[list[Question], list[Question]]:
+    """Teilt die Trainingsfragen je Hauptabsicht: die ersten `LEARN_PER_INTENT` zum Lernen,
+    den Rest zum Bewerten. Beide Listen in der Reihenfolge von `Intent`."""
+    learn: list[Question] = []
+    evaluate: list[Question] = []
+    for intent in Intent:
+        of_intent = [question for question in questions if question.intent is intent]
+        learn += of_intent[:LEARN_PER_INTENT]
+        evaluate += of_intent[LEARN_PER_INTENT:]
+    return learn, evaluate
+
+
+def thin_intents(questions: list[Question]) -> list[tuple[Intent, int]]:
+    """Absichten mit zu wenigen Trainingsfragen: unter `LEARN_PER_INTENT` + 1 bleibt keine zum
+    Bewerten übrig. Je Absicht die Anzahl, in der Reihenfolge von `Intent`."""
+    counts = dict.fromkeys(Intent, 0)
+    for question in questions:
+        counts[question.intent] += 1
+    return [(intent, count) for intent, count in counts.items() if count <= LEARN_PER_INTENT]
+
+
+def training_score(expected: Intent, predicted: str, *, strict: bool) -> float:
+    """Bewertung im Training: 1 für die richtige Absicht, 0,5 für die richtige Gruppe.
+    `strict` (DSPy sammelt gerade Beispiele): nur ein Volltreffer zählt."""
+    if predicted == expected.value:
+        return 1.0
+    if strict:
+        return 0.0
+    return 0.5 if predicted.split("/")[0] == expected.group else 0.0

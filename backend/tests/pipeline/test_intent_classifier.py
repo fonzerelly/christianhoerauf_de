@@ -9,7 +9,7 @@ from bot.pipeline.prompts import load_intent_program
 from bot.ports.language_model import LanguageModelError, Message
 from tests.fakes import FakeLanguageModel, failing_model
 
-# Golden Master: Nachrichten von DSPys ChatAdapter (experiments/absichten/export_prompt.py)
+# Golden Master: Nachrichten von DSPys ChatAdapter (testsammlung/training.py)
 GOLDEN_FILE = Path(__file__).parent / "intent_golden.json"
 GOLDEN = json.loads(GOLDEN_FILE.read_text(encoding="utf-8"))
 

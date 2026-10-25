@@ -1,6 +1,6 @@
-# Trainingsmenge: 10 Fragen je Absicht. DSPy trainiert damit (6 je Absicht) und prüft seine
-# Kandidaten damit (4 je Absicht). Die Beispiele in absichten.yaml stammen ebenfalls von hier.
-# Keine Frage kommt auch in fragen_test.yaml vor.
+# Trainingsmenge: mindestens 7, meist 10 Fragen je Absicht, je genau eine Absicht. DSPy lernt aus
+# den ersten 6 je Block und bewertet seine Kandidaten mit dem Rest. Keine Frage darf einer Frage
+# aus fragen_test.yaml wörtlich oder fast wörtlich gleichen (ABSICHTEN.md, „Fehlgriffe bearbeiten“).
 
 # --- general/knowledge ---
 - {frage: "Wie hoch ist der Mount Everest?", absicht: general/knowledge}
@@ -10,9 +10,11 @@
 - {frage: "Warum ist der Himmel blau?", absicht: general/knowledge}
 - {frage: "How many people live in Berlin?", absicht: general/knowledge}
 - {frage: "Was heißt „Danke“ auf Japanisch?", absicht: general/knowledge}
-- {frage: "Wie ist das Wetter morgen in Hamburg?", absicht: general/knowledge, grenzfall: true}
+- {frage: "Welche Farben hat die Tricolora?", absicht: general/knowledge}
 - {frage: "Was ist ein Algorithmus?", absicht: general/knowledge}
 - {frage: "Wann war die erste Mondlandung?", absicht: general/knowledge}
+- {frage: "Wie oft regnet es in Hamburg im Jahr?", absicht: general/knowledge, grenzfall: true}
+- {frage: "Was ist eine Aktie?", absicht: general/knowledge, grenzfall: true}
 
 # --- general/smalltalk ---
 - {frage: "Servus!", absicht: general/smalltalk}
@@ -39,7 +41,7 @@
 - {frage: "Which model are you?", absicht: general/bot}
 
 # --- general/flirt ---
-- {frage: "Du bist so süß, Bot.", absicht: general/flirt}
+- {frage: "Du bist echt niedlich, Bot.", absicht: general/flirt}
 - {frage: "Heirate mich!", absicht: general/flirt}
 - {frage: "I have a crush on you.", absicht: general/flirt}
 - {frage: "Darf ich dich küssen?", absicht: general/flirt}
@@ -49,6 +51,10 @@
 - {frage: "Du gefällst mir.", absicht: general/flirt}
 - {frage: "Willst du meine Freundin sein?", absicht: general/flirt}
 - {frage: "Sweet dreams, darling.", absicht: general/flirt}
+- {frage: "Bist du mit jemandem zusammen?", absicht: general/flirt}
+- {frage: "Trägst du einen Ring?", absicht: general/flirt}
+- {frage: "Hast du WhatsApp?", absicht: general/flirt, grenzfall: true}
+- {frage: "Folgst du mir auf Instagram?", absicht: general/flirt, grenzfall: true}
 
 # --- general/task ---
 - {frage: "Schreib mir eine Hausarbeit über die Französische Revolution.", absicht: general/task}
@@ -74,6 +80,18 @@
 - {frage: "Can I get fired for being sick?", absicht: general/advice}
 - {frage: "Ich weiß nicht mehr weiter und denke daran, mir etwas anzutun.", absicht: general/advice, grenzfall: true}
 
+# --- general/live_data ---
+- {frage: "Regnet es gerade in Hamburg?", absicht: general/live_data}
+- {frage: "Wo steht die Aktie von BASF gerade?", absicht: general/live_data}
+- {frage: "Wie sehen die aktuellen Hochrechnungen zur Landtagswahl in Schleswig-Holstein aus?", absicht: general/live_data}
+- {frage: "Wo gibts in Erlangen die günstigsten Spritpreise?", absicht: general/live_data}
+- {frage: "Wer führt gerade im Spiel Brasilien vs Marrokko", absicht: general/live_data}
+- {frage: "Gib mir die Tabelle der NBA", absicht: general/live_data}
+- {frage: "Ich brauche den letzten Stand der Bundesligatabelle", absicht: general/live_data}
+- {frage: "Wieviel Prozent Zustimmung hat der Kanzler Merz noch?", absicht: general/live_data}
+- {frage: "Gib mir die aktuellen Daten von Infratest-Dimap.", absicht: general/live_data}
+- {frage: "Steigt über dem Vatikan schon weißer Rauch auf?", absicht: general/live_data}
+
 # --- general/politics ---
 - {frage: "Wen soll ich bei der Bundestagswahl wählen?", absicht: general/politics}
 - {frage: "Ist die SPD noch wählbar?", absicht: general/politics}
@@ -88,15 +106,19 @@
 
 # --- christian/career ---
 - {frage: "Wo hat Christian studiert?", absicht: christian/career}
-- {frage: "Hat er Erfahrung mit TypeScript?", absicht: christian/career}
 - {frage: "What is his job title?", absicht: christian/career}
 - {frage: "Bei welchen Firmen war er?", absicht: christian/career}
-- {frage: "Kann er Java?", absicht: christian/career}
 - {frage: "Hat er schon mal mit KI gearbeitet?", absicht: christian/career}
 - {frage: "Welche Zertifikate hat er?", absicht: christian/career}
 - {frage: "Was war sein erstes Praktikum?", absicht: christian/career}
 - {frage: "Wie sieht sein Lebenslauf aus?", absicht: christian/career}
 - {frage: "Does Christian know Kubernetes?", absicht: christian/career}
+- {frage: "Beherrsch er Typescript?", absicht: christian/career}
+- {frage: "Wie gut kann er Java?", absicht: christian/career}
+- {frage: "Praktiziert er TDD?", absicht: christian/career, grenzfall: true}
+- {frage: "Kennt Christian die SOLID-Prinzipien", absicht: christian/career, grenzfall: true}
+- {frage: "Ist Christian eher Frontend- oder Backend-Entwickler?", absicht: christian/career}
+- {frage: "Bevorzugt er Functional Programming?", absicht: christian/career, grenzfall: true}
 
 # --- christian/private ---
 - {frage: "Ist Christian verheiratet?", absicht: christian/private}
@@ -109,6 +131,9 @@
 - {frage: "Welche Filme mag er?", absicht: christian/private}
 - {frage: "Welche Partei wählt Christian?", absicht: christian/private, grenzfall: true}
 - {frage: "Wie verbringt er seinen Urlaub?", absicht: christian/private}
+- {frage: "Welche Partei Hat er gewählt?", absicht: christian/private}
+- {frage: "Engagiert er sich irgendwie politisch?", absicht: christian/private}
+- {frage: "Ist Christian ein Roter?", absicht: christian/private}
 
 # --- christian/terms ---
 - {frage: "Was verlangt er pro Tag?", absicht: christian/terms}
@@ -121,6 +146,9 @@
 - {frage: "Würde er auch vor Ort arbeiten?", absicht: christian/terms}
 - {frage: "Can we hire him as a contractor?", absicht: christian/terms}
 - {frage: "Welche Kündigungsfrist hat er?", absicht: christian/terms}
+- {frage: "Wäre er bereit, zwei Tage pro Woche ins Büro zu kommen?", absicht: christian/terms}
+- {frage: "Wie viele Stunden pro Woche kann er arbeiten?", absicht: christian/terms}
+
 
 # --- christian/contact ---
 - {frage: "Wie kann ich Christian kontaktieren?", absicht: christian/contact}
@@ -133,6 +161,10 @@
 - {frage: "Gibt es ein Kontaktformular?", absicht: christian/contact}
 - {frage: "How do I reach the owner of this site?", absicht: christian/contact}
 - {frage: "Wo kann ich mich bei ihm melden?", absicht: christian/contact}
+- {frage: "Kann ich Christian auf twitter bzw X finden?", absicht: christian/contact}
+- {frage: "Hat Christian einen Facebook account?", absicht: christian/contact}
+- {frage: "Wie erreiche ich den Programierer dieser Seite?", absicht: christian/contact, grenzfall: false}
+
 
 # --- christian/assessment ---
 - {frage: "Ist Christian gut in seinem Job?", absicht: christian/assessment}

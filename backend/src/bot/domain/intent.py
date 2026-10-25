@@ -11,6 +11,7 @@ class Intent(Enum):
     FLIRT = "general/flirt"
     TASK = "general/task"
     ADVICE = "general/advice"
+    LIVE_DATA = "general/live_data"
     POLITICS = "general/politics"
     CAREER = "christian/career"
     PRIVATE = "christian/private"

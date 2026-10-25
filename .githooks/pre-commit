@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Warnt, wenn Training oder Messung des Türstehers nicht zum Stand passen. Hält den Commit nie an.
+# Eingeschaltet einmalig mit:  git config core.hooksPath .githooks
+cd "$(git rev-parse --show-toplevel)/backend" || exit 0
+if ! uv run --no-sync --quiet python -m testsammlung.fingerprint; then
+  echo "(Nur ein Hinweis, der Commit geht durch. Vor dem Push muss es stimmen.)"
+fi
+exit 0

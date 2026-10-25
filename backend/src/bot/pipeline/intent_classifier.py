@@ -9,13 +9,18 @@ from bot.ports.language_model import LanguageModel, Message
 _FIELD_HEADER = re.compile(r"\[\[ ## (\w+) ## \]\]")
 _OUTPUT_FIELD = "absicht"
 
+# Einstellungen des Türstehers, im Betrieb und bei der Messung gleich (testsammlung/measurement.py).
+# Eine Änderung hier macht die Messung veraltet: der Fingerabdruck umfasst diese Datei.
+GATE_TEMPERATURE = 0.0
+GATE_MAX_TOKENS = 100
+
 
 @dataclass(frozen=True)
 class IntentProgram:
     """Der mit DSPy optimierte Türsteher als fertige Nachrichten (ADR 0002). Systemnachricht und
     Beispielpaare stehen wörtlich darin; für jede Frage kommt nur die letzte Nachricht dazu:
     `question_prefix` + Frage + `question_suffix`. Erzeugt von
-    `experiments/absichten/export_prompt.py`."""
+    `testsammlung/training.py` (`scripts/trainiere.sh`)."""
 
     labels: tuple[str, ...]
     messages: tuple[Message, ...]

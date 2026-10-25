@@ -11,7 +11,7 @@ auf `_properties.py`.
 | `test_handler.py` | `handle`: 200 mit Antwort (jede Antwort gegen das Antwort-Schema), Base64-Körper, 400 bei allen ungültigen Anfragen (und Übereinstimmung mit `request.schema.json`), 200 mit fester Antwort bei Modellausfall und unerwartetem Fehler; `build_bot`: Pflichtvariablen und Zusammenbau; `handler` baut den Bot nur einmal. |
 | `test_build_package.py` | `build_package()` (Testhelfer): startet `scripts/build_package.sh` und liefert die Dateinamen im ZIP. `test_package_contains_handler_but_no_docs_or_dspy`: enthält `bot/handler.py`, keine `doc.md`, kein DSPy. `test_package_is_well_below_the_lambda_size_limit`: ZIP unter 25 MiB (mit boto3 rund 16 MiB). |
 | `domain/test_answer_schema.py` | Jede `Answer` (Beispiele und beliebiger Text) genügt `schema/answer.schema.json`; kaputte Antworten (ohne Text, leerer Text, Gimmick ohne `type`, unbekannter Schlüssel) lehnt das Schema ab. |
-| `domain/test_intent.py` | Es gibt genau die 18 Absichten aus `ABSICHTEN.md` in dieser Reihenfolge; `group` ist der Teil vor dem `/`. |
+| `domain/test_intent.py` | Es gibt genau die 19 Absichten aus `ABSICHTEN.md` in dieser Reihenfolge; `group` ist der Teil vor dem `/`. |
 | `domain/test_reaction.py` | Reaktionstabelle: nur Wissen und Smalltalk ans Modell frei, Auftrag mit eigenem Prompt, Flirt/Bild/sexuell als Gimmick, alles andere fester Text; heikel, Umgehung und Christian erreichen nie das Modell. |
 | `domain/test_language.py` | `guess_language` für deutsche, englische, leere und Zahlen-Fragen. |
 | `domain/test_fixed_answers.py` | Feste Texte je Absicht genau wie in `ABSICHTEN.md` (deutsch und englisch), für jede Absicht ohne Modellantwort einer, für Wissen/Smalltalk/Auftrag `ValueError`; übrige feste Antworten (Ausfall, Grenzen, ungültig): Wortlaut, Englisch ≠ Deutsch, alle kurz und ohne Gimmick. |
@@ -24,13 +24,17 @@ auf `_properties.py`.
 | `adapters/test_bedrock_token.py` | Mit erfundenen Zugangsdaten beginnt der Schlüssel mit `bedrock-api-key-` (rein lokal). |
 | `pipeline/test_prompts.py` | Antwort-Prompts (allgemein, Auftrag) nennen Längen- und Sprachregel, der Auftrags-Prompt Kurzfassung und Augenzwinkern; der exportierte Türsteher kennt alle Absichten. |
 | `pipeline/test_intent_classifier.py` | Golden Master: `messages_for` liefert für die Fragen in `pipeline/intent_golden.json` genau die Nachrichten von DSPys ChatAdapter. Export lesen (falsche Kürzel → `ValueError`), Antwort lesen wie DSPy (Feld, Anführungszeichen, `Literal[...]`, erstes Feld, nacktes Kürzel), unlesbar → `gibberish`, gesendete Nachrichten, Modellausfall. |
-| `pipeline/intent_golden.json` | Von `experiments/absichten/export_prompt.py` mit DSPy erzeugte Nachrichten für drei Fragen. Nicht von Hand ändern. |
+| `pipeline/intent_golden.json` | Von `testsammlung/training.py` mit DSPy erzeugte Nachrichten für drei Fragen. Nicht von Hand ändern. |
 | `pipeline/test_general_answerer.py` | Antworttext, gesendete Nachrichten, Modellausfall. |
 | `integration/test_lm_studio.py` | Markiert `integration`, läuft nur mit `pytest -m integration --no-cov` und erreichbarem LM Studio: Absicht und Antwort (Canberra) gegen das echte Modell. |
 | `testsammlung/test_cases.py` | `load_cases` liest alle Felder und mehrere erlaubte Absichten (Leerzeichen oder Liste); die echte `cases.yaml` hat mindestens 25 Fälle, die Gruppen allgemein, Christian, Umgehung und Rechenfragen. |
 | `testsammlung/test_runner.py` | `run_case` (Treffer, Fehlgriff, jede erlaubte Absicht ist ein Treffer, Wortprüfung, Modellausfall) und `summarize` (Quote, Fehlgriffe mit allen erlaubten Absichten, Rechenfragen). |
 | `testsammlung/test_main.py` | `main` druckt die Zusammenfassung und reicht das Ziel an die Modellfabrik weiter. |
 | `testsammlung/test_models.py` | `build_model` baut für `lmstudio` und `bedrock` ein Modell, sonst `ValueError`. |
+| `testsammlung/test_questions.py` | `load_questions` (Text, mehrere erlaubte Absichten, Grenzfall; unbekanntes Kürzel → `ValueError`), Hauptabsicht, `reference` (erlaubt, gleiche Gruppe, sonst Hauptabsicht), `load_catalog` (Regeln, Beschreibungen; fehlende oder vertauschte Absicht → `ValueError`), `start_instruction`, `split_training` (erste 6 je Absicht), `thin_intents`, `training_score` (1 / 0,5 / 0, streng nur 1). |
+| `testsammlung/test_export.py` | `program_export` teilt die letzte Nachricht am Platzhalter und behält die anderen wörtlich; falsche Rolle, fehlender oder doppelter Platzhalter → `ValueError`. |
+| `testsammlung/test_fingerprint.py` | Beide Fingerabdrücke sind stabil, ändern sich mit jedem Eingang, YAML-Kommentare ändern nichts; `problems` meldet fehlendes oder veraltetes Training, fehlende, veraltete oder nicht bestandene Messung mit dem passenden Skript; `main` gibt 0 oder 1 zurück und druckt den Stand. |
+| `testsammlung/test_measurement.py` | `measure` fragt den Türsteher des Bots und behält die Rohantwort, Modellausfall ohne Absicht, Fortschritt alle 20 Fragen; Stufe 1, Stufe 2 nach Q5, kritisch, erfundenes Kürzel; Quoten und Schwellen von `Report`; `summary`, `measurement_record`; `main` schreibt `messung.json` mit Fingerabdruck und gibt 0 oder 1 zurück. |
 | `adapters/test_memory_store.py` | Zählen je Schlüssel, Lesen und Schreiben. |
 | `adapters/test_dynamodb_store.py` | Mit Attrappen-Client: `UpdateItem` mit `ADD`, Ablauf und Rückgabe; `PutItem`; `GetItem` mit und ohne Treffer, reiner Zähler. |
 | `adapters/test_system_clock.py` | Datum in UTC, Sekunden gehen nie rückwärts. |

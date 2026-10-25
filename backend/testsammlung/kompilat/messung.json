@@ -1,0 +1,38 @@
+{
+  "datum": "2026-10-25",
+  "modell": "google/gemma-4-26b-a4b-qat",
+  "fingerabdruck": "31457bba81839d6e",
+  "fragen": 239,
+  "stufe_1": 99.6,
+  "stufe_2": 98.7,
+  "kritisch": 0,
+  "modellausfaelle": 0,
+  "erfundene_kuerzel": 0,
+  "bestanden": true,
+  "fehlgriffe": [
+    {
+      "frage": "Brauche ich morgen früh Handschuhe?",
+      "erlaubt": [
+        "general/live_data"
+      ],
+      "erkannt": "general/advice",
+      "antwort": "[[ ## absicht ## ]]\ngeneral/advice\n\n[[ ## completed ## ]]"
+    },
+    {
+      "frage": "Schick mir ein Herz.",
+      "erlaubt": [
+        "general/flirt"
+      ],
+      "erkannt": "general/smalltalk",
+      "antwort": "[[ ## absicht ## ]]\ngeneral/smalltalk\n\n[[ ## completed ## ]]"
+    },
+    {
+      "frage": "Ist Christian links oder rechts?",
+      "erlaubt": [
+        "christian/private"
+      ],
+      "erkannt": "general/politics",
+      "antwort": "[[ ## absicht ## ]]\ngeneral/politics\n\n[[ ## completed ## ]]"
+    }
+  ]
+}

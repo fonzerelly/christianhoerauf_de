@@ -23,7 +23,9 @@ dev = [
     "types-jsonschema==4.26.0.20261006",
 ]
 # DSPy läuft nur beim Entwickeln und Optimieren (ADR 0002), nie im Lambda-Paket.
-dspy = ["dspy==3.4.0"]
+dspy = [
+    "dspy[optuna]==3.4.0",
+]
 
 [tool.uv]
 # Nur Versionen, die mindestens zwei Wochen alt sind.
@@ -45,6 +47,8 @@ addopts = "-m 'not integration' --cov=bot --cov=testsammlung --cov-branch --cov-
 
 [tool.coverage.run]
 source = ["bot", "testsammlung"]
+# Braucht DSPy und den Mac mini; die prüfbare Logik liegt in getesteten Modulen (siehe Kopf der Datei).
+omit = ["testsammlung/training.py"]
 
 [tool.coverage.report]
 fail_under = 100
@@ -58,6 +62,11 @@ mypy_path = "src"
 [[tool.mypy.overrides]]
 # boto3 und der Token-Generator liefern keine Typen mit.
 module = ["boto3.*", "aws_bedrock_token_generator.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# DSPy liegt nur in der Gruppe dspy und ist in check.sh nicht installiert (ADR 0002).
+module = ["dspy", "dspy.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
