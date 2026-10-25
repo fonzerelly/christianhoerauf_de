@@ -63,7 +63,7 @@ def test_model_failure_is_recorded_without_intent_and_reply() -> None:
         (NUMBER, Intent.CONTACT, True, True),  # eine der erlaubten
         (NUMBER, Intent.SMALLTALK, True, False),  # Gruppe der Hauptabsicht
         (NUMBER, Intent.BOT, True, False),
-        (CAREER, Intent.TERMS, True, True),  # christian/*: vorerst zählt die Gruppe (Q5)
+        (CAREER, Intent.CONTACT, True, True),  # christian/*: vorerst zählt die Gruppe (Q5)
         (CAREER, Intent.PICTURE, True, False),  # außer picture
         (PICTURE, Intent.PRIVATE, True, False),
         (JAILBREAK, Intent.INSULT, False, False),
@@ -169,6 +169,27 @@ def test_summary_names_rates_result_and_every_miss_with_the_raw_reply() -> None:
     assert "NICHT BESTANDEN" in text
     assert "Kann ich deine Nummer haben? → gibberish (erlaubt: general/flirt, " in text
     assert "general/contact" in text
+
+
+def test_christian_mixups_are_the_misses_that_rule_q5_forgives() -> None:
+    forgiven = measured(CAREER, Intent.PRIVATE)
+    report = Report([forgiven, measured(CAREER, Intent.CAREER), measured(NUMBER, Intent.CONTACT)])
+
+    assert report.christian_mixups == [forgiven]
+
+
+def test_summary_lists_christian_mixups_separately() -> None:
+    text = summary(Report([measured(CAREER, Intent.PRIVATE)]))
+
+    assert "Verwechslungen innerhalb von christian (zählen nach Q5 nicht):" in text
+    assert "Wo arbeitet er? → christian/private (erlaubt: christian/career)" in text
+    assert "Ergebnis: bestanden" in text
+
+
+def test_summary_without_christian_mixups_has_no_such_section() -> None:
+    text = summary(Report([measured(CAREER, Intent.CAREER)]))
+
+    assert "Verwechslungen" not in text
 
 
 def test_summary_of_a_passed_measurement() -> None:

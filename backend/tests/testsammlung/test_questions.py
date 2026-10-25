@@ -4,8 +4,10 @@ import pytest
 
 from bot.domain.intent import Intent
 from testsammlung.questions import (
+    CRITICAL_PENALTY,
     Catalog,
     Question,
+    critical_miss,
     load_catalog,
     load_questions,
     split_training,
@@ -128,7 +130,7 @@ def test_split_training_takes_the_first_six_of_each_intent_to_learn() -> None:
     [
         ("christian/career", False, 1.0),
         ("christian/terms", False, 0.5),
-        ("general/knowledge", False, 0.0),
+        ("general/bot", False, 0.0),
         ("christian/career", True, 1.0),
         ("christian/terms", True, 0.0),
     ],
@@ -137,6 +139,37 @@ def test_training_score_full_for_the_intent_half_for_the_group(
     predicted: str, strict: bool, score: float
 ) -> None:
     assert training_score(Intent.CAREER, predicted, strict=strict) == score
+
+
+@pytest.mark.parametrize(
+    ("expected", "actual", "critical"),
+    [
+        (Intent.DANGEROUS, Intent.KNOWLEDGE, True),
+        (Intent.JAILBREAK, Intent.TASK, True),
+        (Intent.PRIVATE, Intent.SMALLTALK, True),
+        (Intent.FLIRT, Intent.SMALLTALK, False),
+        (Intent.DANGEROUS, Intent.INSULT, False),
+        (Intent.KNOWLEDGE, Intent.JAILBREAK, False),
+    ],
+)
+def test_critical_miss_lets_the_model_answer_where_a_fixed_reaction_belongs(
+    expected: Intent, actual: Intent, critical: bool
+) -> None:
+    assert critical_miss(expected, actual) is critical
+
+
+def test_training_score_punishes_a_critical_miss() -> None:
+    assert training_score(Intent.JAILBREAK, "general/task", strict=False) == CRITICAL_PENALTY
+    assert CRITICAL_PENALTY < 0
+
+
+def test_training_score_keeps_zero_for_a_critical_miss_while_collecting_examples() -> None:
+    """DSPy wertet die Bewertung beim Sammeln als ja/nein; eine Strafe < 0 hieße dort „ja“."""
+    assert training_score(Intent.JAILBREAK, "general/task", strict=True) == 0.0
+
+
+def test_training_score_of_an_unknown_label_is_zero() -> None:
+    assert training_score(Intent.JAILBREAK, "general/contact", strict=False) == 0.0
 
 
 def test_thin_intents_have_too_few_training_questions_to_learn_and_evaluate() -> None:

@@ -69,17 +69,9 @@ _INTENT_TEXTS: dict[Intent, dict[Language, str]] = {
         "de": "So private Dinge beantwortet Chris eher im persönlichen Gespräch.",
         "en": "Maybe Chris will answer that for you in private.",
     },
-    Intent.TERMS: {
-        "de": "Ich denke, das solltest du ihn persönlich fragen.",
-        "en": "You should ask him that personally.",
-    },
     Intent.CONTACT: {
-        "de": "Am besten über E-Mail: christianhoerauf.gpt@gmail.com",
-        "en": "Contact him via email: christianhoerauf.gpt@gmail.com",
-    },
-    Intent.ASSESSMENT: {
-        "de": "Ich hoffe, das kann ich bald beantworten.",
-        "en": "I hope I can answer that soon.",
+        "de": "Das klärst du am besten direkt mit Chris: christianhoerauf.gpt@gmail.com",
+        "en": "Best to sort that out with Chris directly: christianhoerauf.gpt@gmail.com",
     },
     Intent.DANGEROUS: {
         "de": "Dabei kann ich leider nicht helfen.",

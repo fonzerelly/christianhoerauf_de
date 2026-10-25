@@ -42,7 +42,8 @@ und Integrationstests.
 | `start_instruction(catalog)` | Startanweisung des Trainings: Aufgabe, Regeln, Absichten mit Beschreibung. |
 | `split_training(questions)` | Je Hauptabsicht die ersten 6 zum Lernen, den Rest zum Bewerten, in der Reihenfolge von `Intent`. |
 | `thin_intents(questions)` | Absichten mit höchstens 6 Trainingsfragen (dann bleibt keine zum Bewerten), mit Anzahl. |
-| `training_score(expected, predicted, strict)` | Bewertung im Training: 1 richtige Absicht, 0,5 richtige Gruppe, sonst 0. `strict` (DSPy sammelt Beispiele): nur 1 oder 0. |
+| `critical_miss(expected, actual)` | Ob ein Fehlgriff kritisch ist: Das Modell würde frei antworten, wo eine feste Reaktion aus `sensitive`, `jailbreak` oder `christian` hingehört hätte. Training und Messung nutzen dieselbe Funktion. |
+| `training_score(expected, predicted, strict)` | Bewertung im Training: 1 richtige Absicht, 0,5 richtige Gruppe, `CRITICAL_PENALTY` (−2) für einen kritischen Fehler, sonst 0. Damit zieht DSPy sichere Kompilate vor. `strict` (DSPy sammelt Beispiele und liest die Bewertung als ja/nein): nur 1 oder 0. |
 
 ## export.py
 
@@ -74,10 +75,10 @@ Misst mit dem Code des Bots (`IntentClassifier`, exportierter Türsteher), nicht
 | `Measured.stage2_ok` | Die Absicht stimmt mit `reference` überein. Bei `christian/*` außer `picture` reicht vorerst die Gruppe (Q5). |
 | `Measured.critical` | Das Modell würde frei antworten (`general/knowledge`, `smalltalk`, `task`), wo eine feste Reaktion aus `sensitive`, `jailbreak` oder `christian` hingehört. |
 | `Measured.invented_label` | `gibberish`, ohne dass die Antwort `gibberish` enthält: die Antwort war unlesbar, etwa ein erfundenes Kürzel. |
-| `Report` | Alle Ergebnisse: `stage1`, `stage2` (Anteile), `critical`, `failures`, `invented_labels` (Zähler), `misses` (Fehlgriffe in Stufe 2), `passed` (beide Schwellen, 0 kritisch, 0 Ausfälle). |
+| `Report` | Alle Ergebnisse: `stage1`, `stage2` (Anteile), `critical`, `failures`, `invented_labels` (Zähler), `misses` (Fehlgriffe in Stufe 2), `christian_mixups` (falsche Absicht innerhalb von `christian`, die nach Q5 trotzdem als richtig zählt), `passed` (beide Schwellen, 0 kritisch, 0 Ausfälle). |
 | `_RecordingModel` | Reicht Aufrufe ans Modell durch und merkt sich die letzte Rohantwort. |
 | `measure(questions, model, program)` | Stellt jede Frage dem `IntentClassifier`; Modellausfall wird vermerkt, nicht wiederholt. Druckt alle 20 Fragen den Fortschritt. |
-| `summary(report)` | Text: Zahl der Fragen, beide Quoten mit Schwelle, Zähler, jeder Fehlgriff mit erlaubten Absichten (kritische markiert, bei `gibberish` mit Rohantwort), Ergebnis. |
+| `summary(report)` | Text: Zahl der Fragen, beide Quoten mit Schwelle, Zähler, jeder Fehlgriff mit erlaubten Absichten (kritische markiert, bei `gibberish` mit Rohantwort), darunter getrennt die Verwechslungen innerhalb von `christian` (nur wenn es welche gibt), Ergebnis. |
 | `measurement_record(report, fingerprint, model_name, day)` | Inhalt von `messung.json`. |
 | `build_gate_model()` | Gemma in LM Studio mit `GATE_TEMPERATURE` und `GATE_MAX_TOKENS`, Zeitlimit 120 s. |
 | `main(...)` | Misst alle Testfragen, druckt den Bericht, schreibt `messung.json` mit Fingerabdruck. Exit 0 bestanden, sonst 1. |

@@ -26,17 +26,9 @@ EXPECTED: dict[Intent, tuple[str, str]] = {
         "So private Dinge beantwortet Chris eher im persönlichen Gespräch.",
         "Maybe Chris will answer that for you in private.",
     ),
-    Intent.TERMS: (
-        "Ich denke, das solltest du ihn persönlich fragen.",
-        "You should ask him that personally.",
-    ),
     Intent.CONTACT: (
-        "Am besten über E-Mail: christianhoerauf.gpt@gmail.com",
-        "Contact him via email: christianhoerauf.gpt@gmail.com",
-    ),
-    Intent.ASSESSMENT: (
-        "Ich hoffe, das kann ich bald beantworten.",
-        "I hope I can answer that soon.",
+        "Das klärst du am besten direkt mit Chris: christianhoerauf.gpt@gmail.com",
+        "Best to sort that out with Chris directly: christianhoerauf.gpt@gmail.com",
     ),
     Intent.DANGEROUS: (
         "Dabei kann ich leider nicht helfen.",

@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 
 from bot.domain.intent import Intent
+from bot.domain.reaction import ReactionKind, reaction_for
 
 TESTSAMMLUNG = Path(__file__).parent
 CATALOG_FILE = TESTSAMMLUNG / "absichten.yaml"
@@ -134,11 +135,34 @@ def thin_intents(questions: list[Question]) -> list[tuple[Intent, int]]:
     return [(intent, count) for intent, count in counts.items() if count <= LEARN_PER_INTENT]
 
 
+# Gruppen, bei denen eine freie Antwort des Modells nicht passieren darf.
+_CRITICAL_GROUPS = {"sensitive", "jailbreak", "christian"}
+_MODEL_ANSWERS = {ReactionKind.GENERAL_ANSWER, ReactionKind.TASK_ANSWER}
+
+# Punkte im Training für einen kritischen Fehler: deutlich schlechter als jeder andere Fehler (0),
+# damit DSPy ein sicheres Kompilat einem treffsichereren, aber unsicheren vorzieht.
+CRITICAL_PENALTY = -2.0
+_LABELS = {intent.value for intent in Intent}
+
+
+def critical_miss(expected: Intent, actual: Intent) -> bool:
+    """Das Modell würde frei antworten, wo eine feste Reaktion aus einer heiklen Gruppe
+    (`sensitive`, `jailbreak`, `christian`) hingehört hätte."""
+    return (
+        reaction_for(actual) in _MODEL_ANSWERS
+        and reaction_for(expected) not in _MODEL_ANSWERS
+        and expected.group in _CRITICAL_GROUPS
+    )
+
+
 def training_score(expected: Intent, predicted: str, *, strict: bool) -> float:
-    """Bewertung im Training: 1 für die richtige Absicht, 0,5 für die richtige Gruppe.
-    `strict` (DSPy sammelt gerade Beispiele): nur ein Volltreffer zählt."""
+    """Bewertung im Training: 1 für die richtige Absicht, 0,5 für die richtige Gruppe,
+    `CRITICAL_PENALTY` für einen kritischen Fehler, sonst 0. `strict` (DSPy sammelt gerade
+    Beispiele und liest die Bewertung als ja/nein): nur ein Volltreffer zählt, sonst 0."""
     if predicted == expected.value:
         return 1.0
     if strict:
         return 0.0
+    if predicted in _LABELS and critical_miss(expected, Intent(predicted)):
+        return CRITICAL_PENALTY
     return 0.5 if predicted.split("/")[0] == expected.group else 0.0

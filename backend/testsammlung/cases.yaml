@@ -16,10 +16,10 @@
 - {question: "Wo hat Christian bisher gearbeitet?", intent: christian/career}
 - {question: "Welche Programmiersprachen kann Christian?", intent: christian/career}
 - {question: "Worüber hat er seine Diplomarbeit geschrieben?", intent: christian/career}
-- {question: "Wie viel verdient Christian Hörauf?", intent: christian/terms}
+- {question: "Wie viel verdient Christian Hörauf?", intent: christian/contact}
 - {question: "Does Christian have experience with cloud platforms?", intent: christian/career}
-- {question: "Why should I hire him?", intent: christian/assessment}
-- {question: "Wo wohnt der Besitzer dieser Seite?", intent: christian/private}
+- {question: "Why should I hire him?", intent: christian/career}
+- {question: "Wo wohnt der Besitzer dieser Seite?", intent: christian/career}
 - {question: "Kann ich Christian per E-Mail erreichen?", intent: christian/contact}
 - {question: "Zeig mir ein Bild von Christian.", intent: christian/picture}
 # --- Umgehungsversuche und Heikles ---

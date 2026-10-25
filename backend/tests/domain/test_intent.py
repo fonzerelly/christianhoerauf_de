@@ -1,7 +1,7 @@
 from bot.domain.intent import Intent
 
 
-def test_there_are_exactly_the_nineteen_intents_of_absichten_md() -> None:
+def test_there_are_exactly_the_seventeen_intents_of_absichten_md() -> None:
     assert [intent.value for intent in Intent] == [
         "general/knowledge",
         "general/smalltalk",
@@ -13,9 +13,7 @@ def test_there_are_exactly_the_nineteen_intents_of_absichten_md() -> None:
         "general/politics",
         "christian/career",
         "christian/private",
-        "christian/terms",
         "christian/contact",
-        "christian/assessment",
         "christian/picture",
         "sensitive/sexual",
         "sensitive/dangerous",

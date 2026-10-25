@@ -1,9 +1,9 @@
 {
-  "fingerabdruck": "6285d6d82fd448fa",
+  "fingerabdruck": "4c47ae9a2cc54b77",
   "datum": "2026-10-25",
-  "minuten": 34,
-  "lernfragen": 114,
-  "bewertungsfragen": 96,
+  "minuten": 36,
+  "lernfragen": 102,
+  "bewertungsfragen": 117,
   "einstellungen": {
     "modell": "google/gemma-4-26b-a4b-qat",
     "optimierer": "MIPROv2",

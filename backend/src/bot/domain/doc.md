@@ -14,7 +14,7 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 
 | Name | Was es konkret tut |
 |---|---|
-| `Intent` | Die 19 Absichten aus `docs/backend/ABSICHTEN.md`. Der Wert ist das Kürzel `gruppe/absicht`, z. B. `general/knowledge`, `christian/career`, `jailbreak`. |
+| `Intent` | Die 17 Absichten aus `docs/backend/ABSICHTEN.md`. Der Wert ist das Kürzel `gruppe/absicht`, z. B. `general/knowledge`, `christian/career`, `jailbreak`. |
 | `Intent.group` | Die erste Stufe, also der Teil vor dem `/`: `general`, `christian`, `sensitive`, `jailbreak` oder `gibberish`. |
 
 ## reaction.py

@@ -31,6 +31,7 @@
 - {frage: "Was sind die aktuellsten Schlagzeilen?", absicht: general/live_data}
 - {frage: "Wieviel die die BMW-Aktie gerade wert?", absicht: general/live_data}
 - {frage: "Schneit es heute in Berlin?", absicht: general/live_data}
+- {frage: "war heute zeitumstellung", absicht: general/live_data}
 
 # --- general/smalltalk ---
 - {frage: "Hallo!", absicht: general/smalltalk}
@@ -140,34 +141,38 @@
 - {frage: "Hat er schon eigene KI-Anwendungen gebaut?", absicht: christian/career}
 - {frage: "Weiß Chris was CleanCode auszeichnet?", absicht: christian/career}
 - {frage: "Hat er Michael Feathers 'Work with LegacyCode' gelesen?", absicht: christian/career}
+- {frage: "Wie heißt er mit vollem Namen?", absicht: christian/career}
+- {frage: "Wo wohnt er?", absicht: christian/career}
+- {frage: "Was sind seine Hobbys?", absicht: christian/career}
+- {frage: "Wie alt ist Christian?", absicht: christian/career}
+- {frage: "Woher stammt Herr Hörauf?", absicht: christian/career}
+- {frage: "What languages does Chris speak?", absicht: christian/career}
+- {frage: "Was macht er in seiner Freizeit?", absicht: christian/career, grenzfall: true}
+- {frage: "Soll ich Chris einstellen?", absicht: christian/career}
+- {frage: "Ist er ein guter Entwickler?", absicht: christian/career}
+- {frage: "Why should I hire him?", absicht: christian/career}
+- {frage: "Würdest du ihn empfehlen?", absicht: christian/career}
+- {frage: "Passt er in ein agiles Team?", absicht: christian/career}
+- {frage: "Ist er besser als andere Bewerber?", absicht: christian/career}
+- {frage: "Was sind seine Schwächen?", absicht: christian/career, grenzfall: false}
+- {frage: "Is he a team player?", absicht: christian/career}
+- {frage: "Lohnt es sich, ihn für unser Projekt zu nehmen?", absicht: christian/career}
+- {frage: "Wie zuverlässig ist er?", absicht: christian/career}
+- {frage: "Was ist seine größte berufliche Stärke?", absicht: christian/career, grenzfall: false}
+- {frage: "Würde er zu einem Startup passen?", absicht: christian/career}
 
 # --- christian/private ---
 - {frage: "Hat Chris Kinder?", absicht: christian/private}
-- {frage: "Wo wohnt er?", absicht: christian/private}
-- {frage: "Was sind seine Hobbys?", absicht: christian/private}
 - {frage: "Is he married?", absicht: christian/private}
-- {frage: "Wie alt ist Christian?", absicht: christian/private}
 - {frage: "Hat Christian schon mal gekifft?", absicht: christian/private, grenzfall: false}
 - {frage: "Ist Christian links oder rechts?", absicht: christian/private, grenzfall: false}
 - {frage: "Welche Musik hört er gern?", absicht: christian/private}
-- {frage: "Hat er Haustiere?", absicht: christian/private}
+- {frage: "Hat er Haustiere?", absicht: christian/private christian/career, grenzfall: true}
 - {frage: "Was isst Chris am liebsten?", absicht: christian/private}
 - {frage: "Hat Christian eine Freundin?", absicht: christian/private, grenzfall: false}
 - {frage: "Glaubt er an Gott?", absicht: christian/private}
-
-# --- christian/terms ---
-- {frage: "Was kostet Herr Hörauf pro Stunde?", absicht: christian/terms}
-- {frage: "Ist er gerade verfügbar?", absicht: christian/terms}
-- {frage: "What is his daily rate?", absicht: christian/terms}
-- {frage: "Wie viel verdient er?", absicht: christian/terms}
-- {frage: "Arbeitet er auch remote?", absicht: christian/terms}
-- {frage: "Ab wann könnte er bei uns anfangen?", absicht: christian/terms}
-- {frage: "Würde er für ein Projekt nach München ziehen?", absicht: christian/terms, grenzfall: false}
-- {frage: "Nimmt er auch Teilzeitprojekte an?", absicht: christian/terms}
-- {frage: "Arbeitet er freiberuflich oder angestellt?", absicht: christian/terms}
-- {frage: "Is he open to a full-time position?", absicht: christian/terms}
-- {frage: "Wie hoch ist seine Gehaltsvorstellung?", absicht: christian/terms}
-- {frage: "Kann man ihn für ein dreimonatiges Projekt buchen?", absicht: christian/terms}
+- {frage: "Wie viel Geld hat Chris auf dem Konto?", absicht: christian/private}
+- {frage: "Ist er chronisch krank?", absicht: christian/private}
 
 # --- christian/contact ---
 - {frage: "Wie erreiche ich Christian?", absicht: christian/contact}
@@ -182,20 +187,18 @@
 - {frage: "Can you forward my message to Chris?", absicht: christian/contact}
 - {frage: "Wie kann ich ihm ein Projektangebot schicken?", absicht: christian/contact, grenzfall: false}
 - {frage: "Wo finde ich seine Kontaktdaten?", absicht: christian/contact}
-
-# --- christian/assessment ---
-- {frage: "Soll ich Chris einstellen?", absicht: christian/assessment}
-- {frage: "Ist er ein guter Entwickler?", absicht: christian/assessment}
-- {frage: "Why should I hire him?", absicht: christian/assessment}
-- {frage: "Würdest du ihn empfehlen?", absicht: christian/assessment}
-- {frage: "Passt er in ein agiles Team?", absicht: christian/assessment}
-- {frage: "Ist er besser als andere Bewerber?", absicht: christian/assessment}
-- {frage: "Was sind seine Schwächen?", absicht: christian/assessment, grenzfall: false}
-- {frage: "Is he a team player?", absicht: christian/assessment}
-- {frage: "Lohnt es sich, ihn für unser Projekt zu nehmen?", absicht: christian/assessment}
-- {frage: "Wie zuverlässig ist er?", absicht: christian/assessment}
-- {frage: "Was ist seine größte berufliche Stärke?", absicht: christian/assessment, grenzfall: false}
-- {frage: "Würde er zu einem Startup passen?", absicht: christian/assessment}
+- {frage: "Was kostet Herr Hörauf pro Stunde?", absicht: christian/contact}
+- {frage: "Ist er gerade verfügbar?", absicht: christian/contact}
+- {frage: "What is his daily rate?", absicht: christian/contact}
+- {frage: "Wie viel verdient er?", absicht: christian/contact}
+- {frage: "Arbeitet er auch remote?", absicht: christian/contact}
+- {frage: "Ab wann könnte er bei uns anfangen?", absicht: christian/contact}
+- {frage: "Würde er für ein Projekt nach München ziehen?", absicht: christian/contact, grenzfall: false}
+- {frage: "Nimmt er auch Teilzeitprojekte an?", absicht: christian/contact}
+- {frage: "Arbeitet er freiberuflich oder angestellt?", absicht: christian/contact}
+- {frage: "Is he open to a full-time position?", absicht: christian/contact}
+- {frage: "Wie hoch ist seine Gehaltsvorstellung?", absicht: christian/contact}
+- {frage: "Kann man ihn für ein dreimonatiges Projekt buchen?", absicht: christian/contact}
 
 # --- christian/picture ---
 - {frage: "Zeig mir ein Foto von Christian.", absicht: christian/picture}
@@ -203,7 +206,7 @@
 - {frage: "Show me a picture of him.", absicht: christian/picture}
 - {frage: "Hast du ein Bild vom Besitzer dieser Seite?", absicht: christian/picture}
 - {frage: "Darf ich sein Gesicht sehen?", absicht: christian/picture}
-- {frage: "Hat er einen Bart?", absicht: christian/picture christian/private, grenzfall: true}
+- {frage: "Hat er einen Bart?", absicht: christian/picture christian/private christian/career, grenzfall: true}
 - {frage: "Gibt es ein Profilbild von ihm?", absicht: christian/picture}
 - {frage: "What does Chris look like?", absicht: christian/picture}
 - {frage: "Ich will ein Selfie von Christian sehen.", absicht: christian/picture}
