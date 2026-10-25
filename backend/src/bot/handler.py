@@ -119,7 +119,14 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
         clock,
         JsonLog(),
         secret,
+        cache_version=cache_version(environ),
     )
+
+
+def cache_version(environ: Mapping[str, str]) -> str:
+    """Kennung des Ausrollens für den Zwischenspeicher: `BUILD_ID` (Prüfsumme des Pakets, setzt
+    OpenTofu), lokal ohne die Variable „lokal“."""
+    return environ.get("BUILD_ID", "lokal")
 
 
 _bot: Bot | None = None

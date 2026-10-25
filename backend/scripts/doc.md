@@ -32,6 +32,14 @@ Tagen (Standard 2) und gibt mit `jq` drei Abschnitte aus:
 
 Braucht `aws` mit Zugangsdaten und `jq`. Der Zugriff ist nur lesend.
 
+## frage.sh "FRAGE"
+
+Stellt dem ausgerollten Bot eine Frage und druckt die Antwort als JSON (mit `jq` formatiert, eine
+Fehlerseite unverändert). Adresse aus `ANSWER_URL`, sonst die Function URL des ersten Ausrollens.
+Ohne genau einen nicht leeren Parameter: Aufrufhinweis, Exit 2. Kein eigener Test (Christians
+Wunsch); geprüft per Aufruf. Jede Frage zählt zur Tagesgrenze, gleiche Fragen kommen am selben Tag
+aus dem Zwischenspeicher.
+
 ## run_testsammlung.sh
 
 Synchronisiert die Umgebung und startet `python -m testsammlung.runner` mit den übergebenen

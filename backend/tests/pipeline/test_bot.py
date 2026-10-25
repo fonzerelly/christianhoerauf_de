@@ -46,6 +46,7 @@ class Setup:
         intents: list[Intent | Exception | str],
         answers: list[str | Exception] | None = None,
         task_answers: list[str | Exception] | None = None,
+        cache_version: str = "",
     ) -> None:
         replies = [gate(i) if isinstance(i, Intent) else i for i in intents]
         self.intent_model = FakeLanguageModel(replies)
@@ -61,6 +62,7 @@ class Setup:
             FakeClock(DAY),
             self.log,
             SECRET,
+            cache_version=cache_version,
         )
 
     def visitor_count_after_one_more(self) -> int:
@@ -263,3 +265,11 @@ def test_log_marks_cache_and_limit_outcomes() -> None:
 
     assert cached.log.records[0]["outcome"] == "cache"
     assert limited.log.records[0]["outcome"] == "limit"
+
+
+def test_answers_cached_by_an_earlier_rollout_are_not_used() -> None:
+    setup = Setup([Intent.KNOWLEDGE], ["Neu."], cache_version="neu")
+    setup.store.write(cache_key("Frage?", DAY, version="alt"), "Alt.")
+
+    assert setup.bot.ask("Frage?", IP).text == "Neu."
+    assert setup.store.read(cache_key("Frage?", DAY, version="neu")) == "Neu."

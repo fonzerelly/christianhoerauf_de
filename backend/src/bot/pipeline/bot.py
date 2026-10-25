@@ -44,8 +44,10 @@ class Bot:
         clock: Clock,
         log: Log,
         secret: str,
+        cache_version: str = "",
     ) -> None:
         self._classifier = classifier
+        self._cache_version = cache_version
         self._answerers = {
             ReactionKind.GENERAL_ANSWER: answerer,
             ReactionKind.TASK_ANSWER: task_answerer,
@@ -79,7 +81,7 @@ class Bot:
         if daily_limit_reached(self._store.increment(daily_counter_key(day))):
             return self._fixed(FixedAnswerKind.LIMIT_REACHED, language, "limit")
         # 2. Zwischenspeicher: gleiche Frage heute schon beantwortet.
-        cached = self._store.read(cache_key(question, day))
+        cached = self._store.read(cache_key(question, day, self._cache_version))
         if cached is not None:
             return _Outcome(Answer(text=cached), "cache")
         # 3. Absicht bestimmen.
@@ -114,7 +116,7 @@ class Bot:
             reply = ""
         if not reply:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable", intent)
-        self._store.write(cache_key(question, day), reply)
+        self._store.write(cache_key(question, day, self._cache_version), reply)
         return _Outcome(Answer(text=reply), "answered", intent)
 
     @staticmethod

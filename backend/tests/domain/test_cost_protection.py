@@ -53,6 +53,10 @@ def test_cache_key_differs_by_day_and_question() -> None:
     assert cache_key("a", DAY) != cache_key("b", DAY)
 
 
+def test_cache_key_differs_by_version_so_a_new_rollout_starts_empty() -> None:
+    assert cache_key("a", DAY, version="alt") != cache_key("a", DAY, version="neu")
+
+
 def test_cache_key_does_not_contain_the_question() -> None:
     assert "geheim" not in cache_key("geheim", DAY)
 

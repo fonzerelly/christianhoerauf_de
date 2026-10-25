@@ -30,10 +30,12 @@ def visitor_counter_key(tag: str, day: date) -> str:
     return f"visitor:{day.isoformat()}:{tag}"
 
 
-def cache_key(question: str, day: date) -> str:
-    """Schlüssel des Zwischenspeichers; nur ein Hash, die Frage selbst steht nicht darin."""
+def cache_key(question: str, day: date, version: str = "") -> str:
+    """Schlüssel des Zwischenspeichers; nur ein Hash, die Frage selbst steht nicht darin.
+    `version` kennzeichnet das Ausrollen: Nach einem neuen Ausrollen passt kein alter Eintrag mehr,
+    der Speicher ist also leer, ohne dass jemand ihn löschen muss."""
     digest = hashlib.sha256(normalize_question(question).encode()).hexdigest()
-    return f"cache:{day.isoformat()}:{digest}"
+    return f"cache:{version}:{day.isoformat()}:{digest}"
 
 
 def visitor_tag(ip: str, secret: str, day: date) -> str:

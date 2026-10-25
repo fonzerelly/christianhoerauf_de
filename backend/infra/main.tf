@@ -109,6 +109,8 @@ resource "aws_lambda_function" "bot" {
       TABLE_NAME     = aws_dynamodb_table.bot.name
       VISITOR_SECRET = random_password.visitor_secret.result
       LLM_MODEL      = var.llm_model
+      # Kennung des Ausrollens: Der Zwischenspeicher beginnt danach leer (cache_key).
+      BUILD_ID       = filebase64sha256(var.package_path)
     }
   }
 

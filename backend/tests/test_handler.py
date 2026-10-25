@@ -7,7 +7,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from bot.adapters.memory_store import MemoryStore
-from bot.handler import build_bot, handle
+from bot.handler import build_bot, cache_version, handle
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
@@ -152,6 +152,11 @@ def test_build_bot_needs_the_secret_and_the_table(monkeypatch: pytest.MonkeyPatc
         build_bot({"TABLE_NAME": "bot"})
     with pytest.raises(KeyError):
         build_bot({"VISITOR_SECRET": "geheim"})
+
+
+def test_cache_version_is_the_build_id_of_the_rollout() -> None:
+    assert cache_version({"BUILD_ID": "abc123"}) == "abc123"
+    assert cache_version({}) == "lokal"
 
 
 def test_build_bot_assembles_a_bot_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:

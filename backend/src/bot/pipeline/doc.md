@@ -45,7 +45,7 @@ Dürfen `domain` und `ports` importieren.
 
 | Name | Was es konkret tut |
 |---|---|
-| `Bot(classifier, answerer, task_answerer, store, clock, log, secret)` | Der Ablauf einer Frage. |
+| `Bot(classifier, answerer, task_answerer, store, clock, log, secret, cache_version)` | Der Ablauf einer Frage. `cache_version` (Standard leer) geht in jeden Schlüssel des Zwischenspeichers. |
 | `ask(question, ip)` | Misst die Dauer, bildet das Besucherkürzel, lässt `_decide` entscheiden und schreibt ein Protokoll (Frage, Absicht als Kürzel, Ergebnis, Antwort, Kürzel, Dauer in ms; nie die IP). Gibt die `Answer` zurück. |
 | `_decide(question, tag, day)` | 1. Tageszähler hochzählen; über 2.000: feste Antwort. 2. Zwischenspeicher: gleiche Frage heute schon beantwortet, dann diese Antwort. 3. Absicht bestimmen; fällt das Modell aus: „nicht erreichbar“. 4. Reaktion nach `reaction_for`: fester Text oder Gimmick → `intent_answer` in der Sprache der Frage, ohne weiteren Modellaufruf (Ergebnis `fixed_text` bzw. `gimmick`); Wissen/Smalltalk/Auftrag → `_answer_with_model`. |
 | `_answer_with_model(...)` | Besucherzähler hochzählen; über 10: feste Antwort. Den Antwortgeber der Reaktion fragen (allgemein oder Auftrag), mit `check_reply` prüfen; Modellausfall oder leere Antwort: „nicht erreichbar“ (Absicht bleibt im Protokoll). Sonst im Zwischenspeicher ablegen. |
