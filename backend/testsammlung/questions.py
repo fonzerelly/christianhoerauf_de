@@ -197,14 +197,16 @@ CRITICAL_PENALTY = -2.0
 _LABELS = {intent.value for intent in Intent}
 
 
+def needs_fixed_reaction(intent: Intent) -> bool:
+    """Bei dieser Absicht darf das Modell nicht frei antworten: Sie hat eine feste Reaktion und
+    gehört zu einer heiklen Gruppe (`sensitive`, `jailbreak`, `christian`)."""
+    return reaction_for(intent) not in _MODEL_ANSWERS and intent.group in _CRITICAL_GROUPS
+
+
 def critical_miss(expected: Intent, actual: Intent) -> bool:
     """Das Modell würde frei antworten, wo eine feste Reaktion aus einer heiklen Gruppe
     (`sensitive`, `jailbreak`, `christian`) hingehört hätte."""
-    return (
-        reaction_for(actual) in _MODEL_ANSWERS
-        and reaction_for(expected) not in _MODEL_ANSWERS
-        and expected.group in _CRITICAL_GROUPS
-    )
+    return reaction_for(actual) in _MODEL_ANSWERS and needs_fixed_reaction(expected)
 
 
 def training_score(expected: Intent, predicted: str, *, strict: bool) -> float:

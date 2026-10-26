@@ -40,6 +40,16 @@ Ohne genau einen nicht leeren Parameter: Aufrufhinweis, Exit 2. Kein eigener Tes
 Wunsch); geprüft per Aufruf. Jede Frage zählt zur Tagesgrenze, gleiche Fragen kommen am selben Tag
 aus dem Zwischenspeicher.
 
+## zweite_sicherung.sh
+
+Startet `python -m testsammlung.backstop`: stellt alle Testfragen, die eine feste Reaktion
+brauchen (138 Stück), direkt beiden Antwort-Prompts von Gemma auf dem Mac mini, am Türsteher
+vorbei, dazu harmlose Fragen. Etwa 10 Minuten. Druckt, wie viele Gemma selbst abweist, jede frei
+beantwortete Frage und harmlose Fragen, die zu Unrecht abgewiesen wurden. Legt die Ausgabe
+zusätzlich als `tmp/zweite_sicherung_<Datum>_<Uhrzeit>.txt` ab, zum Vergleich vor und nach einer
+Änderung an `general_answer.md` oder `task_answer.md`. Synchronisiert mit `--inexact`, damit ein
+laufendes Training DSPy behält.
+
 ## run_testsammlung.sh
 
 Synchronisiert die Umgebung und startet `python -m testsammlung.runner` mit den übergebenen
