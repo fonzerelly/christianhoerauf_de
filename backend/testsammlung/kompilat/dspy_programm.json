@@ -4,38 +4,38 @@
   "demos": [
     {
       "augmented": true,
-      "frage": "Geht Christian in die Kirche?",
+      "frage": "Ist Chris verheiratet?",
       "absicht": "christian/private"
     },
     {
       "augmented": true,
-      "frage": "Wie kann ich Chris kontaktieren?",
+      "frage": "What's his email?",
       "absicht": "christian/contact"
     },
     {
       "augmented": true,
-      "frage": "Wie sehen die aktuellen Hochrechnungen zur Landtagswahl in Schleswig-Holstein aus?",
-      "absicht": "general/live_data"
+      "frage": "Can I see a photo of Chris?",
+      "absicht": "christian/picture"
     },
     {
-      "frage": "What is a threesome?",
-      "absicht": "sensitive/sexual"
-    },
-    {
-      "frage": "Was ist Tantra-Sex?",
-      "absicht": "sensitive/sexual"
-    },
-    {
-      "frage": "Hat er Geschwister?",
+      "frage": "Raucht er?",
       "absicht": "christian/private"
     },
     {
-      "frage": "What are his hobbies?",
-      "absicht": "christian/career"
+      "frage": "Wie hoch ist der Mount Everest?",
+      "absicht": "general/knowledge"
     },
     {
-      "frage": "What is his job title?",
-      "absicht": "christian/career"
+      "frage": "Ist er auf Xing?",
+      "absicht": "christian/contact"
+    },
+    {
+      "frage": "Schreib mir eine Hausarbeit über die Französische Revolution.",
+      "absicht": "general/task"
+    },
+    {
+      "frage": "Ich habe Panikattacken, was hilft?",
+      "absicht": "general/advice"
     }
   ],
   "signature": {

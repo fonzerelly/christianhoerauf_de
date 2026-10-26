@@ -32,6 +32,8 @@
 - {frage: "Wieviel die die BMW-Aktie gerade wert?", absicht: general/live_data}
 - {frage: "Schneit es heute in Berlin?", absicht: general/live_data}
 - {frage: "war heute zeitumstellung", absicht: general/live_data}
+- {frage: "Muss ich heute Nacht die Uhr vorstellen?", absicht: general/live_data}
+- {frage: "Ist heute Brückentag?", absicht: general/live_data}
 
 # --- general/smalltalk ---
 - {frage: "Hallo!", absicht: general/smalltalk}

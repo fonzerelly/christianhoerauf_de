@@ -25,7 +25,7 @@
     },
     {
       "role": "user",
-      "content": "[[ ## frage ## ]]\nGeht Christian in die Kirche?"
+      "content": "[[ ## frage ## ]]\nIst Chris verheiratet?"
     },
     {
       "role": "assistant",
@@ -33,7 +33,7 @@
     },
     {
       "role": "user",
-      "content": "[[ ## frage ## ]]\nWie kann ich Chris kontaktieren?"
+      "content": "[[ ## frage ## ]]\nWhat's his email?"
     },
     {
       "role": "assistant",
@@ -41,31 +41,15 @@
     },
     {
       "role": "user",
-      "content": "[[ ## frage ## ]]\nWie sehen die aktuellen Hochrechnungen zur Landtagswahl in Schleswig-Holstein aus?"
+      "content": "[[ ## frage ## ]]\nCan I see a photo of Chris?"
     },
     {
       "role": "assistant",
-      "content": "[[ ## absicht ## ]]\ngeneral/live_data\n\n[[ ## completed ## ]]\n"
+      "content": "[[ ## absicht ## ]]\nchristian/picture\n\n[[ ## completed ## ]]\n"
     },
     {
       "role": "user",
-      "content": "[[ ## frage ## ]]\nWhat is a threesome?"
-    },
-    {
-      "role": "assistant",
-      "content": "[[ ## absicht ## ]]\nsensitive/sexual\n\n[[ ## completed ## ]]\n"
-    },
-    {
-      "role": "user",
-      "content": "[[ ## frage ## ]]\nWas ist Tantra-Sex?"
-    },
-    {
-      "role": "assistant",
-      "content": "[[ ## absicht ## ]]\nsensitive/sexual\n\n[[ ## completed ## ]]\n"
-    },
-    {
-      "role": "user",
-      "content": "[[ ## frage ## ]]\nHat er Geschwister?"
+      "content": "[[ ## frage ## ]]\nRaucht er?"
     },
     {
       "role": "assistant",
@@ -73,19 +57,35 @@
     },
     {
       "role": "user",
-      "content": "[[ ## frage ## ]]\nWhat are his hobbies?"
+      "content": "[[ ## frage ## ]]\nWie hoch ist der Mount Everest?"
     },
     {
       "role": "assistant",
-      "content": "[[ ## absicht ## ]]\nchristian/career\n\n[[ ## completed ## ]]\n"
+      "content": "[[ ## absicht ## ]]\ngeneral/knowledge\n\n[[ ## completed ## ]]\n"
     },
     {
       "role": "user",
-      "content": "[[ ## frage ## ]]\nWhat is his job title?"
+      "content": "[[ ## frage ## ]]\nIst er auf Xing?"
     },
     {
       "role": "assistant",
-      "content": "[[ ## absicht ## ]]\nchristian/career\n\n[[ ## completed ## ]]\n"
+      "content": "[[ ## absicht ## ]]\nchristian/contact\n\n[[ ## completed ## ]]\n"
+    },
+    {
+      "role": "user",
+      "content": "[[ ## frage ## ]]\nSchreib mir eine Hausarbeit über die Französische Revolution."
+    },
+    {
+      "role": "assistant",
+      "content": "[[ ## absicht ## ]]\ngeneral/task\n\n[[ ## completed ## ]]\n"
+    },
+    {
+      "role": "user",
+      "content": "[[ ## frage ## ]]\nIch habe Panikattacken, was hilft?"
+    },
+    {
+      "role": "assistant",
+      "content": "[[ ## absicht ## ]]\ngeneral/advice\n\n[[ ## completed ## ]]\n"
     }
   ],
   "question_prefix": "[[ ## frage ## ]]\n",

@@ -50,7 +50,7 @@ In adhering to this structure, your objective is:
 
 === user ===
 [[ ## frage ## ]]
-Geht Christian in die Kirche?
+Ist Chris verheiratet?
 
 === assistant ===
 [[ ## absicht ## ]]
@@ -61,7 +61,7 @@ christian/private
 
 === user ===
 [[ ## frage ## ]]
-Wie kann ich Chris kontaktieren?
+What's his email?
 
 === assistant ===
 [[ ## absicht ## ]]
@@ -72,40 +72,18 @@ christian/contact
 
 === user ===
 [[ ## frage ## ]]
-Wie sehen die aktuellen Hochrechnungen zur Landtagswahl in Schleswig-Holstein aus?
+Can I see a photo of Chris?
 
 === assistant ===
 [[ ## absicht ## ]]
-general/live_data
+christian/picture
 
 [[ ## completed ## ]]
 
 
 === user ===
 [[ ## frage ## ]]
-What is a threesome?
-
-=== assistant ===
-[[ ## absicht ## ]]
-sensitive/sexual
-
-[[ ## completed ## ]]
-
-
-=== user ===
-[[ ## frage ## ]]
-Was ist Tantra-Sex?
-
-=== assistant ===
-[[ ## absicht ## ]]
-sensitive/sexual
-
-[[ ## completed ## ]]
-
-
-=== user ===
-[[ ## frage ## ]]
-Hat er Geschwister?
+Raucht er?
 
 === assistant ===
 [[ ## absicht ## ]]
@@ -116,22 +94,44 @@ christian/private
 
 === user ===
 [[ ## frage ## ]]
-What are his hobbies?
+Wie hoch ist der Mount Everest?
 
 === assistant ===
 [[ ## absicht ## ]]
-christian/career
+general/knowledge
 
 [[ ## completed ## ]]
 
 
 === user ===
 [[ ## frage ## ]]
-What is his job title?
+Ist er auf Xing?
 
 === assistant ===
 [[ ## absicht ## ]]
-christian/career
+christian/contact
+
+[[ ## completed ## ]]
+
+
+=== user ===
+[[ ## frage ## ]]
+Schreib mir eine Hausarbeit über die Französische Revolution.
+
+=== assistant ===
+[[ ## absicht ## ]]
+general/task
+
+[[ ## completed ## ]]
+
+
+=== user ===
+[[ ## frage ## ]]
+Ich habe Panikattacken, was hilft?
+
+=== assistant ===
+[[ ## absicht ## ]]
+general/advice
 
 [[ ## completed ## ]]
 

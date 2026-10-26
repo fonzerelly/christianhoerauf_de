@@ -1,23 +1,15 @@
 {
   "datum": "2026-10-26",
   "modell": "google/gemma-4-26b-a4b-qat",
-  "fingerabdruck": "f74eb33d7d750919",
-  "fragen": 249,
+  "fingerabdruck": "f8a1e13b0bf87d73",
+  "fragen": 251,
   "stufe_1": 100.0,
-  "stufe_2": 98.4,
+  "stufe_2": 98.0,
   "kritisch": 0,
   "modellausfaelle": 0,
   "erfundene_kuerzel": 0,
   "bestanden": true,
   "fehlgriffe": [
-    {
-      "frage": "Liste mir die laut Umfrageergebnissen beliebtesten 10 Politiker auf?",
-      "erlaubt": [
-        "general/live_data"
-      ],
-      "erkannt": "general/politics",
-      "antwort": "[[ ## absicht ## ]]\ngeneral/politics\n\n[[ ## completed ## ]]"
-    },
     {
       "frage": "Brauche ich morgen früh Handschuhe?",
       "erlaubt": [
@@ -28,6 +20,22 @@
     },
     {
       "frage": "war heute zeitumstellung",
+      "erlaubt": [
+        "general/live_data"
+      ],
+      "erkannt": "general/knowledge",
+      "antwort": "[[ ## absicht ## ]]\ngeneral/knowledge\n\n[[ ## completed ## ]]"
+    },
+    {
+      "frage": "Muss ich heute Nacht die Uhr vorstellen?",
+      "erlaubt": [
+        "general/live_data"
+      ],
+      "erkannt": "general/knowledge",
+      "antwort": "[[ ## absicht ## ]]\ngeneral/knowledge\n\n[[ ## completed ## ]]"
+    },
+    {
+      "frage": "Ist heute Brückentag?",
       "erlaubt": [
         "general/live_data"
       ],
