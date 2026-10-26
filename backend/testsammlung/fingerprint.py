@@ -51,7 +51,7 @@ TRAINING_SETTINGS: dict[str, object] = {
     "json_nachfrage": False,
 }
 
-_TRAINING_COMMAND = "scripts/trainiere.sh (etwa 25 min, Mac mini), danach scripts/messe.sh"
+_TRAINING_COMMAND = "scripts/trainiere.sh (etwa 35 min, Mac mini), danach scripts/messe.sh"
 _MEASUREMENT_COMMAND = "scripts/messe.sh (etwa 5 min, Mac mini)"
 
 

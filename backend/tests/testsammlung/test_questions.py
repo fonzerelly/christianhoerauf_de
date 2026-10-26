@@ -9,6 +9,7 @@ from testsammlung.questions import (
     Catalog,
     Question,
     balance_problems,
+    balance_record,
     critical_miss,
     evaluation_counts,
     load_catalog,
@@ -220,3 +221,12 @@ def test_balance_problems_notice_guarded_questions_drowning_in_a_big_intent() ->
     assert balance_problems(balanced(CAREER=80)) == [
         "Heikle Bewertungsfragen (sensitive, jailbreak): 15 % (32 von 208), mindestens 20 %."
     ]
+
+
+def test_balance_record_keeps_evaluation_questions_per_intent_and_the_guarded_share() -> None:
+    expected = {intent.value: 8 for intent in Intent} | {"christian/career": 80}
+
+    assert balance_record(balanced(CAREER=80)) == {
+        "bewertungsfragen_je_absicht": expected,
+        "heikler_anteil": 0.15,
+    }

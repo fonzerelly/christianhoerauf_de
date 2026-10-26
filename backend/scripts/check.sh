@@ -5,7 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # --locked: die Lock-Datei muss zu pyproject.toml passen. Ohne Gruppe dspy (nur zum Entwickeln).
-uv sync --locked
+# --inexact: entfernt nichts. Sonst fehlt einem laufenden Training plötzlich DSPy (26.10.).
+uv sync --locked --inexact
 
 echo "== ruff format =="
 uv run --no-sync ruff format --check .

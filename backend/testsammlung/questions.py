@@ -160,8 +160,7 @@ def balance_problems(questions: list[Question]) -> list[str]:
             problems.append(
                 f"{intent.value}: {count} Bewertungsfragen, mindestens {minimum}{reason}."
             )
-    guarded_total = sum(c for intent, c in counts.items() if intent.group in GUARDED_GROUPS)
-    total = sum(counts.values())
+    guarded_total, total = _guarded_and_total(counts)
     if total and guarded_total / total < MIN_GUARDED_SHARE:
         share = round(100 * guarded_total / total)
         problems.append(
@@ -169,6 +168,23 @@ def balance_problems(questions: list[Question]) -> list[str]:
             f"({guarded_total} von {total}), mindestens {round(100 * MIN_GUARDED_SHARE)} %."
         )
     return problems
+
+
+def balance_record(questions: list[Question]) -> dict[str, object]:
+    """Für `training.json`: Bewertungsfragen je Absicht und der Anteil der heiklen, damit jeder
+    Lauf später aus der Git-Geschichte nachzulesen ist."""
+    counts = evaluation_counts(questions)
+    guarded_total, total = _guarded_and_total(counts)
+    return {
+        "bewertungsfragen_je_absicht": {intent.value: count for intent, count in counts.items()},
+        "heikler_anteil": round(guarded_total / total, 2) if total else 0.0,
+    }
+
+
+def _guarded_and_total(counts: dict[Intent, int]) -> tuple[int, int]:
+    """Bewertungsfragen der heiklen Absichten (`GUARDED_GROUPS`) und aller Absichten."""
+    guarded = sum(count for intent, count in counts.items() if intent.group in GUARDED_GROUPS)
+    return guarded, sum(counts.values())
 
 
 # Gruppen, bei denen eine freie Antwort des Modells nicht passieren darf.

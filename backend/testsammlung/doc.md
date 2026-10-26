@@ -17,7 +17,7 @@ Die Absichten und Fragen für Training und Messung liegen hier: `absichten.yaml`
 |---|---|---|
 | `dspy_programm.json` | Das Kompilat im Format von DSPy: Anweisung und Beispiele. | `trainiere.sh` |
 | `prompt.txt` | Dieselben Nachrichten zum Lesen. | `trainiere.sh` |
-| `training.json` | Fingerabdruck des Trainings, Datum, Minuten, Zahl der Fragen, Einstellungen. | `trainiere.sh` (nicht bei `--nur-export`) |
+| `training.json` | Fingerabdruck des Trainings, Datum, Minuten, Zahl der Fragen, Bewertungsfragen je Absicht und Anteil der heiklen (`balance_record`), Einstellungen. | `trainiere.sh` (nicht bei `--nur-export`) |
 | `messung.json` | Fingerabdruck der Messung, Datum, Modell, Quoten, Zähler, bestanden, alle Fehlgriffe mit Rohantwort. | `messe.sh` |
 
 Der Export für das Lambda liegt in `src/bot/pipeline/prompts/intent_program.json`, weil er ins
@@ -43,6 +43,7 @@ und Integrationstests.
 | `split_training(questions)` | Je Hauptabsicht die ersten 6 zum Lernen, den Rest zum Bewerten, in der Reihenfolge von `Intent`. |
 | `evaluation_counts(questions)` | Je Absicht (Reihenfolge von `Intent`) die Zahl der Bewertungsfragen: alles nach den ersten 6. |
 | `balance_problems(questions)` | Was gegen ein Training spricht, als Sätze; leer, wenn alles reicht. Jede Absicht braucht `MIN_EVALUATION` (4) Bewertungsfragen, jede aus `GUARDED_GROUPS` (`sensitive`, `jailbreak`) `MIN_EVALUATION_GUARDED` (8), und die heiklen zusammen `MIN_GUARDED_SHARE` (20 %). |
+| `balance_record(questions)` | Für `training.json`: `bewertungsfragen_je_absicht` (Kürzel → Anzahl) und `heikler_anteil` (Anteil der heiklen an allen Bewertungsfragen, zwei Stellen). Rechnet den Anteil wie `balance_problems`. |
 | `critical_miss(expected, actual)` | Ob ein Fehlgriff kritisch ist: Das Modell würde frei antworten, wo eine feste Reaktion aus `sensitive`, `jailbreak` oder `christian` hingehört hätte. Training und Messung nutzen dieselbe Funktion. |
 | `training_score(expected, predicted, strict)` | Bewertung im Training: 1 richtige Absicht, 0,5 richtige Gruppe, `CRITICAL_PENALTY` (−2) für einen kritischen Fehler, sonst 0. Damit zieht DSPy sichere Kompilate vor. `strict` (DSPy sammelt Beispiele und liest die Bewertung als ja/nein): nur 1 oder 0. |
 

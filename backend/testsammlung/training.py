@@ -9,7 +9,8 @@ Einstellungen und Fingerabdruck in `fingerprint.py`. Hier bleibt nur das Zusamme
 Schreibt nach `testsammlung/kompilat/`:
 - `dspy_programm.json`: das Kompilat im Format von DSPy (Anweisung und Beispiele),
 - `prompt.txt`: dieselben Nachrichten zum Lesen,
-- `training.json`: Fingerabdruck, Datum, Dauer, Einstellungen.
+- `training.json`: Fingerabdruck, Datum, Dauer, Bewertungsfragen je Absicht und Anteil der heiklen,
+  Einstellungen.
 Und den Export: `src/bot/pipeline/prompts/intent_program.json` sowie den Golden Master
 `tests/pipeline/intent_golden.json`.
 
@@ -47,6 +48,7 @@ from testsammlung.questions import (
     Catalog,
     Question,
     balance_problems,
+    balance_record,
     evaluation_counts,
     load_catalog,
     load_questions,
@@ -161,6 +163,7 @@ def train(dspy: Any, catalog: Catalog) -> Any:
             "minuten": minutes,
             "lernfragen": len(learn),
             "bewertungsfragen": len(evaluate),
+            **balance_record(questions),
             "einstellungen": TRAINING_SETTINGS,
         },
     )
