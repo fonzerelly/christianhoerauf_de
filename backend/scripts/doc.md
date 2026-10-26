@@ -49,11 +49,16 @@ im Cent-Bereich, nur von Hand).
 ## trainiere.sh
 
 Holt die Gruppe `dspy` dazu und startet `python -m testsammlung.training`: trainiert den
-Türsteher mit DSPy gegen LM Studio auf dem Mac mini (etwa 25 min), überschreibt das Kompilat in
+Türsteher mit DSPy gegen LM Studio auf dem Mac mini (etwa 35 min), überschreibt das Kompilat in
 `testsammlung/kompilat/` und exportiert es nach `src/bot/pipeline/prompts/intent_program.json`.
-Bricht vorher ab, wenn `absichten.yaml` nicht zu `Intent` passt, eine Absicht zu wenige
-Trainingsfragen hat oder der Mac mini nicht erreichbar ist. Mit `--nur-export` kein Training,
-nur der Export aus dem vorhandenen Kompilat. Ein altes Kompilat muss nicht gelöscht werden.
+Druckt vorher die Bewertungsfragen je Absicht. Bricht ab, wenn `absichten.yaml` nicht zu `Intent`
+passt, die Bewertungsfragen nicht ausgewogen sind (`balance_problems`) oder der Mac mini nicht
+erreichbar ist. Optionen:
+- `--nur-export`: kein Training, nur der Export aus dem vorhandenen Kompilat.
+- `--nur-pruefen`: nur die Tabelle und die Prüfung, ohne Mac mini; Exit 0 ausgewogen, 2 nicht.
+- `--trotzdem`: trainieren, auch wenn die Prüfung etwas findet.
+
+Ein altes Kompilat muss nicht gelöscht werden.
 
 ## messe.sh
 

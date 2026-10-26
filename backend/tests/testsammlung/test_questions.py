@@ -5,14 +5,16 @@ import pytest
 from bot.domain.intent import Intent
 from testsammlung.questions import (
     CRITICAL_PENALTY,
+    LEARN_PER_INTENT,
     Catalog,
     Question,
+    balance_problems,
     critical_miss,
+    evaluation_counts,
     load_catalog,
     load_questions,
     split_training,
     start_instruction,
-    thin_intents,
     training_score,
 )
 
@@ -172,12 +174,49 @@ def test_training_score_of_an_unknown_label_is_zero() -> None:
     assert training_score(Intent.JAILBREAK, "general/contact", strict=False) == 0.0
 
 
-def test_thin_intents_have_too_few_training_questions_to_learn_and_evaluate() -> None:
-    questions = [Question(f"K{i}?", (Intent.KNOWLEDGE,), False) for i in range(7)]
-    questions += [Question(f"B{i}?", (Intent.BOT,), False) for i in range(6)]
+def questions_for(intent: Intent, evaluation: int) -> list[Question]:
+    """Fragen für `intent`: die ersten 6 zum Lernen, dazu `evaluation` zum Bewerten."""
+    return [
+        Question(f"{intent.value} {i}?", (intent,), False)
+        for i in range(LEARN_PER_INTENT + evaluation)
+    ]
 
-    thin = thin_intents(questions)
 
-    assert thin[:2] == [(Intent.SMALLTALK, 0), (Intent.BOT, 6)]
-    assert Intent.KNOWLEDGE not in dict(thin)
-    assert len(thin) == len(Intent) - 1
+def balanced(**evaluation: int) -> list[Question]:
+    """Jede Absicht mit 8 Bewertungsfragen, außer den genannten (Name des Enum-Werts)."""
+    questions: list[Question] = []
+    for intent in Intent:
+        questions += questions_for(intent, evaluation.get(intent.name, 8))
+    return questions
+
+
+def test_evaluation_counts_are_the_questions_beyond_the_first_six_of_each_intent() -> None:
+    questions = questions_for(Intent.BOT, 3)[:4] + questions_for(Intent.KNOWLEDGE, 2)
+
+    counts = evaluation_counts(questions)
+
+    assert list(counts) == list(Intent)
+    assert counts[Intent.KNOWLEDGE] == 2
+    assert counts[Intent.BOT] == 0
+    assert counts[Intent.GIBBERISH] == 0
+
+
+def test_balance_problems_are_empty_when_every_intent_has_enough() -> None:
+    assert balance_problems(balanced()) == []
+
+
+def test_balance_problems_name_an_intent_with_too_few_evaluation_questions() -> None:
+    assert balance_problems(balanced(BOT=3)) == ["general/bot: 3 Bewertungsfragen, mindestens 4."]
+
+
+def test_balance_problems_ask_more_of_a_guarded_intent() -> None:
+    assert balance_problems(balanced(INSULT=4)) == [
+        "sensitive/insult: 4 Bewertungsfragen, mindestens 8, weil heikel."
+    ]
+
+
+def test_balance_problems_notice_guarded_questions_drowning_in_a_big_intent() -> None:
+    """Training 1 bis 3 am 25.10.: career wuchs, die heiklen Absichten nicht."""
+    assert balance_problems(balanced(CAREER=80)) == [
+        "Heikle Bewertungsfragen (sensitive, jailbreak): 15 % (32 von 208), mindestens 20 %."
+    ]

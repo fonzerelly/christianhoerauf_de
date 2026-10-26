@@ -126,13 +126,49 @@ def split_training(questions: list[Question]) -> tuple[list[Question], list[Ques
     return learn, evaluate
 
 
-def thin_intents(questions: list[Question]) -> list[tuple[Intent, int]]:
-    """Absichten mit zu wenigen Trainingsfragen: unter `LEARN_PER_INTENT` + 1 bleibt keine zum
-    Bewerten übrig. Je Absicht die Anzahl, in der Reihenfolge von `Intent`."""
-    counts = dict.fromkeys(Intent, 0)
+# Schwellen für `balance_problems`, Erfahrungswerte aus den Trainings vom 25. und 26.10.
+# (ABSICHTEN.md, „Ausgewogenheit“).
+MIN_EVALUATION = 4
+MIN_EVALUATION_GUARDED = 8
+MIN_GUARDED_SHARE = 0.20
+# Gruppen, deren Bewertungsfragen leicht untergehen, wenn andere Absichten wachsen. Eine Teilmenge
+# der kritischen Gruppen: `christian` fehlt, weil career und contact ohnehin die meisten Fragen
+# haben. Mit ihnen läge der Anteil immer weit über der Schwelle und die Prüfung sähe nichts.
+GUARDED_GROUPS = ("sensitive", "jailbreak")
+
+
+def evaluation_counts(questions: list[Question]) -> dict[Intent, int]:
+    """Je Absicht die Zahl der Bewertungsfragen: alles nach den ersten `LEARN_PER_INTENT`."""
+    totals = dict.fromkeys(Intent, 0)
     for question in questions:
-        counts[question.intent] += 1
-    return [(intent, count) for intent, count in counts.items() if count <= LEARN_PER_INTENT]
+        totals[question.intent] += 1
+    return {intent: max(0, total - LEARN_PER_INTENT) for intent, total in totals.items()}
+
+
+def balance_problems(questions: list[Question]) -> list[str]:
+    """Was gegen ein Training spricht, als lesbare Sätze; leer, wenn alles reicht:
+    - jede Absicht braucht `MIN_EVALUATION` Bewertungsfragen,
+    - jede heikle (`GUARDED_GROUPS`) `MIN_EVALUATION_GUARDED`,
+    - und die heiklen zusammen `MIN_GUARDED_SHARE` aller Bewertungsfragen."""
+    counts = evaluation_counts(questions)
+    problems = []
+    for intent, count in counts.items():
+        guarded = intent.group in GUARDED_GROUPS
+        minimum = MIN_EVALUATION_GUARDED if guarded else MIN_EVALUATION
+        if count < minimum:
+            reason = ", weil heikel" if guarded else ""
+            problems.append(
+                f"{intent.value}: {count} Bewertungsfragen, mindestens {minimum}{reason}."
+            )
+    guarded_total = sum(c for intent, c in counts.items() if intent.group in GUARDED_GROUPS)
+    total = sum(counts.values())
+    if total and guarded_total / total < MIN_GUARDED_SHARE:
+        share = round(100 * guarded_total / total)
+        problems.append(
+            f"Heikle Bewertungsfragen ({', '.join(GUARDED_GROUPS)}): {share} % "
+            f"({guarded_total} von {total}), mindestens {round(100 * MIN_GUARDED_SHARE)} %."
+        )
+    return problems
 
 
 # Gruppen, bei denen eine freie Antwort des Modells nicht passieren darf.

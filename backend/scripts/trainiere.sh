@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Trainiert den Türsteher mit DSPy gegen LM Studio auf dem Mac mini (etwa 25 min) und exportiert
+# Trainiert den Türsteher mit DSPy gegen LM Studio auf dem Mac mini (etwa 35 min) und exportiert
 # ihn fürs Lambda. Überschreibt das alte Kompilat in testsammlung/kompilat/. Danach: messe.sh.
 # Aufruf:  scripts/trainiere.sh            Training und Export
 #          scripts/trainiere.sh --nur-export   nur Export aus dem vorhandenen Kompilat
+#          scripts/trainiere.sh --nur-pruefen  nur prüfen, ob die Bewertungsfragen ausgewogen sind
+#          scripts/trainiere.sh --trotzdem     trainieren, auch wenn die Prüfung etwas findet
 set -euo pipefail
 cd "$(dirname "$0")/.."
 uv sync --locked --group dspy --quiet

@@ -13,7 +13,12 @@ Schreibt nach `testsammlung/kompilat/`:
 Und den Export: `src/bot/pipeline/prompts/intent_program.json` sowie den Golden Master
 `tests/pipeline/intent_golden.json`.
 
+Vor dem Training prüft es, ob die Bewertungsfragen ausgewogen sind (`balance_problems`), und
+bricht sonst ab.
+
 `--nur-export`: kein Training, nur den Export aus dem vorhandenen Kompilat neu schreiben.
+`--nur-pruefen`: nur die Prüfung, ohne DSPy und ohne Mac mini; Exit 0 ausgewogen, 2 nicht.
+`--trotzdem`: trainieren, auch wenn die Prüfung etwas findet.
 """
 
 import json
@@ -37,15 +42,16 @@ from testsammlung.fingerprint import (
 from testsammlung.lm_studio import LM_STUDIO_MODEL, LM_STUDIO_URL
 from testsammlung.questions import (
     CATALOG_FILE,
-    LEARN_PER_INTENT,
     TESTSAMMLUNG,
     TRAINING_FILE,
     Catalog,
+    Question,
+    balance_problems,
+    evaluation_counts,
     load_catalog,
     load_questions,
     split_training,
     start_instruction,
-    thin_intents,
     training_score,
 )
 
@@ -191,31 +197,43 @@ def export(dspy: Any, program: Any, catalog: Catalog) -> None:
     print(f"Export geschrieben: {INTENT_PROGRAM_FILE.name}, {GOLDEN_FILE.name}, {PROMPT_FILE.name}")
 
 
+USAGE = "Aufruf: python -m testsammlung.training [--nur-export | --nur-pruefen | --trotzdem]"
+
+
+def _print_balance(questions: list[Question]) -> list[str]:
+    """Druckt die Bewertungsfragen je Absicht und darunter, was gegen ein Training spricht."""
+    print("Bewertungsfragen je Absicht:")
+    for intent, count in evaluation_counts(questions).items():
+        print(f"  {intent.value:<22} {count:>3}")
+    problems = balance_problems(questions)
+    for problem in problems:
+        print(f"Zu wenig: {problem}")
+    return problems
+
+
 def main(argv: list[str]) -> int:
-    """Prüft erst die Eingaben, dann trainiert und exportiert es (oder nur Export)."""
+    """Prüft erst die Eingaben, dann trainiert und exportiert es (oder nur Export/Prüfung)."""
+    if argv not in ([], ["--nur-export"], ["--nur-pruefen"], ["--trotzdem"]):
+        print(USAGE)
+        return 2
+    if argv == ["--nur-pruefen"]:
+        return 2 if _print_balance(load_questions(TRAINING_FILE)) else 0
+
     import dspy
 
-    only_export = argv == ["--nur-export"]
-    if argv and not only_export:
-        print("Aufruf: python -m testsammlung.training [--nur-export]")
-        return 2
     catalog = load_catalog(CATALOG_FILE)
-    if only_export:
+    if argv == ["--nur-export"]:
         program = _program(dspy, catalog)
         program.load(str(PROGRAM_FILE))
     else:
-        thin = thin_intents(load_questions(TRAINING_FILE))
-        if thin:
-            for intent, count in thin:
-                minimum = LEARN_PER_INTENT + 1
-                print(
-                    f"Zu wenige Trainingsfragen für {intent.value}: {count}, mindestens {minimum}."
-                )
+        problems = _print_balance(load_questions(TRAINING_FILE))
+        if problems and argv != ["--trotzdem"]:
+            print("Kein Training: erst Trainingsfragen ergänzen, oder bewusst mit --trotzdem.")
             return 2
         if not _lm_studio_reachable():
             print(f"LM Studio nicht erreichbar ({LM_STUDIO_URL}). Läuft der Mac mini?")
             return 2
-        print(f"Training gegen {LM_STUDIO_MODEL}, etwa 25 Minuten …", flush=True)
+        print(f"Training gegen {LM_STUDIO_MODEL}, etwa 35 Minuten …", flush=True)
         program = train(dspy, catalog)
     export(dspy, program, catalog)
     return 0

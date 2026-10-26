@@ -41,7 +41,8 @@ und Integrationstests.
 | `load_catalog(path)` | Liest `absichten.yaml`. Die Absichten müssen genau die aus `Intent` sein, in derselben Reihenfolge, sonst `ValueError` mit beiden Listen. `beispiele:` wird nicht gelesen. |
 | `start_instruction(catalog)` | Startanweisung des Trainings: Aufgabe, Regeln, Absichten mit Beschreibung. |
 | `split_training(questions)` | Je Hauptabsicht die ersten 6 zum Lernen, den Rest zum Bewerten, in der Reihenfolge von `Intent`. |
-| `thin_intents(questions)` | Absichten mit höchstens 6 Trainingsfragen (dann bleibt keine zum Bewerten), mit Anzahl. |
+| `evaluation_counts(questions)` | Je Absicht (Reihenfolge von `Intent`) die Zahl der Bewertungsfragen: alles nach den ersten 6. |
+| `balance_problems(questions)` | Was gegen ein Training spricht, als Sätze; leer, wenn alles reicht. Jede Absicht braucht `MIN_EVALUATION` (4) Bewertungsfragen, jede aus `GUARDED_GROUPS` (`sensitive`, `jailbreak`) `MIN_EVALUATION_GUARDED` (8), und die heiklen zusammen `MIN_GUARDED_SHARE` (20 %). |
 | `critical_miss(expected, actual)` | Ob ein Fehlgriff kritisch ist: Das Modell würde frei antworten, wo eine feste Reaktion aus `sensitive`, `jailbreak` oder `christian` hingehört hätte. Training und Messung nutzen dieselbe Funktion. |
 | `training_score(expected, predicted, strict)` | Bewertung im Training: 1 richtige Absicht, 0,5 richtige Gruppe, `CRITICAL_PENALTY` (−2) für einen kritischen Fehler, sonst 0. Damit zieht DSPy sichere Kompilate vor. `strict` (DSPy sammelt Beispiele und liest die Bewertung als ja/nein): nur 1 oder 0. |
 
@@ -96,7 +97,8 @@ geschrieben wurde: `intent_program.json`, Golden Master und `prompt.txt` blieben
 | `_metric(...)` | `training_score` für DSPy. |
 | `train(dspy, catalog)` | Teilt die Trainingsfragen, stellt den ChatAdapter **ohne JSON-Nachfragen** ein (wie der Bot), trainiert mit MIPROv2 (`max_errors` so groß wie alle Fragen, sonst bricht DSPy nach 10 unlesbaren Antworten ab), speichert `dspy_programm.json` und `training.json`. Kandidatenprotokoll in `tmp/dspy_log/`. |
 | `export(dspy, program, catalog)` | Schreibt `intent_program.json`, den Golden Master (3 Fragen) und `prompt.txt`. Prüft danach, dass `IntentProgram` aus dem Export für die Golden-Fragen genau die Nachrichten von DSPy baut, sonst Abbruch. |
-| `main(argv)` | Liest und prüft `absichten.yaml`. Ohne Argument: bricht ab bei Absichten mit zu wenigen Trainingsfragen oder unerreichbarem Mac mini (Exit 2), sonst Training und Export. `--nur-export`: lädt das vorhandene Kompilat und exportiert nur. |
+| `_print_balance(questions)` | Druckt die Bewertungsfragen je Absicht und darunter jedes Ergebnis von `balance_problems`; gibt diese Liste zurück. |
+| `main(argv)` | Unbekanntes Argument: Aufruf drucken, Exit 2. `--nur-pruefen`: nur `_print_balance`, ohne DSPy; Exit 0 ausgewogen, sonst 2. Sonst liest und prüft es `absichten.yaml`. Ohne Argument: druckt die Ausgewogenheit und bricht ab, wenn sie nicht reicht oder der Mac mini nicht erreichbar ist (Exit 2), sonst Training und Export. `--trotzdem`: wie ohne Argument, trainiert aber trotz Befund der Prüfung. `--nur-export`: lädt das vorhandene Kompilat und exportiert nur. |
 
 ## cases.yaml
 
