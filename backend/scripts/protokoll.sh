@@ -10,7 +10,7 @@ tage="${1:-2}"
 aws logs filter-log-events \
   --region eu-central-1 \
   --log-group-name /aws/lambda/christianhoerauf-bot \
-  --start-time "$(date -d "$tage days ago" +%s000)" \
+  --start-time "$(( ($(date +%s) - tage * 86400) * 1000 ))" \
   --filter-pattern '{ $.question = * }' \
   --query 'events[].[timestamp,message]' \
   --output json |
