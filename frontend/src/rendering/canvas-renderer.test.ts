@@ -15,6 +15,14 @@ const PAGE = mazePage({
   exit: { cell: { x: 7, y: 3 }, side: "right" },
 });
 const NEXT_PAGE = mazePage({ columns: 8, rows: 6 });
+const CHRIS = { name: "Chris" } as unknown as CanvasImageSource;
+/** Eine Seite mit einem Foto auf den Zellen (1, 1) bis (4, 4), dessen Runden auf den Wegstücken 1 bis 3 enden. */
+const PHOTO_PAGE = mazePage({
+  columns: 8,
+  rows: 6,
+  route: routeOf("letter", [0, 0], [1, 0], [2, 0], [3, 0]),
+  photo: { photo: "chris", left: 1, top: 1, size: 4, lapEnds: [1, 2, 3] },
+});
 
 function setup(
   options: { isReduced?: boolean; random?: number[]; glitchesPerMinute?: number } = {},
@@ -35,6 +43,7 @@ function setup(
     motion: { isReduced: options.isReduced ?? false },
     settings: { ...TEST_SETTINGS, glitchesPerMinute: options.glitchesPerMinute ?? 0 },
     layout: TEST_LAYOUT,
+    photos: () => CHRIS,
   });
   return { renderer, calls, layers, surface };
 }
@@ -232,6 +241,49 @@ describe("CanvasRenderer", () => {
       expect(layers.created).toHaveLength(4);
     });
 
+    it("zeichnet das Foto einer Seite über die Wände und unter die Leuchtspur, nach der letzten Runde scharf", () => {
+      const { renderer, calls } = setup();
+
+      renderer.draw(playbackView({ currentPage: PHOTO_PAGE, progress: 3 }), 0);
+
+      const wallAt = calls.indexOf("drawImage(<Fläche 1>, -3, -3, 96, 76)");
+      const photoAt = calls.indexOf("drawImage(<Chris>, 16, 16, 38, 38)");
+      const trailAt = calls.indexOf("lineCap = butt");
+      expect(photoAt).toBeGreaterThan(wallAt);
+      expect(trailAt).toBeGreaterThan(photoAt);
+    });
+
+    it("zeigt das Foto der nächsten Seite beim Weiterschieben so grob wie vor der ersten Runde", () => {
+      const { renderer, calls, layers } = setup();
+
+      renderer.draw(
+        playbackView({
+          currentPage: PAGE,
+          nextPage: PHOTO_PAGE,
+          isScrolling: true,
+          scrollPart: 0.5,
+          progress: 2,
+        }),
+        0,
+      );
+
+      const shrunk = layers.created.find((layer) => layer.width === 2);
+      expect(shrunk?.calls).toContain("drawImage(<Chris>, 0, 0, 2, 2)");
+      expect(calls.some((call) => call.endsWith("0, 0, 2, 2, 16, 16, 38, 38)"))).toBe(true);
+    });
+
+    it("verkleinert das Foto neu, wenn die vorab gezeichneten Bilder verworfen wurden", () => {
+      const { renderer, layers } = setup();
+      const view = playbackView({ currentPage: PHOTO_PAGE, progress: 0 });
+      renderer.draw(view, 0);
+      const before = layers.created.filter((layer) => layer.width === 2).length;
+
+      renderer.discardPreparedImages();
+      renderer.draw(view, 0);
+
+      expect(layers.created.filter((layer) => layer.width === 2)).toHaveLength(before + 1);
+    });
+
     it("lässt die Wände der Seite beim Weiterschieben unverschoben, solange nicht weitergeschoben wird", () => {
       const { renderer, calls } = setup();
 
@@ -305,6 +357,7 @@ describe("CanvasRenderer", () => {
         motion,
         settings: { ...TEST_SETTINGS, glitchesPerMinute: 600 },
         layout: TEST_LAYOUT,
+        photos: () => CHRIS,
       });
       const view = playbackView({ isAnimating: true });
       renderer.draw(view, 0.1);

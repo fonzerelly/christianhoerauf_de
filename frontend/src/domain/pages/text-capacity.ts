@@ -6,8 +6,8 @@ import { lineAdvanceOf } from "../route/text-block-layout";
  * Neben dem Text: eine Spalte für die Zeilenwechsel, eine für das Tor, eine Luft zum Rand.
  * Über und unter dem Text: zwei Zeilen, durch die An- und Ablauf am Text vorbeikommen.
  */
-const FREE_COLUMNS_BESIDE_TEXT = 3;
-const FREE_ROWS_AROUND_TEXT = 2;
+export const FREE_COLUMNS_BESIDE_TEXT = 3;
+export const FREE_ROWS_AROUND_TEXT = 2;
 
 /** Wie viel Text auf eine Labyrinth-Seite passt. */
 export interface TextCapacity {

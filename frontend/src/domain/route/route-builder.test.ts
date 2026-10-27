@@ -7,7 +7,8 @@ import { Mulberry32 } from "../random/mulberry32";
 import { AreaPathFinder } from "./area-path-finder";
 import type { Gate } from "./gate";
 import { LineChangePlanner } from "./line-change-planner";
-import { RouteBuilder } from "./route-builder";
+import type { Picture } from "../picture/picture";
+import { ROWS_BELOW_PICTURE, RouteBuilder } from "./route-builder";
 import { layoutTextBlock } from "./text-block-layout";
 
 const COLUMNS = 34;
@@ -16,17 +17,40 @@ const SETTINGS = { detour: 0.3, returnBandRows: 2, returnWindiness: 0.5 };
 const ENTRANCE: Gate = { cell: { x: 0, y: 30 }, side: "left" };
 const EXIT: Gate = { cell: { x: 33, y: 30 }, side: "right" };
 
-function build(lines: string[], seed = 1) {
+function createBuilder(seed: number): RouteBuilder {
   const winding = new WindingPathFinder(new MazeGrower(new Mulberry32(seed)), new PathFinder());
   const areaPathFinder = new AreaPathFinder(COLUMNS, ROWS, winding);
-  const builder = new RouteBuilder(
+  return new RouteBuilder(
     createDefaultFont(),
     areaPathFinder,
     new LineChangePlanner(areaPathFinder),
     SETTINGS,
   );
+}
+
+function build(lines: string[], seed = 1) {
   const block = layoutTextBlock(lines, COLUMNS, ROWS, SETTINGS.returnBandRows);
-  return builder.build(lines, block, COLUMNS, ENTRANCE, EXIT);
+  return createBuilder(seed).build(lines, block, COLUMNS, ENTRANCE, EXIT);
+}
+
+/** Ein kleines Bild: ein Quadrat aus 3 × 3 Zellen, vom unteren Rand in der Mitte aus gezeichnet. */
+const SQUARE: Picture = {
+  width: 3,
+  height: 3,
+  glyph: [
+    { x: 1, y: 2 },
+    { x: 0, y: 2 },
+    { x: 0, y: 0 },
+    { x: 2, y: 0 },
+    { x: 2, y: 2 },
+    { x: 1, y: 2 },
+  ],
+};
+const SQUARE_LEFT = 15;
+const SQUARE_TOP = 20;
+
+function buildSquare(seed = 1) {
+  return createBuilder(seed).buildPicture(SQUARE, SQUARE_LEFT, SQUARE_TOP, COLUMNS, ENTRANCE, EXIT);
 }
 
 const key = ({ x, y }: { x: number; y: number }): string => `${String(x)},${String(y)}`;
@@ -117,5 +141,123 @@ describe("RouteBuilder", () => {
 
   it("wirft, wenn die Zeilen keine einzige Glyphe enthalten", () => {
     expect(() => build([" "])).toThrow("kein darstellbares Zeichen");
+  });
+
+  describe("buildPicture", () => {
+    it("beginnt vor dem Eingang, endet hinter dem Ausgang und geht nur zur Nachbarzelle", () => {
+      for (const seed of [1, 2, 3]) {
+        const { steps } = buildSquare(seed);
+
+        expect(steps.slice(0, 3).map(key)).toEqual(["-2,30", "-1,30", "0,30"]);
+        expect(steps.slice(-2).map(key)).toEqual(["34,30", "35,30"]);
+        steps.slice(1).forEach((step, index) => {
+          const before = steps[index] ?? step;
+          expect(Math.abs(step.x - before.x) + Math.abs(step.y - before.y)).toBe(1);
+        });
+      }
+    });
+
+    it("kommt von unten senkrecht an den Anfang des Bilds und zeichnet es mit Schriftwegen", () => {
+      const { steps } = buildSquare();
+      const firstLetter = steps.findIndex(({ kind }) => kind === "letter");
+
+      // Anfang des Quadrats: Spalte 15 + 1, Zeile 20 + 2. Darunter liegen die Zeilen für An- und Ablauf.
+      expect(steps.slice(firstLetter - 1 - ROWS_BELOW_PICTURE, firstLetter).map(key)).toEqual([
+        "16,25",
+        "16,24",
+        "16,23",
+        "16,22",
+      ]);
+      expect(steps.filter(({ kind }) => kind === "letter").map(key)).toEqual([
+        "15,22",
+        "15,21",
+        "15,20",
+        "16,20",
+        "17,20",
+        "17,21",
+        "17,22",
+        "16,22",
+      ]);
+    });
+
+    it("geht nach dem Bild eine Zelle hinunter und dann rechts hinaus", () => {
+      const { steps, lastGlyphEnd } = buildSquare();
+
+      expect(key(steps[lastGlyphEnd] ?? { x: 0, y: 0 })).toBe("16,22");
+      expect(steps.slice(lastGlyphEnd + 1, lastGlyphEnd + 4).map(key)).toEqual([
+        "16,23",
+        "17,23",
+        "18,23",
+      ]);
+    });
+  });
+
+  describe("buildPhoto", () => {
+    /** Der Rahmen um ein Foto von 4 × 4 Zellen mit der linken oberen Ecke bei (11, 21). */
+    const FRAME = { left: 10, right: 15, top: 20, bottom: 25 };
+
+    function buildFrame(seed = 1) {
+      return createBuilder(seed).buildPhoto(FRAME, 3, COLUMNS, ENTRANCE, EXIT);
+    }
+
+    /** Eine Runde auf dem Rahmen, links unten beginnend: hinauf, nach rechts, hinunter, zurück. */
+    const LAP = [
+      ...[24, 23, 22, 21, 20].map((y) => `10,${String(y)}`),
+      ...[11, 12, 13, 14, 15].map((x) => `${String(x)},20`),
+      ...[21, 22, 23, 24, 25].map((y) => `15,${String(y)}`),
+      ...[14, 13, 12, 11, 10].map((x) => `${String(x)},25`),
+    ];
+
+    it("beginnt vor dem Eingang, endet hinter dem Ausgang und geht nur zur Nachbarzelle", () => {
+      for (const seed of [1, 2, 3]) {
+        const { steps } = buildFrame(seed);
+
+        expect(steps.slice(0, 3).map(key)).toEqual(["-2,30", "-1,30", "0,30"]);
+        expect(steps.slice(-2).map(key)).toEqual(["34,30", "35,30"]);
+        steps.slice(1).forEach((step, index) => {
+          const before = steps[index] ?? step;
+          expect(Math.abs(step.x - before.x) + Math.abs(step.y - before.y)).toBe(1);
+        });
+      }
+    });
+
+    it("kommt von links in der untersten Zeile des Rahmens an und umrundet ihn dreimal mit Schriftwegen", () => {
+      const { steps } = buildFrame();
+      const firstLetter = steps.findIndex(({ kind }) => kind === "letter");
+
+      expect(steps.slice(firstLetter - 3, firstLetter).map(key)).toEqual(["8,25", "9,25", "10,25"]);
+      expect(steps.filter(({ kind }) => kind === "letter").map(key)).toEqual([
+        ...LAP,
+        ...LAP,
+        ...LAP,
+      ]);
+    });
+
+    it("merkt sich, wo jede Runde endet; die letzte ist das Ende der „Glyphe“", () => {
+      const { steps, lapEnds, lastGlyphEnd } = buildFrame();
+      const firstLetter = steps.findIndex(({ kind }) => kind === "letter");
+
+      expect(lapEnds).toEqual([
+        firstLetter + LAP.length - 1,
+        firstLetter + 2 * LAP.length - 1,
+        firstLetter + 3 * LAP.length - 1,
+      ]);
+      expect(lastGlyphEnd).toBe(lapEnds[2]);
+    });
+
+    it("geht nach der letzten Runde unten am Rahmen entlang nach rechts hinaus", () => {
+      const { steps, lastGlyphEnd } = buildFrame();
+
+      expect(steps.slice(lastGlyphEnd + 1, lastGlyphEnd + 8).map(key)).toEqual([
+        "11,25",
+        "12,25",
+        "13,25",
+        "14,25",
+        "15,25",
+        "16,25",
+        "17,25",
+      ]);
+      expect(steps[lastGlyphEnd + 1]?.kind).toBe("connector");
+    });
   });
 });

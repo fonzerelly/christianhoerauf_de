@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { itemAt } from "../domain/lists";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import type { PaginatedAnswer } from "../domain/pages/answer-paginator";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { Gate } from "../domain/route/gate";
@@ -31,7 +32,7 @@ function setup(pageCount: number) {
   const log: string[] = [];
   const pages = Array.from({ length: pageCount }, () => mazePage({}));
   const produced: PaginatedAnswer = { pages, restingStepIndex: 5 };
-  const requests: { answer: string; seed: number; exitBefore: Gate | undefined }[] = [];
+  const requests: { answer: AnswerContent; seed: number; exitBefore: Gate | undefined }[] = [];
   const queue = new ManualTaskQueue();
   const source = new PreparedPageSource(
     {

@@ -50,6 +50,13 @@ describe("mazePage", () => {
     expect(page.route).toEqual([]);
     expect(page.lines).toEqual([]);
     expect(page.lastGlyphEnd).toBe(0);
+    expect(page.photo).toBeUndefined();
+  });
+
+  it("legt auf Wunsch ein Foto auf die Seite", () => {
+    const photo = { photo: "chris", left: 1, top: 1, size: 2, lapEnds: [3] } as const;
+
+    expect(mazePage({ photo }).photo).toEqual(photo);
   });
 });
 

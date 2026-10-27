@@ -87,6 +87,21 @@ describe("AnswerPlayback", () => {
     });
   });
 
+  describe("Bild", () => {
+    it("gibt ein Bild an die Seitenquelle weiter und schreibt seine Seite", async () => {
+      const source = new FakePageSource();
+      const playback = new AnswerPlayback(source, SETTINGS);
+
+      playback.request(Promise.resolve({ picture: "heart", text: "<3" }));
+      await settle();
+
+      expect(source.requests).toEqual([
+        { text: "<3", picture: "heart", seed: 100, exitBefore: undefined },
+      ]);
+      expect(playback.phase).toBe("writing");
+    });
+  });
+
   describe("Begrüßung", () => {
     it("beginnt zu schreiben, sobald die Antwort da ist, mit dem Startwert der Einstellungen", async () => {
       const { playback, source } = await playbackWithGreeting("Hallo");

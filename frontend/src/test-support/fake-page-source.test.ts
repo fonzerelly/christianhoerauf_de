@@ -36,6 +36,28 @@ describe("FakePageSource", () => {
     ]);
   });
 
+  it("macht aus einem Bild eine einzige Seite und merkt sich das Bild", async () => {
+    const source = new FakePageSource();
+
+    const { pages } = await source.paginate({ picture: "heart", text: "<3" }, 3);
+
+    expect(pages).toHaveLength(1);
+    expect(source.requests).toEqual([
+      { text: "<3", picture: "heart", seed: 3, exitBefore: undefined },
+    ]);
+  });
+
+  it("macht aus einem Foto eine einzige Seite und merkt sich das Foto", async () => {
+    const source = new FakePageSource();
+
+    const { pages } = await source.paginate({ photo: "chris", text: "Das ist Chris." }, 4);
+
+    expect(pages).toHaveLength(1);
+    expect(source.requests).toEqual([
+      { text: "Das ist Chris.", photo: "chris", seed: 4, exitBefore: undefined },
+    ]);
+  });
+
   it("hält die Seiten auf Wunsch zurück, bis der Test sie freigibt", async () => {
     const source = new FakePageSource();
     source.holdResults();

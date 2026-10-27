@@ -5,6 +5,7 @@
 // vitest.config.ts); dass das Zusammenspiel funktioniert, zeigen die Bildtests.
 
 import { AnswerPlayback } from "./animation/answer-playback";
+import chrisPhotoUrl from "./assets/chris.jpg";
 import { FrameTimer } from "./animation/frame-timer";
 import { PerformanceClock } from "./animation/performance-clock";
 import { fetchJson } from "./answering/fetch-json";
@@ -93,6 +94,10 @@ connectSoundToggle(soundToggle, () => hum.toggle());
 const flushTarget = createContext2d(
   Object.assign(document.createElement("canvas"), { width: 1, height: 1 }),
 );
+// Das Foto für das Foto-Gimmick lädt der Browser gleich zu Beginn. Bis es da ist, bleibt das Feld
+// unter dem Foto leer.
+const chrisPhoto = Object.assign(new Image(), { src: chrisPhotoUrl });
+
 const renderer = new CanvasRenderer({
   canvas,
   context: createContext2d(canvas),
@@ -112,6 +117,7 @@ const renderer = new CanvasRenderer({
   motion: new MediaQueryMotionPreference(window.matchMedia("(prefers-reduced-motion: reduce)")),
   settings: tuning,
   layout: measureStage(),
+  photos: () => (chrisPhoto.complete && chrisPhoto.naturalWidth > 0 ? chrisPhoto : undefined),
 });
 
 // Bühne: Ablauf der Animation und Zeichnen. Die Seiten einer Antwort entstehen und werden vorab

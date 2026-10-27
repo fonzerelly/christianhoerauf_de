@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Answer } from "../answering/answer";
 import type { AnswerSource } from "../answering/answer-source";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import { Conversation } from "./conversation";
 
 async function settle(): Promise<void> {
@@ -29,7 +30,7 @@ class ManualSource implements AnswerSource {
 
 function setup() {
   const source = new ManualSource();
-  const shown: Promise<string>[] = [];
+  const shown: Promise<AnswerContent>[] = [];
   const spoken: string[] = [];
   const conversation = new Conversation(
     source,
@@ -83,6 +84,17 @@ describe("Conversation", () => {
       await settle();
 
       await expect(shown[0]).resolves.toBe("14 Grad");
+    });
+
+    it("zeichnet zum Herz-Gimmick ein Herz und liest den Text vor", async () => {
+      const { conversation, source, shown, spoken } = setup();
+
+      conversation.ask("Ich liebe dich, Bot");
+      source.respond(0, { text: "<3", gimmick: { type: "heart" } });
+      await settle();
+
+      await expect(shown[0]).resolves.toEqual({ picture: "heart", text: "<3" });
+      expect(spoken).toEqual(["<3"]);
     });
 
     it("liest nur die Antwort auf die neueste Frage vor, auch wenn eine ältere später eintrifft", async () => {

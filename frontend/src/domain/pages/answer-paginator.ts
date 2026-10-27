@@ -9,7 +9,10 @@ import type { Gate } from "../route/gate";
 import { LineWrapper } from "../text/line-wrapper";
 import type { TextNormalizer } from "../text/text-normalizer";
 import { MazePageGenerator } from "./maze-page-generator";
+import type { AnswerContent } from "./answer-content";
 import type { MazePage, MazeSettings } from "./maze-page-generator";
+import { placePhoto } from "./photo-layout";
+import { placePicture } from "./picture-layout";
 import { textCapacityOf } from "./text-capacity";
 
 export interface PaginatorSettings {
@@ -27,6 +30,21 @@ export interface PaginatedAnswer {
   readonly pages: readonly MazePage[];
   /** Index des Wegstücks in der Route der letzten Seite, an dem der Lichtpunkt wartet (Haltepunkt). */
   readonly restingStepIndex: number;
+}
+
+/**
+ * Der Eingang einer Seite: gegenüber dem Ausgang der vorigen Seite, oder ohne vorige Seite
+ * gewürfelt.
+ */
+function previousExitOrFirst(
+  previousExit: Gate | undefined,
+  borderCellPicker: BorderCellPicker,
+  columns: number,
+  rows: number,
+): Gate {
+  return previousExit
+    ? entranceOppositeOf(previousExit, columns, rows)
+    : borderCellPicker.pickFirstEntrance(columns, rows);
 }
 
 /** Macht aus einer Antwort die Folge ihrer Labyrinth-Seiten. */
@@ -48,13 +66,16 @@ export class AnswerPaginator {
 
   /**
    * Bereitet die Antwort auf, bricht sie um und erzeugt für die Zeilen so viele Seiten, wie sie
-   * braucht. Aller Zufall folgt aus `seed`.
+   * braucht. Ist die Antwort ein Bild, wird es eine einzige Seite mit dem Bild; ist sie ein Foto,
+   * eine einzige Seite, auf der das Foto an einer zufälligen Stelle liegt (erst wird die Stelle
+   * gezogen, dann der Eingang). Passt Bild oder Foto nicht auf die Seite, wird ihr Text
+   * geschrieben. Aller Zufall folgt aus `seed`.
    *
    * Jede Folgeseite beginnt dort, wo die vorige aufgehört hat: Ihr Eingang liegt dem Ausgang der
    * vorigen genau gegenüber. Dasselbe gilt für die erste Seite einer Antwort, wenn `exitBefore`
    * der Ausgang der letzten Seite der vorigen Antwort ist.
    */
-  public paginate(answer: string, seed: number, exitBefore?: Gate): PaginatedAnswer {
+  public paginate(answer: AnswerContent, seed: number, exitBefore?: Gate): PaginatedAnswer {
     return runToEnd(this.paginateInSteps(answer, seed, exitBefore));
   }
 
@@ -62,21 +83,42 @@ export class AnswerPaginator {
    * Wie `paginate`, aber in Stücken (siehe `Steps`): Die Erzeugung jeder Seite pausiert zweimal
    * (siehe `MazePageGenerator.generateInSteps`). Das Ergebnis ist dasselbe.
    */
-  public *paginateInSteps(answer: string, seed: number, exitBefore?: Gate): Steps<PaginatedAnswer> {
+  public *paginateInSteps(
+    answer: AnswerContent,
+    seed: number,
+    exitBefore?: Gate,
+  ): Steps<PaginatedAnswer> {
     const { columns, rows, maze } = this.settings;
     const random = this.createRandom(seed);
     const borderCellPicker = new BorderCellPicker(random);
     const generator = new MazePageGenerator(columns, rows, random, this.font, maze);
 
+    if (typeof answer !== "string" && "picture" in answer) {
+      const placed = placePicture(answer.picture, columns, rows);
+      if (placed !== undefined) {
+        const entrance = previousExitOrFirst(exitBefore, borderCellPicker, columns, rows);
+        const page = yield* generator.generatePictureInSteps(placed, entrance);
+        return { pages: [page], restingStepIndex: this.restingStepOf(page) };
+      }
+    }
+
+    if (typeof answer !== "string" && "photo" in answer) {
+      const placed = placePhoto(answer.photo, columns, rows, random);
+      if (placed !== undefined) {
+        const entrance = previousExitOrFirst(exitBefore, borderCellPicker, columns, rows);
+        const page = yield* generator.generatePhotoInSteps(placed, entrance);
+        return { pages: [page], restingStepIndex: this.restingStepOf(page) };
+      }
+    }
+
+    const text = typeof answer === "string" ? answer : answer.text;
     const capacity = textCapacityOf(columns, rows, maze.returnBandRows);
-    const lines = new LineWrapper(capacity.charsPerLine).wrap(this.normalizer.normalize(answer));
+    const lines = new LineWrapper(capacity.charsPerLine).wrap(this.normalizer.normalize(text));
 
     const pages: MazePage[] = [];
     let previousExit = exitBefore;
     for (let first = 0; first < lines.length; first += capacity.linesPerPage) {
-      const entrance = previousExit
-        ? entranceOppositeOf(previousExit, columns, rows)
-        : borderCellPicker.pickFirstEntrance(columns, rows);
+      const entrance = previousExitOrFirst(previousExit, borderCellPicker, columns, rows);
       const page = yield* generator.generateInSteps(
         lines.slice(first, first + capacity.linesPerPage),
         entrance,

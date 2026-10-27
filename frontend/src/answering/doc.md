@@ -12,12 +12,20 @@ Woher die Antworten kommen. Aus der statischen Datei `public/content.json` oder,
 | `fetch-json.ts`                   | `fetchJson`: holt eine Adresse und liefert den JSON-Inhalt.         |
 | `static-content-answer-source.ts` | `StaticContentAnswerSource`: die Antwortquelle aus `content.json`.  |
 | `http-answer-source.ts`           | `HttpAnswerSource`: fragt das Backend (Schritt 10).                 |
+| `answer-content.ts`               | `contentOf`: was der Lichtpunkt für eine Antwort schreibt.          |
 
 ## AnswerSource
 
 `answer(question)` liefert die Antwort auf die Frage. Eine **leere Frage liefert die Begrüßung**. Das
 Versprechen wird immer eingelöst: Kann die Quelle nicht antworten, liefert sie eine Antwort, die das sagt.
-Ein `gimmick` in der Antwort zeigt das Frontend noch nicht; es schreibt immer den Text.
+Was aus einem `gimmick` wird, entscheidet `contentOf`.
+
+## contentOf
+
+`contentOf(answer)` macht aus einer `Answer` den Inhalt für die Bühne (`AnswerContent`): Gimmick
+`heart` → das Herz, `face_with_hand_over_mouth` → der Smiley, `photo` → das Foto von Chris,
+jeweils samt Text. Ohne Gimmick oder mit einem unbekannten (auch `toString`, die Tabellen sind
+`Map`s) bleibt es beim Text.
 
 ## parseContent
 

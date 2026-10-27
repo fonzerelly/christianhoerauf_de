@@ -1,4 +1,5 @@
 import type { Phase, Playback } from "../animation/playback-view";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { Renderer } from "../rendering/renderer";
 import type { StageLayout } from "../rendering/stage-layout";
@@ -31,9 +32,9 @@ export class Stage {
   private layout: StageLayout;
   private playback: Playback;
   /** Die Antwort, auf die noch gewartet wird. */
-  private pending: Promise<string> | undefined;
-  /** Der Text der zuletzt eingetroffenen Antwort. */
-  private lastText: string | undefined;
+  private pending: Promise<AnswerContent> | undefined;
+  /** Was die zuletzt eingetroffene Antwort schreibt (Text oder Bild). */
+  private lastContent: AnswerContent | undefined;
   private needsDraw = true;
   private wasAnimating = false;
   /** Die nächste Seite, deren Wände schon vorab gezeichnet werden (oder wurden). */
@@ -67,12 +68,12 @@ export class Stage {
     this.prepareNextPage();
   }
 
-  /** Eine Frage wurde gestellt, `reply` liefert den Text der Antwort. */
-  public show(reply: Promise<string>): void {
+  /** Eine Frage wurde gestellt, `reply` liefert, was geschrieben wird: den Text oder ein Bild. */
+  public show(reply: Promise<AnswerContent>): void {
     this.pending = reply;
-    void reply.then((text) => {
+    void reply.then((content) => {
       if (this.pending !== reply) return; // inzwischen kam eine neuere Frage
-      this.lastText = text;
+      this.lastContent = content;
       this.pending = undefined;
     });
     this.playback.request(reply);
@@ -116,7 +117,7 @@ export class Stage {
     void runInTasks(this.parts.renderer.prepare(next), this.parts.scheduleTask);
   }
 
-  private lastReply(): Promise<string> | undefined {
-    return this.lastText === undefined ? undefined : Promise.resolve(this.lastText);
+  private lastReply(): Promise<AnswerContent> | undefined {
+    return this.lastContent === undefined ? undefined : Promise.resolve(this.lastContent);
   }
 }

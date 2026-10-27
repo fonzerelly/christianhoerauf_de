@@ -4,18 +4,18 @@ Der Ablauf der Antworten über die Zeit. Dieser Ordner kennt weder Browser noch 
 kommt über den Port `Clock`, die Seiten über den Port `PageSource` (erfüllt von der `PreparedPageSource` aus `ui/`, die den `AnswerPaginator`
 der Domäne in Stücken laufen lässt). Gezeichnet wird in `rendering/`; es liest die Zustände von `AnswerPlayback`.
 
-| Datei                  | Was sie tut                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------ |
-| `clock.ts`             | Port `Clock`: die Zeit in Sekunden.                                                  |
-| `performance-clock.ts` | `PerformanceClock`: die Uhr des Browsers, aus Millisekunden.                         |
-| `frame-timer.ts`       | `FrameTimer`: Zeit von einem Bild zum nächsten, mit längstem Schritt.                |
-| `playback-settings.ts` | `PlaybackSettings`: Tempo, Schnelldurchlauf, Weiterschieben, Leuchtdauer, Startwert. |
-| `pace.ts`              | `paceOf`: Zellen pro Sekunde je Art von Wegstück.                                    |
-| `trail.ts`             | `Trail`: Helligkeit der Leuchtspur je Wegstück.                                      |
-| `route-walker.ts`      | `RouteWalker`: lässt den Lichtpunkt eine Route ablaufen.                             |
-| `pulse.ts`             | `pulseOf`: Helligkeit des pulsierenden Lichtpunkts am Haltepunkt.                    |
-| `page-source.ts`       | Port `PageSource`: liefert die Seiten einer Antwort (als Versprechen).               |
-| `answer-playback.ts`   | `AnswerPlayback`: der Zustandsautomat über alle Abschnitte.                          |
+| Datei                  | Was sie tut                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| `clock.ts`             | Port `Clock`: die Zeit in Sekunden.                                                          |
+| `performance-clock.ts` | `PerformanceClock`: die Uhr des Browsers, aus Millisekunden.                                 |
+| `frame-timer.ts`       | `FrameTimer`: Zeit von einem Bild zum nächsten, mit längstem Schritt.                        |
+| `playback-settings.ts` | `PlaybackSettings`: Tempo, Schnelldurchlauf, Weiterschieben, Leuchtdauer, Startwert.         |
+| `pace.ts`              | `paceOf`: Zellen pro Sekunde je Art von Wegstück.                                            |
+| `trail.ts`             | `Trail`: Helligkeit der Leuchtspur je Wegstück.                                              |
+| `route-walker.ts`      | `RouteWalker`: lässt den Lichtpunkt eine Route ablaufen.                                     |
+| `pulse.ts`             | `pulseOf`: Helligkeit des pulsierenden Lichtpunkts am Haltepunkt.                            |
+| `page-source.ts`       | Port `PageSource`: liefert die Seiten einer Antwort (Text, Bild oder Foto; als Versprechen). |
+| `answer-playback.ts`   | `AnswerPlayback`: der Zustandsautomat über alle Abschnitte.                                  |
 
 ## Ablauf einer Antwort
 

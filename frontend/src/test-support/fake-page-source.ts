@@ -1,5 +1,6 @@
 import type { PageSource } from "../animation/page-source";
 import { RectangularGrid } from "../domain/maze/rectangular-grid";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import type { PaginatedAnswer } from "../domain/pages/answer-paginator";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { Gate } from "../domain/route/gate";
@@ -13,13 +14,15 @@ export const RESTING_STEP = LAST_GLYPH_END + 2;
 
 /**
  * Eine Attrappe für die Seitenquelle der Animation: Jedes Zeichen des Texts wird eine kleine
- * Seite mit einer Route von 12 Wegstücken auf einer Linie. Jede Seite hat einen eigenen
- * Ausgang, und jede Anfrage wird in `requests` festgehalten. Die Seiten kommen sofort, oder auf
+ * Seite (ein Bild oder Foto wird eine einzige Seite) mit einer Route von 12 Wegstücken auf einer
+ * Linie. Jede Seite hat einen eigenen Ausgang, und jede Anfrage wird in `requests` festgehalten. Die Seiten kommen sofort, oder auf
  * Wunsch erst nach `releaseResults()` (so lässt sich das Warten auf die Seiten nachstellen).
  */
 export class FakePageSource implements PageSource {
   public readonly requests: {
     text: string;
+    picture?: string;
+    photo?: string;
     seed: number;
     exitBefore: Gate | undefined;
   }[] = [];
@@ -28,9 +31,19 @@ export class FakePageSource implements PageSource {
   private isHolding = false;
   private readonly held: (() => void)[] = [];
 
-  public paginate(answer: string, seed: number, exitBefore?: Gate): Promise<PaginatedAnswer> {
-    this.requests.push({ text: answer, seed, exitBefore });
-    const pages = Array.from(answer, () => this.createPage());
+  public paginate(
+    answer: AnswerContent,
+    seed: number,
+    exitBefore?: Gate,
+  ): Promise<PaginatedAnswer> {
+    if (typeof answer === "string") this.requests.push({ text: answer, seed, exitBefore });
+    else if ("picture" in answer) {
+      this.requests.push({ text: answer.text, picture: answer.picture, seed, exitBefore });
+    } else this.requests.push({ text: answer.text, photo: answer.photo, seed, exitBefore });
+    const pages =
+      typeof answer === "string"
+        ? Array.from(answer, () => this.createPage())
+        : [this.createPage()];
     const result = { pages, restingStepIndex: RESTING_STEP };
     if (!this.isHolding) return Promise.resolve(result);
     return new Promise((resolve) => {

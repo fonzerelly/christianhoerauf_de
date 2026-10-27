@@ -15,6 +15,7 @@ eine Attrappe dafür, die jeden Aufruf aufzeichnet (`test-support/recording-cont
 | `wall-layer.ts`        | `WallLayer`, `traceWalls`: Wände vorab gezeichnet, mit Lichthof.                      |
 | `trail-painter.ts`     | `TrailPainter`: Leuchtspur nach Helligkeitsstufen gebündelt.                          |
 | `dot-painter.ts`       | `DotPainter`: Lichtpunkt, am Haltepunkt pulsierend.                                   |
+| `photo-painter.ts`     | `PhotoPainter`, `PhotoImages`: das Foto einer Seite, je Runde schärfer.               |
 | `monitor-effects.ts`   | `MonitorEffects`: Glasscheibe, Flimmern, Bildstörung.                                 |
 | `glitch-scheduler.ts`  | `GlitchScheduler`: würfelt, wann eine Bildstörung beginnt.                            |
 | `motion-preference.ts` | Port `MotionPreference` und `MediaQueryMotionPreference`.                             |
@@ -22,8 +23,8 @@ eine Attrappe dafür, die jeden Aufruf aufzeichnet (`test-support/recording-cont
 
 ## Reihenfolge eines Bildes
 
-Maßstab setzen → Hintergrund füllen → alte Seite (Wände, beschnitten auf das Labyrinth: Leuchtspur
-und Lichtpunkt) → beim Weiterschieben die neue Seite (nur Wände) → Bildstörung → Flimmern →
+Maßstab setzen → Hintergrund füllen → alte Seite (Wände, Foto, beschnitten auf das Labyrinth:
+Leuchtspur und Lichtpunkt) → beim Weiterschieben die neue Seite (Wände, Foto ganz grob) → Bildstörung → Flimmern →
 Glasscheibe.
 
 Bei weniger Bewegung (`prefers-reduced-motion`) entfallen Flimmern und Bildstörung; der Lichtpunkt
@@ -92,17 +93,32 @@ voll groß. Zeichnet nichts, wenn der Lichtpunkt nicht zu sehen ist.
 | `drawGlitch(context, canvas, glitch, ...)` | Kopiert die Zeilen des Störbalkens (mit Rand) aus dem fertigen Bild auf eine eigene Fläche; im Störbalken werden schmale Streifen (2 bis 7 Pixel hoch) von dieser Kopie seitlich versetzt darübergelegt, dazu ein heller Schleier (addierend) und 12 Rausch-Striche. Die Kopie ist nötig: Ein Canvas auf sich selbst zu zeichnen, kostete je Streifen eine Kopie des ganzen Canvas (216 ms je Bild auf einem gedrosselten Handy, jetzt 32 ms). |
 | `discardPreparedImages()`                  | Wirft die vorab gezeichnete Glasscheibe und die Kopie für Bildstörungen weg.                                                                                                                                                                                                                                                                                                                                                                   |
 
+## PhotoPainter
+
+Zeichnet das Foto einer Seite in das Feld, das der Rahmen umschließt (um die halbe Wandbreite
+eingerückt, damit der Rahmen ganz zu sehen bleibt). Wie grob es ist, hängt davon ab, wie viele
+Runden der Lichtpunkt schon gelaufen ist (`lapEnds` der Seite gegen `progress`): vorher ein
+Pixelblock je zwei Zellen, nach der ersten Runde je Zelle, nach der zweiten je halbe Zelle, nach
+der dritten scharf (`CELLS_PER_BLOCK`).
+
+| Methode                                           | Was sie konkret tut                                                                                                                                                                                                  |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(createLayer, images)`                | Nimmt die Flächen-Fabrik und `images` (`PhotoImages`): liefert das Bild eines Fotos, sobald es geladen ist, sonst `undefined`.                                                                                       |
+| `draw(context, page, progress, layout, settings)` | Zeichnet nichts ohne Foto auf der Seite oder solange das Bild nicht geladen ist. Scharf: das Bild direkt. Verpixelt: die verkleinerte Fläche ohne Glätten (`imageSmoothingEnabled = false`) auf volle Größe gezogen. |
+| `discardPreparedImages()`                         | Wirft die verkleinerten Flächen weg.                                                                                                                                                                                 |
+| `shrunk` (privat)                                 | Das Foto verkleinert auf so viele Pixel, wie es Blöcke hat (mit `imageSmoothingQuality = high`); je Foto und Stufe nur einmal gezeichnet.                                                                            |
+
 ## CanvasRenderer
 
 | Methode                           | Was sie konkret tut                                                                                                                                                                                                                                                                                           |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `constructor(parts)`              | Nimmt Canvas, Zeichenwerkzeug, Flächen-Fabrik, Zufall, Bewegungswunsch, Einstellungen und die erste Einteilung der Bühne.                                                                                                                                                                                     |
+| `constructor(parts)`              | Nimmt Canvas, Zeichenwerkzeug, Flächen-Fabrik, Zufall, Bewegungswunsch, Einstellungen, die erste Einteilung der Bühne und die Bilder der Fotos (`photos`).                                                                                                                                                    |
 | `resize(layout)`                  | Setzt Anzeigegröße und Auflösung des Canvas, wirft alles Vorgezeichnete weg und beendet eine Störung.                                                                                                                                                                                                         |
 | `prepare(page)`                   | Zeichnet vorab, was die Seite braucht, in Stücken (`Steps`): erst die Glasscheibe (`prepareOverlay`, eine Pause), dann die Wände (`WallLayer.prepare`, zwei Pausen). Danach kostet das Zeichnen der Seite nur noch das Kopieren. Die Seitenquelle der Bühne ruft es auf, bevor die Animation die Seite zeigt. |
 | `draw(view, seconds)`             | Ein Bild (Reihenfolge siehe oben). Setzt den Maßstab vor jedem Bild neu, weil der Browser den Zeichenzustand jederzeit vergessen darf. Zeichnet die Wände der nächsten Seite nur beim Weiterschieben (vorab geschieht das über `prepare`) und wirft nicht mehr gebrauchte Wandbilder weg.                     |
-| `discardPreparedImages()`         | Wirft Wände und Glasscheibe weg (Seite kommt aus dem Hintergrund zurück, `contextrestored`).                                                                                                                                                                                                                  |
+| `discardPreparedImages()`         | Wirft Wände, verkleinerte Fotos und Glasscheibe weg (Seite kommt aus dem Hintergrund zurück, `contextrestored`).                                                                                                                                                                                              |
 | `isGlitching`                     | Läuft eine Störung? Dann muss weitergezeichnet werden, auch wenn die Animation steht.                                                                                                                                                                                                                         |
-| `drawPages` / `drawPage` (privat) | Zeichnen die aktuelle Seite (mit Spur und Lichtpunkt, beschnitten auf die Labyrinth-Fläche) und die Folgeseite beim Weiterschieben, um die berechnete Verschiebung versetzt.                                                                                                                                  |
+| `drawPages` / `drawPage` (privat) | Zeichnen die aktuelle Seite (Wände, Foto so scharf wie die gelaufenen Runden, Spur und Lichtpunkt beschnitten auf die Labyrinth-Fläche) und die Folgeseite beim Weiterschieben (Wände, Foto ganz grob), um die berechnete Verschiebung versetzt.                                                              |
 
 ## test-support für dieses Verzeichnis
 

@@ -1,10 +1,12 @@
 import type { Answer } from "../answering/answer";
+import { contentOf } from "../answering/answer-content";
 import type { AnswerSource } from "../answering/answer-source";
+import type { AnswerContent } from "../domain/pages/answer-content";
 
 /**
- * Der Wechsel von Frage und Antwort: Fragen gehen an die Antwortquelle, der Text der Antwort geht
- * auf die Bühne (zum Schreiben) und an den Screenreader (zum Vorlesen). Ein Gimmick der Antwort
- * zeigt das Frontend noch nicht; es schreibt immer den Text.
+ * Der Wechsel von Frage und Antwort: Fragen gehen an die Antwortquelle, die Antwort geht auf die
+ * Bühne (zum Schreiben; ein bekanntes Gimmick als Bild, siehe `contentOf`) und ihr Text an den
+ * Screenreader (zum Vorlesen).
  */
 export class Conversation {
   private latestQuestion = 0;
@@ -12,7 +14,7 @@ export class Conversation {
 
   public constructor(
     private readonly source: AnswerSource,
-    private readonly stage: { show(reply: Promise<string>): void },
+    private readonly stage: { show(reply: Promise<AnswerContent>): void },
     private readonly spoken: { show(text: string): void },
   ) {}
 
@@ -34,13 +36,13 @@ export class Conversation {
   private present(reply: Promise<Answer>): void {
     this.latestQuestion++;
     const question = this.latestQuestion;
-    const text = reply.then((answer) => {
+    const content = reply.then((answer) => {
       if (question === this.latestQuestion) {
         this.lastAnswer = answer;
         this.spoken.show(answer.text);
       }
-      return answer.text;
+      return contentOf(answer);
     });
-    this.stage.show(text);
+    this.stage.show(content);
   }
 }

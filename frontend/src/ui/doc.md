@@ -47,13 +47,13 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 
 ## Conversation
 
-| Methode                              | Was sie konkret tut                                                                                                                                                                  |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `constructor(source, stage, spoken)` | Nimmt Antwortquelle, Bühne und Screenreader-Bereich.                                                                                                                                 |
-| `start()`                            | Holt die Begrüßung (leere Frage).                                                                                                                                                    |
-| `ask(question)`                      | Holt die Antwort auf die Frage.                                                                                                                                                      |
-| `replay()`                           | Schreibt die zuletzt eingetroffene Antwort noch einmal, wie eine neue. Ohne Antwort: nichts.                                                                                         |
-| `present` (privat)                   | Gibt der Bühne das Versprechen für den Text. Sobald die Antwort da ist (und keine neuere Frage gestellt wurde), merkt sie sie sich und liest sie vor. Das Gimmick bleibt unbeachtet. |
+| Methode                              | Was sie konkret tut                                                                                                                                                                                                                           |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(source, stage, spoken)` | Nimmt Antwortquelle, Bühne und Screenreader-Bereich.                                                                                                                                                                                          |
+| `start()`                            | Holt die Begrüßung (leere Frage).                                                                                                                                                                                                             |
+| `ask(question)`                      | Holt die Antwort auf die Frage.                                                                                                                                                                                                               |
+| `replay()`                           | Schreibt die zuletzt eingetroffene Antwort noch einmal, wie eine neue. Ohne Antwort: nichts.                                                                                                                                                  |
+| `present` (privat)                   | Gibt der Bühne das Versprechen für den Inhalt (`contentOf`: Text, Bild oder Foto). Sobald die Antwort da ist (und keine neuere Frage gestellt wurde), merkt sie sie sich und liest ihren Text vor; ein unbekanntes Gimmick bleibt unbeachtet. |
 
 ## Stage
 

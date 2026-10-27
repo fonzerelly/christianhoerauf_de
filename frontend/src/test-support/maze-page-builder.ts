@@ -1,6 +1,6 @@
 import { RectangularGrid } from "../domain/maze/rectangular-grid";
 import type { Position } from "../domain/maze/position";
-import type { MazePage } from "../domain/pages/maze-page-generator";
+import type { MazePage, PagePhoto } from "../domain/pages/maze-page-generator";
 import type { Gate } from "../domain/route/gate";
 import type { RouteStep, StepKind } from "../domain/route/route-step";
 
@@ -22,6 +22,7 @@ export function mazePage(options: {
   entrance?: Gate;
   exit?: Gate;
   lastGlyphEnd?: number;
+  photo?: PagePhoto;
 }): MazePage {
   const columns = options.columns ?? 2;
   const rows = options.rows ?? 2;
@@ -36,5 +37,6 @@ export function mazePage(options: {
     exit: options.exit ?? { cell: { x: columns - 1, y: rows - 1 }, side: "right" },
     lines: [],
     lastGlyphEnd: options.lastGlyphEnd ?? 0,
+    ...(options.photo === undefined ? {} : { photo: options.photo }),
   };
 }

@@ -11,6 +11,8 @@ export type DrawingContext = Pick<
   | "lineCap"
   | "globalAlpha"
   | "globalCompositeOperation"
+  | "imageSmoothingEnabled"
+  | "imageSmoothingQuality"
   | "shadowColor"
   | "shadowBlur"
   | "save"

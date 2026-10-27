@@ -9,6 +9,7 @@
 export type Phase = "writing" | "resting" | "fading" | "scrolling" | "waiting";
 
 import type { Position } from "../domain/maze/position";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 
 /**
@@ -46,8 +47,8 @@ export interface PlaybackView {
 
 /** Der Ablauf der Animation, wie die Bühne ihn steuert: Fragen stellen, Zeit vergehen lassen, ansehen. */
 export interface Playback extends PlaybackView {
-  /** Eine Frage wurde gestellt; `reply` liefert den Text der Antwort. */
-  request(reply: Promise<string>): void;
+  /** Eine Frage wurde gestellt; `reply` liefert, was geschrieben wird: den Text oder ein Bild. */
+  request(reply: Promise<AnswerContent>): void;
   /** Lässt `seconds` Sekunden vergehen. */
   advance(seconds: number): void;
   /** Wie viele Antworten schon angekommen sind (die Begrüßung eingerechnet). */

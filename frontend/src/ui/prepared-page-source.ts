@@ -1,5 +1,6 @@
 import type { PageSource } from "../animation/page-source";
 import { itemAt } from "../domain/lists";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import type { PaginatedAnswer } from "../domain/pages/answer-paginator";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { Gate } from "../domain/route/gate";
@@ -9,7 +10,7 @@ import type { ScheduleTask } from "./step-runner";
 
 /** Erzeugt die Seiten einer Antwort in Stücken; der `AnswerPaginator` der Domäne erfüllt das. */
 export interface PageProducer {
-  paginateInSteps(answer: string, seed: number, exitBefore?: Gate): Steps<PaginatedAnswer>;
+  paginateInSteps(answer: AnswerContent, seed: number, exitBefore?: Gate): Steps<PaginatedAnswer>;
   restingStepOf(page: MazePage): number;
 }
 
@@ -35,7 +36,11 @@ export class PreparedPageSource implements PageSource {
     private readonly scheduleTask: ScheduleTask,
   ) {}
 
-  public async paginate(answer: string, seed: number, exitBefore?: Gate): Promise<PaginatedAnswer> {
+  public async paginate(
+    answer: AnswerContent,
+    seed: number,
+    exitBefore?: Gate,
+  ): Promise<PaginatedAnswer> {
     const result = await runInTasks(
       this.producer.paginateInSteps(answer, seed, exitBefore),
       this.scheduleTask,

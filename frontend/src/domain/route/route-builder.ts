@@ -2,6 +2,8 @@ import type { Font } from "../font/font";
 import { CHAR_ADVANCE, GLYPH_HEIGHT } from "../font/glyph";
 import { widthInCharacters } from "../font/text-width";
 import { itemAt } from "../lists";
+import type { Position } from "../maze/position";
+import type { Picture } from "../picture/picture";
 import type { AreaPathFinder } from "./area-path-finder";
 import { cellOutside } from "./gate";
 import type { Gate } from "./gate";
@@ -11,10 +13,17 @@ import type { RouteStep } from "./route-step";
 import { RouteTrace } from "./route-trace";
 import { Territories } from "./territories";
 import { lineAdvanceOf, lineLeftOf } from "./text-block-layout";
-import type { TextBlock } from "./text-block-layout";
+import type { Rectangle, TextBlock } from "./text-block-layout";
 
 /** Wie viele Zellen der Lichtpunkt vor dem Eingang startet und hinter dem Ausgang verschwindet. */
 const STEPS_OUTSIDE = 2;
+
+/**
+ * So viele Zeilen unter einem Bild gehören noch zu ihm: In der untersten kommt der Lichtpunkt von
+ * links heran und steigt senkrecht zum Anfang des Bilds hinauf; in der obersten geht er danach
+ * nach rechts hinaus.
+ */
+export const ROWS_BELOW_PICTURE = 3;
 
 export interface RouteSettings {
   /** Umwege bei An- und Ablauf (0 bis 1). */
@@ -31,13 +40,21 @@ export interface BuiltRoute {
   readonly lastGlyphEnd: number;
 }
 
+/** Die Route um ein Foto: dazu, wo jede Runde um den Rahmen endet. */
+export interface PhotoRoute extends BuiltRoute {
+  /** Index des Wegstücks, auf dem die Runde endet, je Runde. */
+  readonly lapEnds: readonly number[];
+}
+
 /**
  * Baut den kompletten Weg des Lichtpunkts über eine Labyrinth-Seite: von außerhalb durch den
  * Eingang, in Windungen zum Text, durch alle Glyphen, in Windungen zum Ausgang und hinaus.
+ * Statt des Texts kann es auch ein Bild sein (`buildPicture`) oder ein Foto, das er umrundet
+ * (`buildPhoto`).
  *
  * Die Route besteht aus drei Teilen:
  * 1. Anlauf: vom Eingang am Rand in Windungen bis links neben den Text
- * 2. Text: durch alle Glyphen
+ * 2. Text: durch alle Glyphen (bzw. das Bild)
  * 3. Ablauf: von rechts neben dem Text in Windungen zum Ausgang am Rand
  */
 export class RouteBuilder {
@@ -55,11 +72,103 @@ export class RouteBuilder {
     entrance: Gate,
     exit: Gate,
   ): BuiltRoute {
-    const territories = new Territories(block, columns, entrance, exit);
     const gateIn = { x: block.left - 2, y: block.top + GLYPH_HEIGHT };
     const gateOut = { x: block.right + 2, y: block.bottom };
+    return this.assemble(block, columns, entrance, exit, gateIn, gateOut, (trace) => {
+      this.appendTextRoute(trace, lines, columns, block);
+    });
+  }
 
-    // Die Reihenfolge der Zufallsziehungen ist festgelegt: Anlauf, Ablauf, dann der Text.
+  /**
+   * Wie `build`, aber statt des Texts zeichnet der Lichtpunkt ein Bild, dessen Feld mit der linken
+   * oberen Zelle bei (`left`, `top`) liegt. Der Weg des Bilds muss in seiner untersten Zeile
+   * beginnen und dort enden (wie bei einer Glyphe).
+   *
+   * Unter dem Bild liegen `ROWS_BELOW_PICTURE` Zeilen, die mit zum Bild gehören: In der untersten
+   * läuft der Lichtpunkt vom Anlauf nach rechts bis unter den Anfang des Bilds und steigt senkrecht
+   * hinauf, er kommt also von unten. Nach dem Bild geht er eine Zelle hinunter und in dieser Zeile
+   * nach rechts zum Ablauf.
+   */
+  public buildPicture(
+    picture: Picture,
+    left: number,
+    top: number,
+    columns: number,
+    entrance: Gate,
+    exit: Gate,
+  ): BuiltRoute {
+    const start = itemAt(picture.glyph, 0);
+    const startColumn = left + start.x;
+    const leaveRow = top + start.y + 1;
+    const block = {
+      left,
+      right: left + picture.width - 1,
+      top,
+      bottom: top + picture.height - 1 + ROWS_BELOW_PICTURE,
+    };
+    const gateIn = { x: block.left - 2, y: block.bottom };
+    const gateOut = { x: block.right + 2, y: leaveRow };
+    return this.assemble(block, columns, entrance, exit, gateIn, gateOut, (trace) => {
+      trace.walkTo(startColumn, block.bottom, "connector");
+      appendGlyph(trace, picture.glyph, left, top); // der erste Wegpunkt: senkrecht hinauf
+      trace.markGlyphEnd();
+      trace.walkTo(startColumn, leaveRow, "connector");
+      trace.walkTo(gateOut.x, gateOut.y, "connector");
+    });
+  }
+
+  /**
+   * Wie `build`, aber statt eines Texts umrundet der Lichtpunkt ein Foto: `frame` ist der Ring von
+   * Zellen direkt um das Foto. Der Lichtpunkt kommt von links in der untersten Zeile des Rahmens an
+   * und läuft `laps`-mal herum (hinauf, nach rechts, hinunter, zurück nach links), mit Schriftwegen,
+   * damit der Rahmen kräftig leuchtet. Danach läuft er unten am Rahmen entlang nach rechts zum Ablauf.
+   *
+   * Das Ende jeder Runde steht in `lapEnds`; das Ende der letzten zählt als Ende der letzten Glyphe
+   * (für den Haltepunkt).
+   */
+  public buildPhoto(
+    frame: Rectangle,
+    laps: number,
+    columns: number,
+    entrance: Gate,
+    exit: Gate,
+  ): PhotoRoute {
+    const gateIn = { x: frame.left - 2, y: frame.bottom };
+    const gateOut = { x: frame.right + 2, y: frame.bottom };
+    const lapEnds: number[] = [];
+    const route = this.assemble(frame, columns, entrance, exit, gateIn, gateOut, (trace) => {
+      trace.walkTo(frame.left, frame.bottom, "connector");
+      for (let lap = 0; lap < laps; lap++) {
+        trace.walkTo(frame.left, frame.top, "letter");
+        trace.walkTo(frame.right, frame.top, "letter");
+        trace.walkTo(frame.right, frame.bottom, "letter");
+        trace.walkTo(frame.left, frame.bottom, "letter");
+        lapEnds.push(trace.steps.length - 1);
+      }
+      trace.markGlyphEnd();
+      trace.walkTo(gateOut.x, gateOut.y, "connector");
+    });
+    return { ...route, lapEnds };
+  }
+
+  /**
+   * Setzt eine Route aus Außenschritten, Anlauf, Mitte, Ablauf und Außenschritten zusammen. Anlauf
+   * und Ablauf suchen sich ihren Weg in ihren Revieren rund um `block`: der Anlauf vom Eingang zum
+   * Tor `gateIn` links des Blocks, der Ablauf vom Tor `gateOut` rechts des Blocks zum Ausgang.
+   * `appendMiddle` muss die Route von `gateIn` bis `gateOut` führen.
+   */
+  private assemble(
+    block: Rectangle,
+    columns: number,
+    entrance: Gate,
+    exit: Gate,
+    gateIn: Position,
+    gateOut: Position,
+    appendMiddle: (trace: RouteTrace) => void,
+  ): BuiltRoute {
+    const territories = new Territories(block, columns, entrance, exit);
+
+    // Die Reihenfolge der Zufallsziehungen ist festgelegt: Anlauf, Ablauf, dann die Mitte.
     const approach = this.areaPathFinder.find(
       (cell) => territories.isApproach(cell),
       entrance.cell,
@@ -80,7 +189,7 @@ export class RouteBuilder {
     approach.forEach((cell) => {
       trace.addStep(cell, "connector");
     });
-    this.appendTextRoute(trace, lines, columns, block);
+    appendMiddle(trace);
     leave.slice(1).forEach((cell) => {
       trace.addStep(cell, "connector"); // das Tor selbst ist schon das Routenende
     });

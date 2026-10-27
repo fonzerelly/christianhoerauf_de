@@ -1,5 +1,6 @@
 import { itemAt, lastOf } from "../domain/lists";
 import type { Position } from "../domain/maze/position";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { RouteStep } from "../domain/route/route-step";
 import type { PageSource } from "./page-source";
@@ -136,14 +137,14 @@ export class AnswerPlayback implements Playback {
    * er geschrieben - es sei denn, inzwischen kam eine neuere Frage. Das Versprechen darf nicht
    * scheitern.
    */
-  public request(reply: Promise<string>): void {
+  public request(reply: Promise<AnswerContent>): void {
     this.latestQuestion++;
     const question = this.latestQuestion;
     this.dropPagesNotYetVisible();
     if (this.isMoving()) this.rushVisiblePages();
 
-    void reply.then((text) => {
-      if (question === this.latestQuestion) this.acceptAnswer(text, question);
+    void reply.then((content) => {
+      if (question === this.latestQuestion) this.acceptAnswer(content, question);
     });
   }
 
@@ -198,11 +199,11 @@ export class AnswerPlayback implements Playback {
    * denn, inzwischen kam eine neuere Frage. Bis dahin geht die Animation unverändert weiter
    * (der Lichtpunkt pulsiert am Haltepunkt, oder es steht still).
    */
-  private acceptAnswer(text: string, question: number): void {
+  private acceptAnswer(content: AnswerContent, question: number): void {
     const exitBefore = this.pages.length > 0 ? lastOf(this.pages).exit : undefined;
     const seed = this.settings.seed + this.arrivedAnswers;
 
-    void this.pageSource.paginate(text, seed, exitBefore).then(({ pages }) => {
+    void this.pageSource.paginate(content, seed, exitBefore).then(({ pages }) => {
       if (question === this.latestQuestion) this.startAnswer(pages);
     });
   }

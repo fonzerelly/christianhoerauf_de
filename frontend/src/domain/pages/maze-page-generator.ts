@@ -16,12 +16,22 @@ import type { RouteSettings } from "../route/route-builder";
 import type { RouteStep } from "../route/route-step";
 import { layoutTextBlock } from "../route/text-block-layout";
 import { WallBreaker } from "../route/wall-breaker";
+import type { PlacedPhoto } from "./photo-layout";
+import type { PlacedPicture } from "./picture-layout";
 import type { WallBreakSettings } from "../route/wall-breaker";
+
+/** So oft umrundet der Lichtpunkt ein Foto; nach jeder Runde wird es schärfer. */
+const PHOTO_LAPS = 3;
 
 /** Alle Abstimmungswerte, die das Aussehen eines Labyrinths bestimmen. */
 export interface MazeSettings extends RouteSettings, WallBreakSettings {
   /** Gewundenheit der Füll-Gänge (0 bis 1). */
   readonly windiness: number;
+}
+
+/** Ein Foto auf einer Seite: wo es liegt und auf welchem Wegstück jede Runde um es herum endet. */
+export interface PagePhoto extends PlacedPhoto {
+  readonly lapEnds: readonly number[];
 }
 
 /** Eine fertige Labyrinth-Seite: Wände, Route, Eingang und Ausgang und der Text darauf. */
@@ -33,6 +43,8 @@ export interface MazePage {
   readonly lines: readonly string[];
   /** Index des Wegstücks in `route`, auf dem die letzte Glyphe der Seite endet. */
   readonly lastGlyphEnd: number;
+  /** Das Foto, das auf der Seite liegt; die meisten Seiten haben keins. */
+  readonly photo?: PagePhoto;
 }
 
 /**
@@ -104,6 +116,89 @@ export class MazePageGenerator {
 
     this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
     return { grid, route, entrance, exit, lines, lastGlyphEnd };
+  }
+
+  /**
+   * Erzeugt eine Seite, auf der der Lichtpunkt statt eines Texts ein Bild zeichnet. Führt
+   * `generatePictureInSteps` ohne Pause aus.
+   */
+  public generatePicture(placed: PlacedPicture, entrance: Gate): MazePage {
+    return runToEnd(this.generatePictureInSteps(placed, entrance));
+  }
+
+  /**
+   * Wie `generateInSteps`, nur mit dem Bild statt Zeilen: Ausgang wählen, Route durch das Bild
+   * bauen, freibrechen, den Rest wachsen lassen. Lange Wände werden nicht unterbrochen; das gilt
+   * nur den Grundlinien und Bändern eines Texts. Die Seite hat keine Zeilen.
+   */
+  public *generatePictureInSteps(placed: PlacedPicture, entrance: Gate): Steps<MazePage> {
+    const exit = this.borderCellPicker.pickExit(entrance, this.columns, this.rows);
+    const { steps: route, lastGlyphEnd } = this.routeBuilder.buildPicture(
+      placed.picture,
+      placed.left,
+      placed.top,
+      this.columns,
+      entrance,
+      exit,
+    );
+    yield;
+
+    const grid = new RectangularGrid(this.columns, this.rows);
+    this.carveRoute(grid, route);
+    yield;
+
+    this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
+    return { grid, route, entrance, exit, lines: [], lastGlyphEnd };
+  }
+
+  /**
+   * Erzeugt eine Seite, auf der ein Foto liegt, das der Lichtpunkt umrundet. Führt
+   * `generatePhotoInSteps` ohne Pause aus.
+   */
+  public generatePhoto(placed: PlacedPhoto, entrance: Gate): MazePage {
+    return runToEnd(this.generatePhotoInSteps(placed, entrance));
+  }
+
+  /**
+   * Wie `generatePictureInSteps`, nur mit einem Foto: Ausgang wählen, Route bauen, die
+   * `PHOTO_LAPS`-mal um den Rahmen des Fotos läuft (die Zellen direkt ums Foto), freibrechen, das
+   * Feld unter dem Foto zu einem Raum ohne Wände machen, den Rest wachsen lassen. Der Raum ist zum
+   * Rahmen hin geschlossen; seine Wände sind der innere Rand des Rahmens. Da alle seine Zellen
+   * schon erschlossen sind, wächst kein Gang hinein.
+   */
+  public *generatePhotoInSteps(placed: PlacedPhoto, entrance: Gate): Steps<MazePage> {
+    const exit = this.borderCellPicker.pickExit(entrance, this.columns, this.rows);
+    const frame = {
+      left: placed.left - 1,
+      right: placed.left + placed.size,
+      top: placed.top - 1,
+      bottom: placed.top + placed.size,
+    };
+    const {
+      steps: route,
+      lastGlyphEnd,
+      lapEnds,
+    } = this.routeBuilder.buildPhoto(frame, PHOTO_LAPS, this.columns, entrance, exit);
+    yield;
+
+    const grid = new RectangularGrid(this.columns, this.rows);
+    this.carveRoute(grid, route);
+    this.openRoom(grid, placed);
+    yield;
+
+    this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
+    const photo = { ...placed, lapEnds };
+    return { grid, route, entrance, exit, lines: [], lastGlyphEnd, photo };
+  }
+
+  /** Öffnet alle Wände zwischen den Zellen unter dem Foto; die Wände nach außen bleiben. */
+  private openRoom(grid: RectangularGrid, { left, top, size }: PlacedPhoto): void {
+    for (let y = top; y < top + size; y++) {
+      for (let x = left; x < left + size; x++) {
+        if (x + 1 < left + size) grid.connect(grid.idOf(x, y), grid.idOf(x + 1, y));
+        if (y + 1 < top + size) grid.connect(grid.idOf(x, y), grid.idOf(x, y + 1));
+      }
+    }
   }
 
   /** Bricht entlang der Route alle Wände heraus. Außerhalb des Rasters gibt es keine Wände. */

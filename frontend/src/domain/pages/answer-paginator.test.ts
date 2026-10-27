@@ -137,4 +137,81 @@ describe("AnswerPaginator", () => {
     expect(pauses).toBe(2 * expected.pages.length);
     expect(step.value).toEqual(expected);
   });
+
+  describe("mit einem Bild", () => {
+    const HEART = { picture: "heart", text: "<3" } as const;
+
+    it("zeichnet das Bild auf eine einzige Seite ohne Zeilen", () => {
+      const { pages, restingStepIndex } = createPaginator().paginate(HEART, 1);
+      const page = itemAt(pages, 0);
+
+      expect(pages).toHaveLength(1);
+      expect(page.lines).toEqual([]);
+      expect(page.route.filter(({ kind }) => kind === "letter").length).toBeGreaterThan(40);
+      expect(restingStepIndex).toBe(page.lastGlyphEnd + 2);
+    });
+
+    it("schließt auch ein Bild an den Ausgang der vorigen Antwort an", () => {
+      const exitBefore: Gate = { cell: { x: 33, y: 12 }, side: "right" };
+
+      const { pages } = createPaginator().paginate(HEART, 1, exitBefore);
+
+      expect(pages[0]?.entrance).toEqual({ cell: { x: 0, y: 12 }, side: "left" });
+    });
+
+    it("schreibt den Text, wenn das Bild nicht auf die Seite passt", () => {
+      const small = { ...SETTINGS, columns: 20, rows: 14 };
+
+      const { pages } = createPaginator(small).paginate(
+        { picture: "face_with_hand_over_mouth", text: "Ups" },
+        1,
+      );
+
+      expect(pages.flatMap((page) => page.lines)).toEqual(["UPS"]);
+    });
+  });
+
+  describe("mit einem Foto", () => {
+    const CHRIS = { photo: "chris", text: "Das ist Chris." } as const;
+
+    it("legt das Foto auf eine einzige Seite ohne Zeilen; der Haltepunkt liegt hinter der letzten Runde", () => {
+      const { pages, restingStepIndex } = createPaginator().paginate(CHRIS, 1);
+      const page = itemAt(pages, 0);
+
+      expect(pages).toHaveLength(1);
+      expect(page.lines).toEqual([]);
+      // zwei Fünftel von 34 Spalten
+      expect(page.photo?.size).toBe(13);
+      expect(page.photo?.lapEnds).toHaveLength(3);
+      expect(restingStepIndex).toBe(page.lastGlyphEnd + 2);
+    });
+
+    it("legt das Foto je nach Startwert an eine andere Stelle", () => {
+      const places = new Set(
+        [1, 2, 3, 4, 5].map((seed) => {
+          const photo = createPaginator().paginate(CHRIS, seed).pages[0]?.photo;
+          return `${String(photo?.left)},${String(photo?.top)}`;
+        }),
+      );
+
+      expect(places.size).toBeGreaterThan(1);
+    });
+
+    it("schließt auch ein Foto an den Ausgang der vorigen Antwort an", () => {
+      const exitBefore: Gate = { cell: { x: 33, y: 12 }, side: "right" };
+
+      const { pages } = createPaginator().paginate(CHRIS, 1, exitBefore);
+
+      expect(pages[0]?.entrance).toEqual({ cell: { x: 0, y: 12 }, side: "left" });
+    });
+
+    it("schreibt den Text, wenn das Foto nicht auf die Seite passt", () => {
+      const small = { ...SETTINGS, columns: 40, rows: 14 };
+
+      const { pages } = createPaginator(small).paginate(CHRIS, 1);
+
+      expect(pages.flatMap((page) => page.lines)).toEqual(["DAS IST", "CHRIS."]);
+      expect(pages[0]?.photo).toBeUndefined();
+    });
+  });
 });

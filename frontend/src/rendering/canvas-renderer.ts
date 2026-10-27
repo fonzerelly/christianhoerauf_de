@@ -7,6 +7,8 @@ import type { CanvasSurface, DrawingContext, LayerFactory } from "./drawing-cont
 import { GlitchScheduler } from "./glitch-scheduler";
 import { MonitorEffects } from "./monitor-effects";
 import type { MotionPreference } from "./motion-preference";
+import { PhotoPainter } from "./photo-painter";
+import type { PhotoImages } from "./photo-painter";
 import type { Renderer } from "./renderer";
 import type { RenderSettings } from "./render-settings";
 import { scrollShiftsOf } from "./scroll-shifts";
@@ -29,16 +31,19 @@ export interface CanvasRendererParts {
   readonly settings: RenderSettings;
   /** Die erste Einteilung der Bühne. */
   readonly layout: StageLayout;
+  /** Die Bilder der Fotos, sobald sie geladen sind. */
+  readonly photos: PhotoImages;
 }
 
 /**
- * Zeichnet die Animation auf ein Canvas: Hintergrund, die aktuelle Seite mit Wänden, Leuchtspur
- * und Lichtpunkt (beim Weiterschieben auch die nächste), darüber der Monitor. Wünscht der
+ * Zeichnet die Animation auf ein Canvas: Hintergrund, die aktuelle Seite mit Wänden, Foto,
+ * Leuchtspur und Lichtpunkt (beim Weiterschieben auch die nächste), darüber der Monitor. Wünscht der
  * Besucher weniger Bewegung, entfallen Flimmern und Bildstörung.
  */
 export class CanvasRenderer implements Renderer {
   private layout: StageLayout;
   private readonly walls: WallLayer;
+  private readonly photo: PhotoPainter;
   private readonly trail = new TrailPainter();
   private readonly dot = new DotPainter();
   private readonly monitor: MonitorEffects;
@@ -47,6 +52,7 @@ export class CanvasRenderer implements Renderer {
   public constructor(private readonly parts: CanvasRendererParts) {
     this.layout = parts.layout;
     this.walls = new WallLayer(parts.createLayer);
+    this.photo = new PhotoPainter(parts.createLayer, parts.photos);
     this.monitor = new MonitorEffects(parts.createLayer, parts.random);
     this.glitches = new GlitchScheduler(parts.random);
     this.resize(parts.layout);
@@ -69,6 +75,7 @@ export class CanvasRenderer implements Renderer {
 
   public discardPreparedImages(): void {
     this.walls.clear();
+    this.photo.discardPreparedImages();
     this.monitor.discardPreparedImages();
   }
 
@@ -131,7 +138,11 @@ export class CanvasRenderer implements Renderer {
     this.walls.keepOnly(next === undefined ? [page] : [page, next]);
   }
 
-  /** Zeichnet eine Seite um `shift` verschoben. Spur und Lichtpunkt gibt es nur auf der aktuellen (mit `view`). */
+  /**
+   * Zeichnet eine Seite um `shift` verschoben: Wände, darüber ein Foto, falls die Seite eins hat.
+   * Spur und Lichtpunkt gibt es nur auf der aktuellen (mit `view`); auf der nächsten ist der
+   * Lichtpunkt noch nicht gelaufen, ihr Foto also noch ganz grob.
+   */
   private drawPage(page: MazePage, shift: Shift, view: PlaybackView | undefined): void {
     const { context, settings, motion } = this.parts;
     const { layout } = this;
@@ -139,6 +150,7 @@ export class CanvasRenderer implements Renderer {
     context.save();
     context.translate(shift.x, shift.y);
     this.walls.draw(context, page, layout, settings);
+    this.photo.draw(context, page, view?.progress ?? 0, layout, settings);
     if (view !== undefined) {
       // Beschnitten auf die Labyrinth-Fläche: So taucht der Punkt am Eingang auf und verschwindet am Ausgang.
       context.save();
