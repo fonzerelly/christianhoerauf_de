@@ -67,5 +67,5 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 | `Gimmick` | Schnittstelle eines Gimmicks: `name`, `description` (beschreibt die Absicht) und `answer(question)`, das eine `Answer` liefert. |
 | `GimmickRegistry.register(gimmick)` | Meldet ein Gimmick an. In Stufe 1 ruft niemand das auf. |
 | `GimmickRegistry.gimmicks` | Die angemeldeten Gimmicks als Tupel; anfangs leer. |
-| `gimmick_for(intent)` | Das `gimmick`-Objekt zur Absicht: Flirt → `{"type": "heart"}`, sexuell → `{"type": "face_with_hand_over_mouth"}`, alle anderen (auch Bild, das noch fehlt) → `None`. Liefert jedes Mal eine eigene Kopie, damit niemand die Tabelle verändert. |
+| `gimmick_for(intent)` | Das `gimmick`-Objekt zur Absicht: Flirt → `{"type": "heart"}`, Bild (`christian/picture`) → `{"type": "photo"}`, sexuell → `{"type": "face_with_hand_over_mouth"}`, alle anderen → `None`. Liefert jedes Mal eine eigene Kopie, damit niemand die Tabelle verändert. |
 | `GimmickRegistry.descriptions()` | Die Beschreibungen aller angemeldeten Gimmicks, daraus entsteht später die Auswahl der Absichten. |

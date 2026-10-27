@@ -33,10 +33,14 @@ def test_sexual_shows_the_face_with_hand_over_mouth() -> None:
     assert gimmick_for(Intent.SEXUAL) == {"type": "face_with_hand_over_mouth"}
 
 
-def test_only_flirt_and_sexual_have_a_gimmick_so_far() -> None:
+def test_picture_shows_the_photo_of_chris() -> None:
+    assert gimmick_for(Intent.PICTURE) == {"type": "photo"}
+
+
+def test_only_flirt_picture_and_sexual_have_a_gimmick() -> None:
     with_gimmick = [intent for intent in Intent if gimmick_for(intent) is not None]
 
-    assert with_gimmick == [Intent.FLIRT, Intent.SEXUAL]
+    assert with_gimmick == [Intent.FLIRT, Intent.PICTURE, Intent.SEXUAL]
 
 
 def test_the_gimmick_is_a_copy_the_caller_may_change() -> None:

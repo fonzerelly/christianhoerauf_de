@@ -30,10 +30,11 @@ class GimmickRegistry:
         return [gimmick.description for gimmick in self._gimmicks]
 
 
-# Das Frontend zeichnet zu diesen Absichten ein Bild statt des Textes (ADR 0003, Nachtrag
-# 2026-10-27). Das Bild von Chris (`christian/picture`) kommt später dazu.
+# Das Frontend zeichnet zu diesen Absichten ein Bild statt des Textes bzw. legt das Foto von
+# Chris auf die Seite (ADR 0003, Nachträge 2026-10-27 und 2026-10-28).
 _GIMMICKS: dict[Intent, dict[str, object]] = {
     Intent.FLIRT: {"type": "heart"},
+    Intent.PICTURE: {"type": "photo"},
     Intent.SEXUAL: {"type": "face_with_hand_over_mouth"},
 }
 

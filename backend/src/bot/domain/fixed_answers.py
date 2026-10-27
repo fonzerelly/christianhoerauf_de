@@ -98,8 +98,8 @@ _INTENT_TEXTS: dict[Intent, dict[Language, str]] = {
         "en": "I'm the wrong bot for this kind of question.",
     },
     Intent.PICTURE: {
-        "de": "Ein Foto von Chris zeige ich dir bald. Ich lerne gerade noch, wie das geht.",
-        "en": "I hope I'll be able to show you a picture of him soon.",
+        "de": "Das ist Chris.",
+        "en": "This is Chris.",
     },
 }
 

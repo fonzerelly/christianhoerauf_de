@@ -46,8 +46,8 @@ EXPECTED: dict[Intent, tuple[str, str]] = {
         "I'm the wrong bot for this kind of question.",
     ),
     Intent.PICTURE: (
-        "Ein Foto von Chris zeige ich dir bald. Ich lerne gerade noch, wie das geht.",
-        "I hope I'll be able to show you a picture of him soon.",
+        "Das ist Chris.",
+        "This is Chris.",
     ),
 }
 
