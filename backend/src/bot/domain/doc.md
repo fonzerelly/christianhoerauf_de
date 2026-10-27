@@ -21,7 +21,7 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 
 | Name | Was es konkret tut |
 |---|---|
-| `ReactionKind` | Was der Bot auf eine Absicht tut: `GENERAL_ANSWER` (Modell antwortet mit dem allgemeinen Prompt), `TASK_ANSWER` (Modell antwortet mit dem Auftrags-Prompt), `KNOWLEDGE_BASE_ANSWER` (Modell antwortet nur aus den freigegebenen Texten der Wissensbasis), `FIXED_TEXT`, `GIMMICK` (vorerst ein fester Text, bis das Frontend das Gimmick zeigt). |
+| `ReactionKind` | Was der Bot auf eine Absicht tut: `GENERAL_ANSWER` (Modell antwortet mit dem allgemeinen Prompt), `TASK_ANSWER` (Modell antwortet mit dem Auftrags-Prompt), `KNOWLEDGE_BASE_ANSWER` (Modell antwortet nur aus den freigegebenen Texten der Wissensbasis), `FIXED_TEXT`, `GIMMICK` (fester Text plus ein `gimmick`-Objekt, siehe `gimmick_for`). |
 | `reaction_for(intent)` | Wissen und Smalltalk → `GENERAL_ANSWER`, Auftrag → `TASK_ANSWER`, Laufbahn (`christian/career`) → `KNOWLEDGE_BASE_ANSWER`, Flirt, Bild und sexuell → `GIMMICK`, alles andere → `FIXED_TEXT`. Eine neue Absicht bekommt also einen festen Text, bis sie bewusst eingetragen wird. |
 
 ## language.py
@@ -67,4 +67,5 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 | `Gimmick` | Schnittstelle eines Gimmicks: `name`, `description` (beschreibt die Absicht) und `answer(question)`, das eine `Answer` liefert. |
 | `GimmickRegistry.register(gimmick)` | Meldet ein Gimmick an. In Stufe 1 ruft niemand das auf. |
 | `GimmickRegistry.gimmicks` | Die angemeldeten Gimmicks als Tupel; anfangs leer. |
+| `gimmick_for(intent)` | Das `gimmick`-Objekt zur Absicht: Flirt → `{"type": "heart"}`, sexuell → `{"type": "face_with_hand_over_mouth"}`, alle anderen (auch Bild, das noch fehlt) → `None`. Liefert jedes Mal eine eigene Kopie, damit niemand die Tabelle verändert. |
 | `GimmickRegistry.descriptions()` | Die Beschreibungen aller angemeldeten Gimmicks, daraus entsteht später die Auswahl der Absichten. |

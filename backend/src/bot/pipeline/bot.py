@@ -11,6 +11,7 @@ from bot.domain.cost_protection import (
     visitor_tag,
 )
 from bot.domain.fixed_answers import FixedAnswerKind, fixed_answer, intent_answer
+from bot.domain.gimmick import gimmick_for
 from bot.domain.intent import Intent
 from bot.domain.language import Language, guess_language
 from bot.domain.reaction import ReactionKind, reaction_for
@@ -95,10 +96,13 @@ class Bot:
         except LanguageModelError:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable")
         # 4. Reaktion: fester Text oder Gimmick ohne weiteren Modellaufruf, sonst das Modell.
+        #    Ein Gimmick bringt seinen festen Text mit: für den Screenreader und für ein Frontend,
+        #    das das Gimmick nicht kennt.
         reaction = reaction_for(intent)
         if reaction not in self._answerers:
             name = reaction if reaction is ReactionKind.GIMMICK else ReactionKind.FIXED_TEXT
-            return _Outcome(intent_answer(intent, language), name.value, intent)
+            text = intent_answer(intent, language).text
+            return _Outcome(Answer(text, gimmick_for(intent)), name.value, intent)
         return self._answer_with_model(question, tag, day, language, intent, reaction)
 
     def _answer_with_model(

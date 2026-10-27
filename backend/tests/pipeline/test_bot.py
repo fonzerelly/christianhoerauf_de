@@ -111,9 +111,23 @@ def test_every_other_intent_gets_its_fixed_text_without_an_answer_call(intent: I
 
     answer = setup.bot.ask("Frage?", IP)
 
-    assert answer == intent_answer(intent, "de")
+    assert answer.text == intent_answer(intent, "de").text
     assert setup.answer_model.calls == []
     assert setup.task_model.calls == []
+
+
+def test_flirt_and_sexual_bring_their_gimmick_along_with_the_fixed_text() -> None:
+    setup = Setup([Intent.FLIRT, Intent.SEXUAL, Intent.PICTURE])
+
+    heart = setup.bot.ask("Ich liebe dich, Bot", IP)
+    hand = setup.bot.ask("Was ist Cuckolding?", IP)
+    picture = setup.bot.ask("Zeig mir ein Foto von ihm", IP)
+
+    assert heart == Answer(intent_answer(Intent.FLIRT, "de").text, {"type": "heart"})
+    assert hand == Answer(
+        intent_answer(Intent.SEXUAL, "de").text, {"type": "face_with_hand_over_mouth"}
+    )
+    assert picture == intent_answer(Intent.PICTURE, "de")
 
 
 def test_fixed_text_comes_in_the_language_of_the_question() -> None:
