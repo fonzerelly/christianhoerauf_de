@@ -45,6 +45,7 @@ class Bot:
         log: Log,
         secret: str,
         cache_version: str = "",
+        knowledge_answerer: GeneralAnswerer | None = None,
     ) -> None:
         self._classifier = classifier
         self._cache_version = cache_version
@@ -52,6 +53,10 @@ class Bot:
             ReactionKind.GENERAL_ANSWER: answerer,
             ReactionKind.TASK_ANSWER: task_answerer,
         }
+        # Ohne freigegebene Texte gibt es keine Antwort aus der Wissensbasis; die Absicht bekommt
+        # dann ihren festen Text.
+        if knowledge_answerer is not None:
+            self._answerers[ReactionKind.KNOWLEDGE_BASE_ANSWER] = knowledge_answerer
         self._store = store
         self._clock = clock
         self._log = log
@@ -92,7 +97,8 @@ class Bot:
         # 4. Reaktion: fester Text oder Gimmick ohne weiteren Modellaufruf, sonst das Modell.
         reaction = reaction_for(intent)
         if reaction not in self._answerers:
-            return _Outcome(intent_answer(intent, language), reaction.value, intent)
+            name = reaction if reaction is ReactionKind.GIMMICK else ReactionKind.FIXED_TEXT
+            return _Outcome(intent_answer(intent, language), name.value, intent)
         return self._answer_with_model(question, tag, day, language, intent, reaction)
 
     def _answer_with_model(

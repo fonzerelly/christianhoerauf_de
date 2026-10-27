@@ -21,8 +21,8 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 
 | Name | Was es konkret tut |
 |---|---|
-| `ReactionKind` | Was der Bot auf eine Absicht tut: `GENERAL_ANSWER` (Modell antwortet mit dem allgemeinen Prompt), `TASK_ANSWER` (Modell antwortet mit dem Auftrags-Prompt), `FIXED_TEXT`, `GIMMICK` (vorerst ein fester Text, bis das Frontend das Gimmick zeigt). |
-| `reaction_for(intent)` | Wissen und Smalltalk → `GENERAL_ANSWER`, Auftrag → `TASK_ANSWER`, Flirt, Bild und sexuell → `GIMMICK`, alles andere → `FIXED_TEXT`. Eine neue Absicht bekommt also einen festen Text, bis sie bewusst eingetragen wird. |
+| `ReactionKind` | Was der Bot auf eine Absicht tut: `GENERAL_ANSWER` (Modell antwortet mit dem allgemeinen Prompt), `TASK_ANSWER` (Modell antwortet mit dem Auftrags-Prompt), `KNOWLEDGE_BASE_ANSWER` (Modell antwortet nur aus den freigegebenen Texten der Wissensbasis), `FIXED_TEXT`, `GIMMICK` (vorerst ein fester Text, bis das Frontend das Gimmick zeigt). |
+| `reaction_for(intent)` | Wissen und Smalltalk → `GENERAL_ANSWER`, Auftrag → `TASK_ANSWER`, Laufbahn (`christian/career`) → `KNOWLEDGE_BASE_ANSWER`, Flirt, Bild und sexuell → `GIMMICK`, alles andere → `FIXED_TEXT`. Eine neue Absicht bekommt also einen festen Text, bis sie bewusst eingetragen wird. |
 
 ## language.py
 

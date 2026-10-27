@@ -47,11 +47,19 @@ class Setup:
         answers: list[str | Exception] | None = None,
         task_answers: list[str | Exception] | None = None,
         cache_version: str = "",
+        knowledge_answers: list[str | Exception] | None = None,
     ) -> None:
         replies = [gate(i) if isinstance(i, Intent) else i for i in intents]
         self.intent_model = FakeLanguageModel(replies)
         self.answer_model = FakeLanguageModel(answers or [])
         self.task_model = FakeLanguageModel(task_answers or [])
+        self.knowledge_model = FakeLanguageModel(knowledge_answers or [])
+        # Ohne `knowledge_answers` ist nichts freigegeben: der Bot bekommt keine Wissensbasis.
+        knowledge_answerer = (
+            None
+            if knowledge_answers is None
+            else GeneralAnswerer(self.knowledge_model, "WISSENSBASIS")
+        )
         self.store = MemoryStore()
         self.log = ListLog()
         self.bot = Bot(
@@ -63,6 +71,7 @@ class Setup:
             self.log,
             SECRET,
             cache_version=cache_version,
+            knowledge_answerer=knowledge_answerer,
         )
 
     def visitor_count_after_one_more(self) -> int:
@@ -273,3 +282,31 @@ def test_answers_cached_by_an_earlier_rollout_are_not_used() -> None:
 
     assert setup.bot.ask("Frage?", IP).text == "Neu."
     assert setup.store.read(cache_key("Frage?", DAY, version="neu")) == "Neu."
+
+
+def test_career_is_answered_from_the_knowledge_base_when_texts_are_released() -> None:
+    setup = Setup([Intent.CAREER], knowledge_answers=["Chris war bei Navigon."])
+
+    answer = setup.bot.ask("Wo war er nach dem Studium?", IP)
+
+    assert answer == Answer(text="Chris war bei Navigon.")
+    assert setup.knowledge_model.calls[0][0] == {"role": "system", "content": "WISSENSBASIS"}
+    assert setup.answer_model.calls == []
+    assert setup.log.records[0]["outcome"] == "answered"
+
+
+def test_career_answers_count_for_the_visitor() -> None:
+    setup = Setup([Intent.CAREER], knowledge_answers=["Chris war bei Navigon."])
+
+    setup.bot.ask("Wo war er nach dem Studium?", IP)
+
+    assert setup.visitor_count_after_one_more() == 2
+
+
+def test_without_released_texts_career_gets_its_fixed_text_and_logs_it_as_such() -> None:
+    setup = Setup([Intent.CAREER])
+
+    answer = setup.bot.ask("Wo war er nach dem Studium?", IP)
+
+    assert answer == intent_answer(Intent.CAREER, "de")
+    assert setup.log.records[0]["outcome"] == "fixed_text"

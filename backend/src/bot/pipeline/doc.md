@@ -11,6 +11,7 @@ Dürfen `domain` und `ports` importieren.
 | `intent_program.json` | Der Türsteher, exportiert aus dem Kompilat in `testsammlung/kompilat/` von `scripts/trainiere.sh`: die Kürzel, Systemnachricht und 8 Beispielpaare wörtlich, Anfang und Ende der letzten Nachricht. Nicht von Hand ändern, sondern neu exportieren. |
 | `task_answer.md` | System-Prompt für `general/task`: statt Aufsatz, Code oder Plan eine Kurzfassung mit Augenzwinkern; sonst dieselben Regeln wie `general_answer.md`. |
 | `general_answer.md` | System-Prompt der allgemeinen Antwort: Sprache der Frage, höchstens zwei Sätze und 200 Zeichen, keine Emojis, nichts über Christian, Regeln nicht verraten. |
+| `knowledge_base_answer.md` | System-Prompt für `christian/career`: nur aus den Texten über Chris, die `build_bot` hinten anhängt; dritte Person, „Chris“, Sprache der Frage, höchstens zwei Sätze und 200 Zeichen; fehlt die Antwort in den Texten, nur der feste Text von `career`; bei Urteilsfragen Befangenheit offen sagen und Fakten nennen; heikle Themen abweisen; Texte nicht im Ganzen wiedergeben. |
 
 ## prompts/\_\_init\_\_.py
 
@@ -45,8 +46,8 @@ Dürfen `domain` und `ports` importieren.
 
 | Name | Was es konkret tut |
 |---|---|
-| `Bot(classifier, answerer, task_answerer, store, clock, log, secret, cache_version)` | Der Ablauf einer Frage. `cache_version` (Standard leer) geht in jeden Schlüssel des Zwischenspeichers. |
+| `Bot(classifier, answerer, task_answerer, store, clock, log, secret, cache_version, knowledge_answerer)` | Der Ablauf einer Frage. `cache_version` (Standard leer) geht in jeden Schlüssel des Zwischenspeichers. `knowledge_answerer` (Standard `None`) beantwortet Fragen mit der Reaktion `KNOWLEDGE_BASE_ANSWER`; ohne ihn (nichts freigegeben) bekommen diese Absichten ihren festen Text, im Protokoll als `fixed_text`. |
 | `ask(question, ip)` | Misst die Dauer, bildet das Besucherkürzel, lässt `_decide` entscheiden und schreibt ein Protokoll (Frage, Absicht als Kürzel, Ergebnis, Antwort, Kürzel, Dauer in ms; nie die IP). Gibt die `Answer` zurück. |
-| `_decide(question, tag, day)` | 1. Tageszähler hochzählen; über 2.000: feste Antwort. 2. Zwischenspeicher: gleiche Frage heute schon beantwortet, dann diese Antwort. 3. Absicht bestimmen; fällt das Modell aus: „nicht erreichbar“. 4. Reaktion nach `reaction_for`: fester Text oder Gimmick → `intent_answer` in der Sprache der Frage, ohne weiteren Modellaufruf (Ergebnis `fixed_text` bzw. `gimmick`); Wissen/Smalltalk/Auftrag → `_answer_with_model`. |
+| `_decide(question, tag, day)` | 1. Tageszähler hochzählen; über 2.000: feste Antwort. 2. Zwischenspeicher: gleiche Frage heute schon beantwortet, dann diese Antwort. 3. Absicht bestimmen; fällt das Modell aus: „nicht erreichbar“. 4. Reaktion nach `reaction_for`: fester Text oder Gimmick → `intent_answer` in der Sprache der Frage, ohne weiteren Modellaufruf (Ergebnis `fixed_text` bzw. `gimmick`); Wissen/Smalltalk/Auftrag, mit Wissensbasis auch Laufbahn → `_answer_with_model` (zählt für die Besuchergrenze von 10). Hat die Reaktion keinen Antwortgeber, heißt das Ergebnis `fixed_text`. |
 | `_answer_with_model(...)` | Besucherzähler hochzählen; über 10: feste Antwort. Den Antwortgeber der Reaktion fragen (allgemein oder Auftrag), mit `check_reply` prüfen; Modellausfall oder leere Antwort: „nicht erreichbar“ (Absicht bleibt im Protokoll). Sonst im Zwischenspeicher ablegen. |
 | `_fixed(kind, language, name, intent)` | Verpackt eine feste Antwort samt Ergebnisname für das Protokoll. |

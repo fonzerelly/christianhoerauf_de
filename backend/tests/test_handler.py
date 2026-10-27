@@ -209,3 +209,54 @@ def test_build_bot_asks_the_gate_with_temperature_0_and_the_answer_without(
     assert (gate.get("temperature"), gate.get("max_tokens")) == (0.0, 100)
     assert answer["messages"][0]["content"] == load_prompt("general_answer")
     assert "temperature" not in answer
+
+
+CAREER = "[[ ## absicht ## ]]\nchristian/career\n\n[[ ## completed ## ]]"
+# Erfundene Testperson; die echte Wissensbasis kommt nie in Tests.
+RELEASED_STATION = (
+    "---\nart: station\ntitel: Bäckerei Sonnenschein\nfreigegeben: ja\n---\nErika backt.\n"
+)
+
+
+def career_environ(server: FakeServer) -> dict[str, str]:
+    server.body = reply_body(CAREER)
+    return {
+        "TABLE_NAME": "bot",
+        "VISITOR_SECRET": "geheim",
+        "LLM_BASE_URL": server.base_url,
+        "LLM_AUTH": "none",
+    }
+
+
+def test_build_bot_answers_career_with_the_released_texts_in_the_prompt(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer, tmp_path: Path
+) -> None:
+    import bot.handler as module
+
+    monkeypatch.setattr(module, "DynamoDbStore", lambda *args, **kwargs: MemoryStore())
+    (tmp_path / "stationen").mkdir()
+    (tmp_path / "stationen" / "sonnenschein.md").write_text(RELEASED_STATION, encoding="utf-8")
+    environ = {**career_environ(server), "WISSENSBASIS_DIR": str(tmp_path)}
+
+    handle(event({"question": "Wo hat sie gearbeitet?"}), build_bot(environ))
+
+    assert len(server.requests) == 2  # Türsteher und Antwort aus der Wissensbasis
+    _, answer = (request["body"] for request in server.requests)
+    assert isinstance(answer, dict)
+    assert answer["messages"][0]["content"] == (
+        load_prompt("knowledge_base_answer") + f"# stationen/sonnenschein.md\n\n{RELEASED_STATION}"
+    )
+
+
+def test_build_bot_without_released_texts_gives_career_its_fixed_text(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer, tmp_path: Path
+) -> None:
+    import bot.handler as module
+
+    monkeypatch.setattr(module, "DynamoDbStore", lambda *args, **kwargs: MemoryStore())
+    environ = {**career_environ(server), "WISSENSBASIS_DIR": str(tmp_path / "leer")}
+
+    response = handle(event({"question": "Wo hat er gearbeitet?"}), build_bot(environ))
+
+    assert body_of(response)["text"] == "Darüber lerne ich gerade noch."
+    assert len(server.requests) == 1  # nur der Türsteher

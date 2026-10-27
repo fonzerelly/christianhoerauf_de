@@ -12,6 +12,7 @@ import logging
 import os
 import time
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import boto3
@@ -24,6 +25,7 @@ from bot.adapters.bedrock_token import (
 )
 from bot.adapters.dynamodb_store import DynamoDbStore
 from bot.adapters.json_log import JsonLog
+from bot.adapters.knowledge_files import released_texts
 from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.adapters.system_clock import SystemClock
 from bot.domain.answer import Answer
@@ -35,6 +37,8 @@ from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, In
 from bot.pipeline.prompts import load_intent_program, load_prompt
 
 MAX_QUESTION_LENGTH = 500
+# Im Lambda-Paket liegt die Wissensbasis neben `bot/` (scripts/build_package.sh).
+_PACKAGED_KNOWLEDGE_BASE = Path(__file__).resolve().parent.parent / "wissensbasis"
 _STORE_TTL_SECONDS = 2 * 24 * 60 * 60  # Zähler und Zwischenspeicher verfallen nach zwei Tagen
 
 
@@ -83,7 +87,8 @@ def handle(event: Mapping[str, Any], bot: Bot) -> dict[str, object]:
 def build_bot(environ: Mapping[str, str]) -> Bot:
     """Steckt den Bot aus der Umgebung des Lambdas zusammen. Fehlt `TABLE_NAME` oder
     `VISITOR_SECRET`, bricht das mit `KeyError` ab. Optional: `LLM_BASE_URL`, `LLM_MODEL`,
-    `LLM_TIMEOUT_SECONDS` und `LLM_AUTH=none` (kein Schlüssel, etwa für LM Studio)."""
+    `LLM_TIMEOUT_SECONDS`, `LLM_AUTH=none` (kein Schlüssel, etwa für LM Studio) und
+    `WISSENSBASIS_DIR` (Ordner der Wissensbasis, sonst der im Paket)."""
     table = environ["TABLE_NAME"]
     secret = environ["VISITOR_SECRET"]
     region = environ.get("AWS_REGION", BEDROCK_REGION)
@@ -102,6 +107,12 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
             max_tokens=max_tokens,
         )
 
+    knowledge = released_texts(Path(environ.get("WISSENSBASIS_DIR", _PACKAGED_KNOWLEDGE_BASE)))
+    knowledge_answerer = (
+        GeneralAnswerer(make_model(), load_prompt("knowledge_base_answer") + knowledge)
+        if knowledge
+        else None
+    )
     clock = SystemClock()
     return Bot(
         IntentClassifier(
@@ -120,6 +131,7 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
         JsonLog(),
         secret,
         cache_version=cache_version(environ),
+        knowledge_answerer=knowledge_answerer,
     )
 
 

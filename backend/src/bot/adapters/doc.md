@@ -51,3 +51,10 @@ Anschlüsse der Schnittstellen aus `ports/` an AWS, LM Studio und Dateien. Dürf
 |---|---|
 | `JsonLog(emit)` | Protokoll nach `emit` (Standard `print`, Lambda leitet das nach CloudWatch). |
 | `write(record)` | Gibt den Eintrag als eine JSON-Zeile mit unveränderten Umlauten aus. |
+
+## knowledge_files.py
+
+| Name | Was es konkret tut |
+|---|---|
+| `released_texts(folder)` | Liest alle `*.md` unter `folder` (auch in Unterordnern, sortiert nach Pfad) und gibt die freigegebenen als einen Text zurück: je Datei eine Überschrift `# <pfad relativ zu folder>`, eine Leerzeile und der ganze Text samt Kopfteil; zwischen zwei Texten eine Leerzeile. Fehlt der Ordner oder ist nichts freigegeben: leerer Text. |
+| `_is_released(text)` | `True`, wenn der Text mit `---` beginnt und vor dem nächsten `---` eine Zeile `freigegeben: ja` steht. `freigegeben: ja` im Fließtext zählt nicht, ein nie geschlossener Kopfteil ohne die Zeile auch nicht. |

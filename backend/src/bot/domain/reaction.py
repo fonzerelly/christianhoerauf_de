@@ -8,6 +8,7 @@ class ReactionKind(Enum):
 
     GENERAL_ANSWER = "general_answer"
     TASK_ANSWER = "task_answer"
+    KNOWLEDGE_BASE_ANSWER = "knowledge_base_answer"
     FIXED_TEXT = "fixed_text"
     GIMMICK = "gimmick"
 
@@ -16,6 +17,7 @@ _SPECIAL_REACTIONS = {
     Intent.KNOWLEDGE: ReactionKind.GENERAL_ANSWER,
     Intent.SMALLTALK: ReactionKind.GENERAL_ANSWER,
     Intent.TASK: ReactionKind.TASK_ANSWER,
+    Intent.CAREER: ReactionKind.KNOWLEDGE_BASE_ANSWER,
     Intent.FLIRT: ReactionKind.GIMMICK,
     Intent.PICTURE: ReactionKind.GIMMICK,
     Intent.SEXUAL: ReactionKind.GIMMICK,
