@@ -58,3 +58,15 @@ Anschlüsse der Schnittstellen aus `ports/` an AWS, LM Studio und Dateien. Dürf
 |---|---|
 | `released_texts(folder)` | Liest alle `*.md` unter `folder` (auch in Unterordnern, sortiert nach Pfad) und gibt die freigegebenen als einen Text zurück: je Datei eine Überschrift `# <pfad relativ zu folder>`, eine Leerzeile und der ganze Text samt Kopfteil; zwischen zwei Texten eine Leerzeile. Fehlt der Ordner oder ist nichts freigegeben: leerer Text. |
 | `_is_released(text)` | `True`, wenn der Text mit `---` beginnt und vor dem nächsten `---` eine Zeile `freigegeben: ja` steht. `freigegeben: ja` im Fließtext zählt nicht, ein nie geschlossener Kopfteil ohne die Zeile auch nicht. |
+
+## cv_files.py
+
+Liest Stationen und Varianten für den Lebenslauf. Braucht PyYAML, das bisher nur in der
+Entwicklungsgruppe steht; der Bot importiert das Modul nicht. Für den Lebenslauf-Endpunkt muss
+PyYAML zu den Laufzeitabhängigkeiten.
+
+| Name | Was es konkret tut |
+|---|---|
+| `read_cv_stations(knowledge_base)` | Liest jede Datei in `knowledge_base/stationen/` (sortiert), nimmt nur freigegebene (`freigegeben: ja`) und macht daraus mit `parse_station` eine `CvStation`; Name = Dateiname ohne `.md`. |
+| `read_variants(path, station_names)` | Liest die Variantendatei als YAML und gibt sie an `parse_variants`; fehlt sie oder ist sie leer → keine Varianten. |
+| `_header(text)` | Der Kopfteil zwischen den ersten beiden `---`-Zeilen als YAML. |

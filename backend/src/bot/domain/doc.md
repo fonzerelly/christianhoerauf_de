@@ -99,3 +99,17 @@ Der persönliche Link in den Unterlagen einer Bewerbung. Die Beispiele in
 | `checksum(number, name)` | Die ersten 4 Hex-Ziffern von `fnv1a("Nummer|Name")`, z. B. `4711`, „Frau Erika Muster“ → `e9bd`. |
 | `personal_fragment(number, name)` | base64url ohne `=` von „Nummer|Name|Prüfsumme“ (UTF-8). Ein `|` im Namen → `ValueError`. |
 | `personal_link(number, name)` | `SITE` + `#` + Fragment. |
+
+## cv_variant.py
+
+Varianten des Lebenslaufs: benannte Auswahlen, die nur durch Weglassen entstehen. Die Datei dazu
+ist `lebenslauf/varianten.yaml`.
+
+| Name | Was es konkret tut |
+|---|---|
+| `Variant` | Name (etwa `nur_berufsweg`), Nummer (für den persönlichen Link), Beschreibung, Liste der weggelassenen Abschnitte oder Stationen. |
+| `InvalidVariantError` | Meldung mit dem Namen der Variante (oder `lebenslauf_ohne`) und dem Problem. |
+| `parse_variants(data, station_names)` | Liest die schon als YAML geladene Datei: `None` → keine Varianten; jede Variante braucht `nummer` (Zahl), `beschreibung` (Text), `ohne` (Liste). Unbekannte Namen in `ohne` oder eine doppelte Nummer → `InvalidVariantError`. |
+| `check_omissions(names, station_names, origin)` | Prüft, dass jeder Name ein Abschnitt oder eine Station ist; `origin` steht in der Meldung. Auch für `lebenslauf_ohne` einer Bewerbung. |
+| `omit(stations, names)` | Lässt jede Station weg, deren Name oder Abschnitt in `names` steht. |
+| `variant_by_number(variants, number)` | Die Variante mit dieser Nummer oder `None` (dann der ganze Lebenslauf). |

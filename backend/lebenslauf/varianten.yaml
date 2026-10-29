@@ -1,0 +1,10 @@
+# Varianten des Lebenslaufs (siehe docs/bewerbung/IMPLEMENTATION_PLAN.md).
+# Eine Variante entsteht nur durch Weglassen. Der Name sagt, was sie zeigt, nie die Art der Firma.
+# Die Nummer ist nichtssagend und steht nur im persönlichen Link; jede Nummer nur einmal.
+# `ohne` nennt Abschnitte (beruf, lehre, studium, praktikum, zivildienst, schule) oder Stationen.
+#
+# Beispiel:
+# nur_berufsweg:
+#   nummer: 4711
+#   beschreibung: Nur Berufserfahrung und Studium
+#   ohne: [lehre, zivildienst, schule]
