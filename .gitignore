@@ -1,7 +1,7 @@
 tmp/
 
-# Lebenslauf: Private Angaben, Foto, Empfänger und fertige PDFs gehören ins Repo bewerbungen
-corporate-identity/lebenslauf/privat.js
+# Lebenslauf: Foto, Empfänger und fertige PDFs gehören ins Repo bewerbungen
+# (Firmennamen in Dateinamen wären sonst öffentlich; git-crypt verschlüsselt keine Namen)
 corporate-identity/lebenslauf/empfaenger.js
 corporate-identity/lebenslauf/foto.jpg
 corporate-identity/lebenslauf/ausgabe/
