@@ -69,3 +69,20 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 | `GimmickRegistry.gimmicks` | Die angemeldeten Gimmicks als Tupel; anfangs leer. |
 | `gimmick_for(intent)` | Das `gimmick`-Objekt zur Absicht: Flirt → `{"type": "heart"}`, Bild (`christian/picture`) → `{"type": "photo"}`, sexuell → `{"type": "face_with_hand_over_mouth"}`, alle anderen → `None`. Liefert jedes Mal eine eigene Kopie, damit niemand die Tabelle verändert. |
 | `GimmickRegistry.descriptions()` | Die Beschreibungen aller angemeldeten Gimmicks, daraus entsteht später die Auswahl der Absichten. |
+
+## cv.py
+
+Die Stationen der Wissensbasis als Einträge des Lebenslaufs (für PDF und Webseite, siehe
+`docs/bewerbung/IMPLEMENTATION_PLAN.md`). Kennt keine Privaten Angaben.
+
+| Name | Was es konkret tut |
+|---|---|
+| `SECTIONS` | Die Abschnitte in Lebenslauf-Reihenfolge: beruf, lehre, studium, praktikum, zivildienst, schule. |
+| `YearMonth` | Ein Zeitpunkt aus `von`/`bis`: Jahr, Monat optional. Sortiert nach Jahr, ein bloßes Jahr vor allen Monaten desselben Jahres. |
+| `YearMonth.parse(value)` | Liest `"2014-11"`, `"2014"` oder die Zahl `2014`; alles andere (`"11/2014"`, `"etwa 2017"`, Monat 13) → `ValueError`. |
+| `CvStation` | Die Lebenslauf-Felder einer Station: Name, Abschnitt, Beginn, Ende (`None` = läuft noch), Titel (fett), Organisation (grau, darf leer sein), Stichpunkte. |
+| `CvEntry` | Eine Station samt fertigem Zeitraum-Text, so wie sie im Lebenslauf steht. |
+| `InvalidStationError` | Meldung mit Station und Feld, z. B. „teambank: Feld von erwartet JJJJ-MM oder JJJJ, gefunden: '11/2014'“. |
+| `parse_station(name, header)` | Liest aus dem Kopfteil `abschnitt`, `von`, `bis` (`heute` = läuft noch), `lebenslauf_titel`, `lebenslauf_organisation`, `stichpunkte`; fehlt eines oder passt es nicht → `InvalidStationError`. |
+| `period_label(station, with_months)` | Der Zeitraum-Text: mit Monaten „11/2014 – 09/2020“ (wo kein Monat bekannt ist, nur das Jahr), sonst „2011 – 2014“; laufend „… – heute“; fallen Beginn und Ende auf dasselbe, nur einmal („2014“). |
+| `cv_sections(stations)` | Ordnet die Stationen nach `SECTIONS` (leere Abschnitte fallen weg), darin die neueste zuerst. Datumsregel: Die zwei neuesten Stationen der Berufserfahrung zeigen Monate, alle anderen nur Jahre. |
