@@ -1,0 +1,34 @@
+{
+  "_hinweis": "Beispiele für den persönlichen Link: Python (backend/tests/domain/test_personal_link.py) baut die gültigen genau so, das Frontend liest sie und erkennt die kaputten.",
+  "gueltig": [
+    {
+      "nummer": 4711,
+      "name": "Frau Erika Muster",
+      "fragment": "NDcxMXxGcmF1IEVyaWthIE11c3RlcnxlOWJk"
+    },
+    {
+      "nummer": 815,
+      "name": "Herr Jörg Müßig",
+      "fragment": "ODE1fEhlcnIgSsO2cmcgTcO8w59pZ3w0MTQz"
+    },
+    {
+      "nummer": 1,
+      "name": "Team Personal",
+      "fragment": "MXxUZWFtIFBlcnNvbmFsfDc3ZmE"
+    }
+  ],
+  "kaputt": [
+    {
+      "grund": "abgeschnitten",
+      "fragment": "NDcxMXxGcmF1IEVyaWthIE11c3Rlcn"
+    },
+    {
+      "grund": "Name verändert",
+      "fragment": "NDcxMXxGcmF1IEVyaWthIE11c3RlfGU5YmQ"
+    },
+    {
+      "grund": "kein base64",
+      "fragment": "%%%"
+    }
+  ]
+}

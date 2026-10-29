@@ -86,3 +86,16 @@ Die Stationen der Wissensbasis als Einträge des Lebenslaufs (für PDF und Webse
 | `parse_station(name, header)` | Liest aus dem Kopfteil `abschnitt`, `von`, `bis` (`heute` = läuft noch), `lebenslauf_titel`, `lebenslauf_organisation`, `stichpunkte`; fehlt eines oder passt es nicht → `InvalidStationError`. |
 | `period_label(station, with_months)` | Der Zeitraum-Text: mit Monaten „11/2014 – 09/2020“ (wo kein Monat bekannt ist, nur das Jahr), sonst „2011 – 2014“; laufend „… – heute“; fallen Beginn und Ende auf dasselbe, nur einmal („2014“). |
 | `cv_sections(stations)` | Ordnet die Stationen nach `SECTIONS` (leere Abschnitte fallen weg), darin die neueste zuerst. Datumsregel: Die zwei neuesten Stationen der Berufserfahrung zeigen Monate, alle anderen nur Jahre. |
+
+## personal_link.py
+
+Der persönliche Link in den Unterlagen einer Bewerbung. Die Beispiele in
+`schema/personal-link.examples.json` gelten für Python und Frontend gleichermaßen.
+
+| Name | Was es konkret tut |
+|---|---|
+| `SITE` | `https://christianhoerauf.de/` |
+| `fnv1a(text)` | FNV-1a, 32 Bit, über die Unicode-Zeichen; rechnet genau wie `seedFromText` im Briefkopf-Streifen. |
+| `checksum(number, name)` | Die ersten 4 Hex-Ziffern von `fnv1a("Nummer|Name")`, z. B. `4711`, „Frau Erika Muster“ → `e9bd`. |
+| `personal_fragment(number, name)` | base64url ohne `=` von „Nummer|Name|Prüfsumme“ (UTF-8). Ein `|` im Namen → `ValueError`. |
+| `personal_link(number, name)` | `SITE` + `#` + Fragment. |
