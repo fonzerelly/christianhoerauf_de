@@ -1,74 +1,92 @@
-"""Varianten des Lebenslaufs: benannte Auswahlen, die nur durch Weglassen entstehen.
+"""Varianten des Lebenslaufs: Auswahlen, die nur durch Weglassen entstehen.
 
-Jede Variante hat einen sprechenden Namen (etwa `nur_berufsweg`), eine nichtssagende Nummer für
-den persönlichen Link und eine Liste `ohne` aus Abschnitten oder Stationen. Dieselbe Auswahl
-gilt im PDF und auf der Webseite (siehe docs/bewerbung/).
+In der Variantendatei stehen nur Schalter, etwa `ehrenamt: [informatik-kurse-grundschule]`.
+Daraus entstehen alle Kombinationen als Varianten mit festem Namen (`ohne_` und die Schalter in
+Dateireihenfolge, verbunden mit `_und_`) und einer Nummer, die aus dem Namen errechnet wird.
+So gibt es jede Variante überall, ohne dass für eine neue Bewerbung das Backend neu ausgerollt
+werden muss. Dieselbe Auswahl gilt im PDF und auf der Webseite (siehe docs/bewerbung/).
 """
 
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from itertools import combinations
 
 from bot.domain.cv import SECTIONS, CvStation
+from bot.domain.personal_link import fnv1a
+
+PREFIX = "ohne_"
+JOINER = "_und_"
+_SWITCH_NAME = re.compile(r"[a-z][a-z0-9_]*")
 
 
 class InvalidVariantError(ValueError):
-    """Eine Variante oder ein `lebenslauf_ohne` passt nicht."""
+    """Die Variantendatei passt nicht."""
+
+
+@dataclass(frozen=True)
+class Switch:
+    name: str
+    omissions: tuple[str, ...]
 
 
 @dataclass(frozen=True)
 class Variant:
     name: str
     number: int
-    description: str
     omissions: tuple[str, ...]
 
 
-def parse_variants(data: object, station_names: set[str]) -> dict[str, Variant]:
-    """Die Varianten aus der Variantendatei, schon gelesen als YAML.
+def parse_switches(data: object, known_names: set[str]) -> tuple[Switch, ...]:
+    """Die Schalter aus der schon als YAML geladenen Variantendatei, in Dateireihenfolge.
 
-    Eine leere Datei (None) heißt: keine Varianten. Jeder Name in `ohne` muss ein Abschnitt oder
-    eine Station sein, jede Nummer darf nur einmal vorkommen. Sonst InvalidVariantError mit dem
-    Namen der Variante."""
+    Erwartet `schalter:` mit Name → Liste von Abschnitten, Stationen oder Projekten
+    (`known_names`). Eine leere Datei (None) heißt: keine Schalter, nur der ganze Lebenslauf."""
     if data is None:
-        return {}
-    if not isinstance(data, Mapping):
-        raise InvalidVariantError("Die Variantendatei muss eine Zuordnung Name → Variante sein")
-    variants = {
-        str(name): _parse_variant(str(name), entry, station_names) for name, entry in data.items()
-    }
-    owners: dict[int, str] = {}
-    for variant in variants.values():
-        if variant.number in owners:
-            raise InvalidVariantError(
-                f"Nummer {variant.number} doppelt: {owners[variant.number]} und {variant.name}"
-            )
-        owners[variant.number] = variant.name
-    return variants
+        return ()
+    entries = data.get("schalter") if isinstance(data, Mapping) else None
+    if not isinstance(entries, Mapping):
+        raise InvalidVariantError("Die Variantendatei braucht `schalter:` mit Name → Liste")
+    return tuple(_parse_switch(str(name), names, known_names) for name, names in entries.items())
 
 
-def _parse_variant(name: str, entry: object, station_names: set[str]) -> Variant:
-    if not isinstance(entry, Mapping):
-        raise InvalidVariantError(f"{name}: erwartet nummer, beschreibung und ohne")
-    number = entry.get("nummer")
-    if not isinstance(number, int) or isinstance(number, bool):
-        raise InvalidVariantError(f"{name}: nummer muss eine Zahl sein, gefunden: {number!r}")
-    description = entry.get("beschreibung")
-    if not isinstance(description, str):
-        raise InvalidVariantError(f"{name}: beschreibung muss ein Text sein")
-    omissions = entry.get("ohne")
-    if not isinstance(omissions, list) or not all(isinstance(item, str) for item in omissions):
-        raise InvalidVariantError(f"{name}: ohne muss eine Liste von Namen sein")
-    check_omissions(omissions, station_names, origin=name)
-    return Variant(name, number, description, tuple(omissions))
-
-
-def check_omissions(names: Iterable[str], station_names: set[str], *, origin: str) -> None:
-    """Jeder Name muss ein Abschnitt (beruf, lehre, …) oder eine Station sein.
-
-    `origin` sagt in der Fehlermeldung, woher die Namen kommen (Variante oder lebenslauf_ohne)."""
-    unknown = [name for name in names if name not in SECTIONS and name not in station_names]
+def _parse_switch(name: str, names: object, known_names: set[str]) -> Switch:
+    if not _SWITCH_NAME.fullmatch(name):
+        raise InvalidVariantError(f"{name}: nur Kleinbuchstaben, Ziffern und _ erlaubt")
+    if JOINER.strip("_") in name.split("_"):
+        raise InvalidVariantError(f"{name}: darf {JOINER} nicht enthalten, das trennt Schalter")
+    if not isinstance(names, list) or not names or not all(isinstance(n, str) for n in names):
+        raise InvalidVariantError(f"{name}: erwartet eine nicht leere Liste von Namen")
+    unknown = [n for n in names if n not in SECTIONS and n not in known_names]
     if unknown:
-        raise InvalidVariantError(f"{origin}: weder Abschnitt noch Station: {', '.join(unknown)}")
+        raise InvalidVariantError(f"{name}: unbekannt: {', '.join(unknown)}")
+    return Switch(name, tuple(names))
+
+
+def variant_number(name: str) -> int:
+    """Die vierstellige Nummer einer Variante, errechnet aus ihrem Namen (FNV-1a).
+
+    Sie steht nirgends und bleibt für denselben Namen immer gleich; so bleiben verschickte Links
+    gültig, auch wenn neue Schalter dazukommen."""
+    return 1000 + fnv1a(name) % 9000
+
+
+def all_variants(switches: tuple[Switch, ...]) -> dict[str, Variant]:
+    """Jede Kombination der Schalter als Variante: erst die einzelnen, dann Paare, dann mehr.
+
+    Zwei Varianten mit derselben Nummer → InvalidVariantError (dann einen Schalter umbenennen)."""
+    variants: dict[str, Variant] = {}
+    owners: dict[int, str] = {}
+    for size in range(1, len(switches) + 1):
+        for chosen in combinations(switches, size):
+            name = PREFIX + JOINER.join(switch.name for switch in chosen)
+            number = variant_number(name)
+            if number in owners:
+                raise InvalidVariantError(f"Nummer {number} doppelt: {owners[number]} und {name}")
+            owners[number] = name
+            omissions = tuple(item for switch in chosen for item in switch.omissions)
+            variants[name] = Variant(name, number, omissions)
+    return variants
 
 
 def omit(stations: Iterable[CvStation], names: Iterable[str]) -> list[CvStation]:

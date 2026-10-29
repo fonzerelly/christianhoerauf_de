@@ -4,7 +4,7 @@ import pytest
 
 from bot.adapters.cv_files import read_cv_stations, read_variants
 from bot.domain.cv import CvStation, InvalidStationError, YearMonth
-from bot.domain.cv_variant import InvalidVariantError, Variant
+from bot.domain.cv_variant import InvalidVariantError, Variant, variant_number
 
 # Erfundene Testperson; die echte Wissensbasis kommt nie in Tests.
 SONNENSCHEIN = """---
@@ -63,15 +63,17 @@ def test_stations_are_sorted_by_name(tmp_path: Path) -> None:
     assert [station.name for station in read_cv_stations(tmp_path)] == ["a", "b"]
 
 
-def test_reads_variants_and_checks_them_against_the_stations(tmp_path: Path) -> None:
+def test_reads_switches_and_returns_all_variants(tmp_path: Path) -> None:
     path = write(
         tmp_path,
         "varianten.yaml",
-        "nur_berufsweg:\n  nummer: 4711\n  beschreibung: Nur Beruf\n  ohne: [schule]\n",
+        "schalter:\n  schule: [schule]\n  baeckerei: [sonnenschein]\n",
     )
-    assert read_variants(path, {"sonnenschein"}) == {
-        "nur_berufsweg": Variant("nur_berufsweg", 4711, "Nur Beruf", ("schule",))
-    }
+    variants = read_variants(path, {"sonnenschein"})
+    assert list(variants) == ["ohne_schule", "ohne_baeckerei", "ohne_schule_und_baeckerei"]
+    assert variants["ohne_schule"] == Variant(
+        "ohne_schule", variant_number("ohne_schule"), ("schule",)
+    )
 
 
 def test_a_missing_or_empty_variants_file_means_no_variants(tmp_path: Path) -> None:
@@ -84,7 +86,7 @@ def test_an_unknown_station_in_a_variant_stops(tmp_path: Path) -> None:
     path = write(
         tmp_path,
         "varianten.yaml",
-        "x:\n  nummer: 1\n  beschreibung: x\n  ohne: [mond]\n",
+        "schalter:\n  mond: [mond]\n",
     )
     with pytest.raises(InvalidVariantError, match="mond"):
         read_variants(path, {"sonnenschein"})

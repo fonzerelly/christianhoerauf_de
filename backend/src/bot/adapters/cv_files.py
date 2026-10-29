@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 from bot.domain.cv import CvStation, parse_station
-from bot.domain.cv_variant import Variant, parse_variants
+from bot.domain.cv_variant import Variant, all_variants, parse_switches
 
 _RELEASED = "ja"
 
@@ -29,11 +29,14 @@ def read_cv_stations(knowledge_base: Path) -> list[CvStation]:
     return stations
 
 
-def read_variants(path: Path, station_names: set[str]) -> dict[str, Variant]:
-    """Die Varianten aus der YAML-Datei `path`; fehlt sie oder ist sie leer: keine Varianten."""
+def read_variants(path: Path, known_names: set[str]) -> dict[str, Variant]:
+    """Alle Varianten aus den Schaltern der YAML-Datei `path`.
+
+    Fehlt sie oder ist sie leer: keine Varianten, nur der ganze Lebenslauf."""
     if not path.is_file():
         return {}
-    return parse_variants(yaml.safe_load(path.read_text(encoding="utf-8")), station_names)
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return all_variants(parse_switches(data, known_names))
 
 
 def _header(text: str) -> Mapping[str, object]:

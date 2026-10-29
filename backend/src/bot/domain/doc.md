@@ -102,14 +102,16 @@ Der persönliche Link in den Unterlagen einer Bewerbung. Die Beispiele in
 
 ## cv_variant.py
 
-Varianten des Lebenslaufs: benannte Auswahlen, die nur durch Weglassen entstehen. Die Datei dazu
-ist `lebenslauf/varianten.yaml`.
+Varianten des Lebenslaufs. In `lebenslauf/varianten.yaml` stehen nur Schalter; jede Kombination
+ist eine Variante. Eine neue Bewerbung braucht so nie ein neu ausgerolltes Backend.
 
 | Name | Was es konkret tut |
 |---|---|
-| `Variant` | Name (etwa `nur_berufsweg`), Nummer (für den persönlichen Link), Beschreibung, Liste der weggelassenen Abschnitte oder Stationen. |
-| `InvalidVariantError` | Meldung mit dem Namen der Variante (oder `lebenslauf_ohne`) und dem Problem. |
-| `parse_variants(data, station_names)` | Liest die schon als YAML geladene Datei: `None` → keine Varianten; jede Variante braucht `nummer` (Zahl), `beschreibung` (Text), `ohne` (Liste). Unbekannte Namen in `ohne` oder eine doppelte Nummer → `InvalidVariantError`. |
-| `check_omissions(names, station_names, origin)` | Prüft, dass jeder Name ein Abschnitt oder eine Station ist; `origin` steht in der Meldung. Auch für `lebenslauf_ohne` einer Bewerbung. |
+| `Switch` | Ein Schalter: Name (etwa `ehrenamt`) und was er weglässt (Abschnitte, Stationen, Projekte). |
+| `Variant` | Name (etwa `ohne_insert_effect_und_ehrenamt`), Nummer für den persönlichen Link, alles, was sie weglässt. |
+| `InvalidVariantError` | Meldung mit Schalter und Problem. |
+| `parse_switches(data, known_names)` | Liest `schalter:` aus der schon geladenen YAML-Datei in Dateireihenfolge; `None` → keine Schalter. Name nur aus Kleinbuchstaben, Ziffern, `_`, ohne `und` als Teil; Liste nicht leer; jeder Eintrag ein Abschnitt oder in `known_names`. |
+| `variant_number(name)` | `1000 + FNV-1a(name) mod 9000`: vierstellig, steht nirgends, für denselben Namen immer gleich. |
+| `all_variants(switches)` | Alle Kombinationen: erst einzelne Schalter, dann Paare usw., Name `ohne_` + Schalter mit `_und_` in Dateireihenfolge. Ein neuer Schalter ändert Namen und Nummern der alten nicht. Doppelte Nummer → `InvalidVariantError`. |
 | `omit(stations, names)` | Lässt jede Station weg, deren Name oder Abschnitt in `names` steht. |
 | `variant_by_number(variants, number)` | Die Variante mit dieser Nummer oder `None` (dann der ganze Lebenslauf). |

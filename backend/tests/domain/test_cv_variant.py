@@ -3,11 +3,13 @@ import pytest
 from bot.domain.cv import CvStation, YearMonth
 from bot.domain.cv_variant import (
     InvalidVariantError,
+    Switch,
     Variant,
-    check_omissions,
+    all_variants,
     omit,
-    parse_variants,
+    parse_switches,
     variant_by_number,
+    variant_number,
 )
 
 
@@ -23,56 +25,68 @@ STATIONS = [
 ]
 KNOWN = {item.name for item in STATIONS}
 
-DATA = {
-    "nur_berufsweg": {
-        "nummer": 4711,
-        "beschreibung": "Nur die Berufserfahrung",
-        "ohne": ["lehre", "schule"],
-    },
-    "ohne_firma_b": {"nummer": 815, "beschreibung": "Ohne Firma B", "ohne": ["firma-b"]},
-}
+DATA = {"schalter": {"firma_b": ["firma-b"], "lehre": ["lehre"]}}
+SWITCHES = (Switch("firma_b", ("firma-b",)), Switch("lehre", ("lehre",)))
 
 
-def test_parse_variants_reads_name_number_description_and_omissions() -> None:
-    variants = parse_variants(DATA, KNOWN)
-    assert variants["nur_berufsweg"] == Variant(
-        name="nur_berufsweg",
-        number=4711,
-        description="Nur die Berufserfahrung",
-        omissions=("lehre", "schule"),
-    )
-    assert list(variants) == ["nur_berufsweg", "ohne_firma_b"]
+def test_parse_switches_keeps_the_order_of_the_file() -> None:
+    assert parse_switches(DATA, KNOWN) == SWITCHES
 
 
-def test_an_empty_variants_file_means_no_variants() -> None:
-    assert parse_variants(None, KNOWN) == {}
+def test_an_empty_variants_file_means_no_switches() -> None:
+    assert parse_switches(None, KNOWN) == ()
 
 
 @pytest.mark.parametrize(
-    ("entry", "message"),
+    ("data", "message"),
     [
-        ({"beschreibung": "x", "ohne": []}, "nummer"),
-        ({"nummer": "4711", "beschreibung": "x", "ohne": []}, "nummer"),
-        ({"nummer": 1, "beschreibung": 5, "ohne": []}, "beschreibung"),
-        ({"nummer": 1, "beschreibung": "x", "ohne": "lehre"}, "ohne"),
-        ({"nummer": 1, "beschreibung": "x", "ohne": ["gibts-nicht"]}, "gibts-nicht"),
-        ("4711", "nummer"),
+        (["firma_b"], "schalter"),
+        ({"anderes": {}}, "schalter"),
+        ({"schalter": ["firma_b"]}, "schalter"),
+        ({"schalter": {"firma_b": "firma-b"}}, "firma_b.*Liste"),
+        ({"schalter": {"firma_b": []}}, "firma_b.*Liste"),
+        ({"schalter": {"firma_b": ["gibts-nicht"]}}, "firma_b.*gibts-nicht"),
+        ({"schalter": {"Firma B": ["firma-b"]}}, "Firma B.*Kleinbuchstaben"),
+        ({"schalter": {"a_und_b": ["firma-b"]}}, "a_und_b.*_und_"),
     ],
 )
-def test_parse_variants_names_the_variant_and_the_problem(entry: object, message: str) -> None:
-    with pytest.raises(InvalidVariantError, match=f"kaputt.*{message}"):
-        parse_variants({"kaputt": entry}, KNOWN)
+def test_parse_switches_names_the_problem(data: object, message: str) -> None:
+    with pytest.raises(InvalidVariantError, match=message):
+        parse_switches(data, KNOWN)
 
 
-def test_two_variants_must_not_share_a_number() -> None:
-    data = {**DATA, "doppelt": {"nummer": 4711, "beschreibung": "x", "ohne": []}}
-    with pytest.raises(InvalidVariantError, match="4711.*nur_berufsweg.*doppelt"):
-        parse_variants(data, KNOWN)
+def test_all_variants_combines_every_switch_in_file_order() -> None:
+    variants = all_variants(SWITCHES)
+    assert list(variants) == ["ohne_firma_b", "ohne_lehre", "ohne_firma_b_und_lehre"]
+    assert variants["ohne_firma_b_und_lehre"] == Variant(
+        "ohne_firma_b_und_lehre",
+        variant_number("ohne_firma_b_und_lehre"),
+        ("firma-b", "lehre"),
+    )
 
 
-def test_a_variants_file_that_is_no_mapping_is_rejected() -> None:
-    with pytest.raises(InvalidVariantError, match="Zuordnung"):
-        parse_variants(["nur_berufsweg"], KNOWN)
+def test_three_switches_give_seven_variants() -> None:
+    switches = (Switch("a", ("x",)), Switch("b", ("y",)), Switch("c", ("z",)))
+    assert len(all_variants(switches)) == 7
+
+
+def test_a_new_switch_keeps_names_and_numbers_of_the_old_variants() -> None:
+    before = all_variants(SWITCHES)
+    after = all_variants((*SWITCHES, Switch("schule", ("schule",))))
+    assert {name: after[name] for name in before} == before
+
+
+def test_variant_number_is_four_digits_and_always_the_same() -> None:
+    number = variant_number("ohne_ehrenamt")
+    assert 1000 <= number <= 9999
+    assert variant_number("ohne_ehrenamt") == number
+    assert variant_number("ohne_lehre") != number
+
+
+def test_two_variants_with_the_same_number_stop(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("bot.domain.cv_variant.variant_number", lambda name: 4711)
+    with pytest.raises(InvalidVariantError, match="4711.*ohne_firma_b.*ohne_lehre"):
+        all_variants(SWITCHES)
 
 
 def test_omit_drops_whole_sections_and_single_stations() -> None:
@@ -80,16 +94,9 @@ def test_omit_drops_whole_sections_and_single_stations() -> None:
     assert [item.name for item in kept] == ["firma-a", "schule"]
 
 
-def test_check_omissions_accepts_sections_and_stations() -> None:
-    check_omissions(["beruf", "kurse"], KNOWN, origin="lebenslauf_ohne")
-
-
-def test_check_omissions_names_the_origin_and_the_unknown_name() -> None:
-    with pytest.raises(InvalidVariantError, match="lebenslauf_ohne.*tippfehler"):
-        check_omissions(["beruf", "tippfehler"], KNOWN, origin="lebenslauf_ohne")
-
-
 def test_variant_by_number_finds_the_variant_or_none() -> None:
-    variants = parse_variants(DATA, KNOWN)
-    assert variant_by_number(variants, 815) == variants["ohne_firma_b"]
+    variants = all_variants(SWITCHES)
+    assert "ohne_lehre" in variants
+    wanted = variants["ohne_lehre"]
+    assert variant_by_number(variants, wanted.number) == wanted
     assert variant_by_number(variants, 1) is None
