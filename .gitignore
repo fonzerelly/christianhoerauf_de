@@ -1,1 +1,7 @@
 tmp/
+
+# Lebenslauf: Private Angaben, Foto, Empfänger und fertige PDFs gehören ins Repo bewerbungen
+corporate-identity/lebenslauf/privat.js
+corporate-identity/lebenslauf/empfaenger.js
+corporate-identity/lebenslauf/foto.jpg
+corporate-identity/lebenslauf/ausgabe/
