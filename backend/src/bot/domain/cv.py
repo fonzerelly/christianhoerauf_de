@@ -138,3 +138,41 @@ def cv_sections(stations: Iterable[CvStation]) -> dict[str, list[CvEntry]]:
                 for index, station in enumerate(members)
             ]
     return sections
+
+
+@dataclass(frozen=True)
+class CvProject:
+    name: str
+    title: str
+    period: str  # freier Text, etwa „2020, 2026“; keine Datumsregel
+    text: str
+    link: str
+
+
+def parse_project(name: str, header: Mapping[str, object]) -> CvProject | None:
+    """Das Projekt `name` als Eintrag unter „Projekte und Vorträge“.
+
+    Nur ein Projekt mit `lebenslauf_text` steht im Lebenslauf (sonst None); es braucht dann auch
+    `lebenslauf_titel`, `lebenslauf_zeit` und `link`, sonst InvalidStationError."""
+    text = header.get("lebenslauf_text")
+    if not text:
+        return None
+
+    def required(key: str) -> str:
+        value = header.get(key)
+        if not isinstance(value, str) or not value:
+            raise InvalidStationError(f"{name}: Feld {key} muss ein Text sein, gefunden: {value!r}")
+        return value
+
+    return CvProject(
+        name, required("lebenslauf_titel"), required("lebenslauf_zeit"), str(text), required("link")
+    )
+
+
+def cv_projects(projects: Iterable[CvProject]) -> list[CvProject]:
+    """Die neueste Jahreszahl in `period` zuerst, bei Gleichstand nach Name."""
+
+    def latest_year(project: CvProject) -> int:
+        return max((int(year) for year in re.findall(r"\d{4}", project.period)), default=0)
+
+    return sorted(projects, key=lambda project: (-latest_year(project), project.name))

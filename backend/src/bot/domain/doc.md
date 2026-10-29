@@ -85,6 +85,9 @@ Die Stationen der Wissensbasis als Einträge des Lebenslaufs (für PDF und Webse
 | `InvalidStationError` | Meldung mit Station und Feld, z. B. „teambank: Feld von erwartet JJJJ-MM oder JJJJ, gefunden: '11/2014'“. |
 | `parse_station(name, header)` | Liest aus dem Kopfteil `abschnitt`, `von`, `bis` (`heute` = läuft noch), `lebenslauf_titel`, `lebenslauf_organisation`, `stichpunkte`; fehlt eines oder passt es nicht → `InvalidStationError`. |
 | `period_label(station, with_months)` | Der Zeitraum-Text: mit Monaten „11/2014 – 09/2020“ (wo kein Monat bekannt ist, nur das Jahr), sonst „2011 – 2014“; laufend „… – heute“; fallen Beginn und Ende auf dasselbe, nur einmal („2014“). |
+| `CvProject` | Ein Projekt unter „Projekte und Vorträge“: Name, Titel, Zeit (freier Text wie „2020, 2026“), Text, Link. |
+| `parse_project(name, header)` | Ohne `lebenslauf_text` → `None` (nicht im Lebenslauf). Mit Text braucht es `lebenslauf_titel`, `lebenslauf_zeit` und `link`, sonst `InvalidStationError`. |
+| `cv_projects(projects)` | Sortiert: neueste Jahreszahl in der Zeit zuerst, bei Gleichstand nach Name. |
 | `cv_sections(stations)` | Ordnet die Stationen nach `SECTIONS` (leere Abschnitte fallen weg), darin die neueste zuerst. Datumsregel: Die zwei neuesten Stationen der Berufserfahrung zeigen Monate, alle anderen nur Jahre. |
 
 ## personal_link.py

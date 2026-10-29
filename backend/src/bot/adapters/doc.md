@@ -68,5 +68,6 @@ PyYAML zu den Laufzeitabhängigkeiten.
 | Name | Was es konkret tut |
 |---|---|
 | `read_cv_stations(knowledge_base)` | Liest jede Datei in `knowledge_base/stationen/` (sortiert), nimmt nur freigegebene (`freigegeben: ja`) und macht daraus mit `parse_station` eine `CvStation`; Name = Dateiname ohne `.md`. |
+| `read_cv_projects(knowledge_base)` | Liest jede Datei in `knowledge_base/projekte/` (sortiert) und behält die mit `lebenslauf_text` (`parse_project`). `freigegeben` zählt hier nicht, das gilt für den Bot. |
 | `read_variants(path, known_names)` | Liest die Schalter aus der YAML-Datei und gibt alle Varianten zurück (`parse_switches`, `all_variants`); fehlt sie oder ist sie leer → keine Varianten. |
-| `_header(text)` | Der Kopfteil zwischen den ersten beiden `---`-Zeilen als YAML. |
+| `_header(path)` | Der Kopfteil zwischen den ersten beiden `---`-Zeilen als YAML; ist er kein gültiges YAML → `InvalidStationError` mit Ordner und Datei. |

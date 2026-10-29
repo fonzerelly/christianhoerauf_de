@@ -4,10 +4,13 @@ import pytest
 
 from bot.domain.cv import (
     CvEntry,
+    CvProject,
     CvStation,
     InvalidStationError,
     YearMonth,
+    cv_projects,
     cv_sections,
+    parse_project,
     parse_station,
     period_label,
 )
@@ -140,3 +143,53 @@ def test_cv_sections_shows_months_only_for_the_two_newest_jobs() -> None:
         "2014",
     ]
     assert sections["studium"] == [CvEntry(stations[3], "2005 – 2010")]
+
+
+PROJECT_HEADER: Mapping[str, object] = {
+    "art": "projekt",
+    "titel": "Kuchenrechner (Vortrag)",
+    "link": "https://example.org/kuchen",
+    "lebenslauf_titel": "Kuchenrechner",
+    "lebenslauf_zeit": "2019 – 2025",
+    "lebenslauf_text": "Rechnet Kuchen aus.",
+}
+
+
+def test_parse_project_reads_the_cv_fields() -> None:
+    assert parse_project("kuchen", PROJECT_HEADER) == CvProject(
+        name="kuchen",
+        title="Kuchenrechner",
+        period="2019 – 2025",
+        text="Rechnet Kuchen aus.",
+        link="https://example.org/kuchen",
+    )
+
+
+def test_a_project_without_cv_text_is_not_in_the_cv() -> None:
+    header = {key: value for key, value in PROJECT_HEADER.items() if key != "lebenslauf_text"}
+    assert parse_project("kuchen", header) is None
+
+
+@pytest.mark.parametrize("field", ["lebenslauf_titel", "lebenslauf_zeit", "link"])
+def test_a_cv_project_needs_title_period_and_link(field: str) -> None:
+    with pytest.raises(InvalidStationError, match=f"kuchen.*{field}"):
+        parse_project("kuchen", {**PROJECT_HEADER, field: ""})
+
+
+def project(name: str, period: str) -> CvProject:
+    return CvProject(name, name, period, "", "https://example.org")
+
+
+def test_cv_projects_put_the_latest_year_first_and_then_go_by_name() -> None:
+    projects = [
+        project("vortrag-alt", "2018"),
+        project("vortrag", "2019 – 2025"),
+        project("zauber", "2020, 2026"),
+        project("bot", "2026"),
+    ]
+    assert [item.name for item in cv_projects(projects)] == [
+        "bot",
+        "zauber",
+        "vortrag",
+        "vortrag-alt",
+    ]
