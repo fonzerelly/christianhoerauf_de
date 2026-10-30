@@ -30,6 +30,8 @@ if [ -s build/requirements.txt ] && grep -qv '^#' build/requirements.txt; then
   uv pip install --quiet --target build/package \
     --python-platform aarch64-manylinux2014 --python-version 3.14 \
     --only-binary :all: --requirements build/requirements.txt
+  # Sperrdatei, die uv beim Installieren in den Zielordner legt; gehört zu keiner Abhängigkeit.
+  rm -f build/package/.lock
 fi
 
 cp -r src/bot build/package/bot

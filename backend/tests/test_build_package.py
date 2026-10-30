@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 import subprocess
 import zipfile
@@ -35,6 +37,44 @@ def test_package_contains_only_the_released_stations(tmp_path: Path) -> None:
 
     names = build_package(tmp_path)
 
+    assert [name for name in names if name.startswith("wissensbasis/")] == [
+        "wissensbasis/stationen/frei.md"
+    ]
+
+
+def dependency_files(names: list[str]) -> set[str]:
+    """Alle Dateien, die eine Abhängigkeit in ihrer Liste der installierten Dateien
+    (`*.dist-info/RECORD`, eine CSV-Datei mit dem Pfad in der ersten Spalte) selbst aufführt."""
+    with zipfile.ZipFile(PACKAGE_ZIP) as package:
+        records = [name for name in names if name.endswith(".dist-info/RECORD")]
+        return {
+            row[0]
+            for record in records
+            for row in csv.reader(io.StringIO(package.read(record).decode("utf-8")))
+            if row
+        }
+
+
+def test_package_holds_only_code_dependencies_and_released_stations(tmp_path: Path) -> None:
+    # Eine Wissensbasis mit allem, was es neben den Stationen gibt, alles als freigegeben markiert:
+    # Nichts davon darf ins Paket, ebenso wenig irgendetwas außerhalb von backend/ (Lebenslauf,
+    # private Angaben, Kontaktdaten, Bewerbungen). Darum eine Positivliste statt einer Sperrliste.
+    (tmp_path / "stationen").mkdir()
+    (tmp_path / "stationen" / "frei.md").write_text(station("ja"), encoding="utf-8")
+    for folder in ("roh", "entwuerfe", "anekdoten", "projekte", ".obsidian"):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "frei.md").write_text(station("ja"), encoding="utf-8")
+    (tmp_path / "varianten.yaml").write_text("schalter: {}\n", encoding="utf-8")
+
+    names = build_package(tmp_path)
+
+    allowed = dependency_files(names)
+    stray = [
+        name
+        for name in names
+        if not name.startswith(("bot/", "wissensbasis/stationen/")) and name not in allowed
+    ]
+    assert stray == []
     assert [name for name in names if name.startswith("wissensbasis/")] == [
         "wissensbasis/stationen/frei.md"
     ]
