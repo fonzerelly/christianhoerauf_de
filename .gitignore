@@ -1,8 +1,7 @@
 tmp/
 
-# Lebenslauf: Foto, Empfänger und fertige PDFs gehören ins Repo bewerbungen
+# Lebenslauf: Foto und fertige PDFs gehören nicht ins öffentliche Repo
 # (Firmennamen in Dateinamen wären sonst öffentlich; git-crypt verschlüsselt keine Namen)
-corporate-identity/lebenslauf/empfaenger.js
 corporate-identity/lebenslauf/foto.jpg
 corporate-identity/lebenslauf/ausgabe/
 corporate-identity/lebenslauf/**/__pycache__/
