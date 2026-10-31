@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototyp 9b: Briefpapier mit Schlüsselwort im Briefkopf</title>
+<style>
+  /* Farben und Schriften wie Anschreiben und Lebenslauf (corporate-identity/lebenslauf/seite.css). */
+  :root {
+    --ink: #1b1f1c;
+    --muted: #5b625d;
+    --green-dark: #0d4a22;
+    --green: #2bdc5a;
+    --red: #8f1313;
+    --mono: "Ubuntu Mono", "DejaVu Sans Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font: 16px/1.5 "Ubuntu", "DejaVu Sans", system-ui, sans-serif;
+  }
+
+  /* Der Briefkopf: Labyrinth über die ganze Breite, rechts das Anschriftfeld wie im Brief. */
+  #kopf { position: relative; background: #020d06; overflow: hidden; }
+  #kopf svg { display: block; animation: einblenden 0.35s ease-out; }
+  @keyframes einblenden { from { opacity: 0.2; } }
+  .anschrift {
+    display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    width: 300px; padding: 10px 14px; background: #020d06; border: 1px solid var(--green);
+    font: 13px/1.45 var(--mono); color: #eafff0;
+  }
+  .anschrift b { display: block; font-size: 17px; color: #fff; margin-bottom: 2px; }
+  #kopf.mitAnschrift .anschrift { display: block; }
+
+  /* Das Blatt: Spalten wie im Lebenslauf, links die Beschriftung, rechts der Inhalt. */
+  main { max-width: 860px; margin: 0 auto; padding: 44px 28px 80px; }
+  .absender { font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--muted); display: inline-block; padding-bottom: 2px; margin: 0 0 26px; }
+  h1, h2 { font-family: var(--mono); color: var(--green-dark); }
+  h1 { font-size: 40px; margin: 0 0 10px; line-height: 1.1; }
+  h2 { font-size: 19px; margin: 36px 0 14px; padding-bottom: 4px; border-bottom: 2px solid var(--green); }
+  .einleitung { max-width: 640px; margin: 0; }
+
+  .entry { display: grid; grid-template-columns: 130px 1fr; column-gap: 18px; margin-bottom: 18px; }
+  .when { font-family: var(--mono); color: var(--muted); padding-top: 2px; }
+  .entry-title { font-weight: 700; }
+  ul { margin: 4px 0 0; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  li::marker { color: var(--red); }
+  li.wartet { color: var(--muted); font-style: italic; }
+  .schluesselwort { color: var(--red); font-weight: 700; }
+  .neu { animation: auftauchen 0.3s ease-out; }
+  @keyframes auftauchen { from { opacity: 0; transform: translateY(-4px); } }
+
+  /* Das Fragefeld als Zeile auf dem Blatt: nur eine Linie zum Draufschreiben. */
+  #formular .feld { display: flex; gap: 10px; align-items: end; }
+  #frage {
+    flex: 1; min-width: 0; font: inherit; font-size: 17px; padding: 4px 2px; color: var(--ink);
+    border: none; border-bottom: 1.5px solid var(--green-dark); background: transparent; outline: none;
+  }
+  #frage:focus { border-bottom-color: var(--red); }
+  #formular .feld button {
+    font: 600 15px var(--mono); padding: 7px 16px; cursor: pointer;
+    color: #fff; background: var(--green-dark); border: none; border-radius: 3px;
+  }
+  .vorschlaege { margin-top: 8px; font-size: 14px; color: var(--muted); }
+  .vorschlaege button {
+    font: inherit; color: var(--green-dark); font-weight: 700; background: none; border: none;
+    padding: 0; margin: 0 10px 0 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  @media (max-width: 600px) {
+    main { padding: 28px 18px 60px; }
+    h1 { font-size: 30px; }
+    .entry { grid-template-columns: 1fr; }
+    .when { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<header id="kopf">
+  <div class="anschrift"><b>Christian Hörauf</b>Softwareentwickler<br>Erlangen<br>christianhoerauf.de</div>
+</header>
+
+<main>
+  <p class="absender">Christian Hörauf · Softwareentwickler · Erlangen</p>
+  <h1>Fragen Sie ChrisBot</h1>
+  <p class="einleitung" id="begruessung"></p>
+
+  <h2>Ihre Fragen</h2>
+  <form id="formular" class="entry" autocomplete="off">
+    <label class="when" for="frage" id="naechsteNummer">Frage 1</label>
+    <div>
+      <div class="feld"><input id="frage" placeholder="Was möchten Sie wissen?"><button>Fragen</button></div>
+      <div class="vorschlaege" id="vorschlaege">Zum Beispiel:</div>
+    </div>
+  </form>
+  <!-- Neueste Frage oben, wie die neueste Station im Lebenslauf -->
+  <div id="verlauf"></div>
+</main>
+
+<script src="../../06-frage-antwort/schrift.js"></script>
+<script src="../../06-frage-antwort/labyrinth.js"></script>
+<script src="../antworten-schluesselwort.js"></script>
+<script src="briefkopf.js"></script>
+<script>
+  // Prototyp 9b: Seite wie Anschreiben und Lebenslauf. Der Briefkopf ist lebendig: Zu jeder
+  // Antwort schreibt der Lichtpunkt dort das Schlüsselwort. Die Antwort steht darunter als
+  // Aufzählung wie bei einer Station im Lebenslauf, das Schlüsselwort darin rot.
+
+  const kopf = document.getElementById("kopf");
+  let aktuellesWort = SCHLUESSEL_ANTWORTEN.begruessung.schluesselwort;
+  let aktuellerStart = "begruessung";
+  let brichAnimationAb = zeigeBriefkopf(kopf, aktuellesWort, aktuellerStart, false);
+
+  // Neues Wort im Briefkopf: neues Labyrinth, der Lichtpunkt schreibt es.
+  function schreibeImKopf(wort, startText) {
+    brichAnimationAb();
+    aktuellesWort = wort;
+    aktuellerStart = startText;
+    brichAnimationAb = zeigeBriefkopf(kopf, wort, startText, false);
+  }
+
+  // Bei geänderter Fensterbreite dasselbe Wort neu einpassen, ohne Animation.
+  let groessenTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(groessenTimer);
+    groessenTimer = setTimeout(() => {
+      brichAnimationAb();
+      brichAnimationAb = zeigeBriefkopf(kopf, aktuellesWort, aktuellerStart, true);
+    }, 150);
+  });
+
+  // Ein Satz als Listenpunkt, das Schlüsselwort darin rot.
+  function listenpunkt(satz, schluesselwort) {
+    const li = document.createElement("li");
+    for (const teil of teileAmSchluesselwort(satz, schluesselwort)) {
+      if (!teil.hervorgehoben) { li.append(teil.text); continue; }
+      const markiert = document.createElement("span");
+      markiert.className = "schluesselwort";
+      markiert.textContent = teil.text;
+      li.append(markiert);
+    }
+    return li;
+  }
+
+  function fuelleBegruessung() {
+    const absatz = document.getElementById("begruessung");
+    const { text, schluesselwort } = SCHLUESSEL_ANTWORTEN.begruessung;
+    absatz.replaceChildren(...listenpunkt(text, schluesselwort).childNodes);
+  }
+
+  let anzahlFragen = 0;
+
+  // Legt den Eintrag zur Frage sofort an (mit "ChrisBot schreibt …"), füllt ihn, sobald die
+  // Antwort da ist, und lässt im selben Moment den Lichtpunkt das Schlüsselwort schreiben.
+  async function stelleFrage(frage) {
+    anzahlFragen++;
+    const nummer = anzahlFragen;
+    document.getElementById("naechsteNummer").textContent = "Frage " + (nummer + 1);
+
+    const eintrag = document.createElement("div");
+    eintrag.className = "entry neu";
+    eintrag.innerHTML = '<div class="when"></div><div><div class="entry-title"></div><ul><li class="wartet">ChrisBot schreibt …</li></ul></div>';
+    eintrag.querySelector(".when").textContent = "Frage " + nummer;
+    eintrag.querySelector(".entry-title").textContent = frage;
+    document.getElementById("verlauf").prepend(eintrag);
+
+    const antwort = await frageChrisBot(frage);
+    eintrag.querySelector("ul").replaceChildren(
+      ...zerlegeInSaetze(antwort.text).map((satz) => listenpunkt(satz, antwort.schluesselwort))
+    );
+    // Kam inzwischen eine neuere Frage, gehört der Briefkopf ihr.
+    if (nummer === anzahlFragen) schreibeImKopf(antwort.schluesselwort, frage + "|" + nummer);
+  }
+
+  document.getElementById("formular").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const feld = document.getElementById("frage");
+    const frage = feld.value.trim();
+    if (frage === "") return;
+    feld.value = "";
+    stelleFrage(frage);
+  });
+
+  for (const vorschlag of SCHLUESSEL_VORSCHLAEGE) {
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.textContent = vorschlag;
+    knopf.addEventListener("click", () => stelleFrage(vorschlag));
+    document.getElementById("vorschlaege").appendChild(knopf);
+  }
+  fuelleBegruessung();
+</script>
+</body>
+</html>
