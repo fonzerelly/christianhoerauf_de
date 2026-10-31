@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>42 · Verhörraum</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #0b0b0b; color: #ddd; font-family: "Courier New", monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+  .lampe { position: fixed; top: 0; left: 50%; width: 900px; height: 100vh; transform: translateX(-50%); background: radial-gradient(ellipse 40% 55% at 50% 0%, #fff6d2cc, #fff6d222 50%, transparent 70%); pointer-events: none; animation: schwingen 6s ease-in-out infinite; transform-origin: top center; }
+  @keyframes schwingen { 50% { transform: translateX(-50%) rotate(3deg); } }
+  .kabel { width: 2px; height: 60px; background: #444; } .schirm { width: 80px; height: 40px; background: #333; border-radius: 40px 40px 0 0; }
+  .akte { margin-top: 30px; width: min(620px, 92vw); background: #e9e1c8; color: #222; padding: 24px 28px; transform: rotate(-1deg); box-shadow: 0 10px 30px #000; position: relative; z-index: 1; }
+  .akte h2 { margin: 0; font-size: 16px; letter-spacing: .2em; }
+  .stempel { position: absolute; right: 20px; top: 14px; border: 3px solid #b00; color: #b00; padding: 2px 8px; transform: rotate(8deg); font-weight: bold; letter-spacing: .1em; }
+  #protokoll { margin-top: 14px; max-height: 45vh; overflow-y: auto; font-size: 15px; line-height: 1.55; }
+  .ermittler { font-weight: bold; } .ermittler::before { content: "ERMITTLER: "; }
+  .verdaechtig::before { content: "VERDÄCHTIGER: "; font-weight: bold; }
+  .notiz { color: #555; font-style: italic; }
+  form { margin-top: 14px; display: flex; gap: 8px; border-top: 1px dashed #999; padding-top: 10px; }
+  input { flex: 1; font: inherit; background: transparent; border: none; border-bottom: 1px solid #222; outline: none; }
+  form button { font: inherit; background: #222; color: #e9e1c8; border: none; padding: 4px 12px; cursor: pointer; }
+  .tisch { position: fixed; bottom: 0; width: 100%; height: 18vh; background: linear-gradient(#3a3226, #1a160f); }
+</style>
+</head>
+<body>
+<div class="lampe"></div>
+<div class="kabel"></div><div class="schirm"></div>
+<div class="akte">
+  <div class="stempel">VERTRAULICH</div>
+  <h2>VERNEHMUNGSPROTOKOLL · FALL CH-1978</h2>
+  <div>Gegenstand: Christian Hörauf, Softwareentwickler</div>
+  <div id="protokoll"></div>
+  <form id="formular"><input id="eingabe" placeholder="Ihre Frage an den Verdächtigen …" autocomplete="off"><button>VERHÖREN</button></form>
+</div>
+<div class="tisch"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Rollenumkehr: Der Besucher ist der Ermittler, ChrisBot der Verdächtige, der erst zögert
+  // ("Ich will meinen Anwalt") und dann doch auspackt. Jede Antwort bekommt eine Notiz des
+  // Protokollführers. Die eigentliche Antwort ist unverändert.
+  const protokoll = document.getElementById("protokoll");
+  const NOTIZEN = ["(Verdächtiger schwitzt leicht.)", "(Verdächtiger trinkt einen Schluck Wasser.)", "(Aussage deckt sich mit dem Lebenslauf.)", "(Verdächtiger lächelt verdächtig souverän.)"];
+  const ZOEGERN = ["Ich sag nichts ohne meinen Anwalt.", "Wo waren *Sie* denn am 28. Februar 1978?", "…", "Kann ich erst einen Kaffee haben?"];
+  let fragen = 0;
+  function eintrag(klasse, text) {
+    const el = document.createElement("div");
+    el.className = klasse; el.textContent = text;
+    protokoll.appendChild(el);
+    protokoll.scrollTop = protokoll.scrollHeight;
+  }
+  async function verhoere(frage) {
+    eintrag("ermittler", frage);
+    fragen++;
+    if (fragen % 3 === 1) {
+      await new Promise((r) => setTimeout(r, 600));
+      eintrag("verdaechtig", ZOEGERN[Math.floor(Math.random() * ZOEGERN.length)]);
+      eintrag("notiz", "(Ermittler schlägt mit der Faust auf den Tisch.)");
+    }
+    const { text } = await frageBot(frage);
+    eintrag("verdaechtig", text);
+    eintrag("notiz", NOTIZEN[Math.floor(Math.random() * NOTIZEN.length)]);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) verhoere(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  eintrag("notiz", "Beginn der Vernehmung: " + new Date().toLocaleTimeString("de-DE") + ". Empfohlene Fragen: " + VORSCHLAEGE.join(" / "));
+</script>
+</body>
+</html>

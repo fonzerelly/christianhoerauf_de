@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>07 · Bento-Kacheln</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #0e0e10; color: #f2f2f2; padding: 28px; }
+  .raster { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 170px; gap: 14px; }
+  .kachel { background: #1b1b1f; border-radius: 22px; padding: 22px; border: 1px solid #2a2a30; overflow: hidden; position: relative; }
+  .gross { grid-column: span 2; grid-row: span 2; }
+  .breit { grid-column: span 2; }
+  .hoch { grid-row: span 2; }
+  .name h1 { font-size: 46px; margin: 0; line-height: 1; letter-spacing: -.03em; }
+  .name p { color: #9a9aa5; font-size: 17px; }
+  .etikett { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: #8a8a95; margin-bottom: 8px; }
+  .zahl { font-size: 54px; font-weight: 800; background: linear-gradient(90deg, #ff8a00, #e52e71); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .chat { display: flex; flex-direction: column; background: linear-gradient(160deg, #1f2a44, #1b1b1f 60%); }
+  #antwort { flex: 1; overflow-y: auto; font-size: 15px; line-height: 1.55; color: #dfe6ff; }
+  .chat form { display: flex; gap: 8px; margin-top: 10px; }
+  input { flex: 1; background: #0e0e10; border: 1px solid #333; color: white; border-radius: 12px; padding: 11px 14px; font-size: 14px; outline: none; }
+  .chat button { background: #4f7cff; color: white; border: none; border-radius: 12px; padding: 0 14px; cursor: pointer; }
+  .frage-kachel { cursor: pointer; transition: transform .2s, border-color .2s; display: flex; align-items: flex-end; font-size: 20px; font-weight: 600; }
+  .frage-kachel:hover { transform: translateY(-3px); border-color: #4f7cff; }
+  .frage-kachel::before { content: "?"; position: absolute; top: 14px; right: 20px; font-size: 60px; color: #2c2c34; font-weight: 800; }
+  .tags span { display: inline-block; background: #26262d; border-radius: 999px; padding: 5px 11px; margin: 3px; font-size: 13px; }
+  .karte { background: radial-gradient(circle at 60% 50%, #4f7cff55 0 6px, transparent 7px), repeating-linear-gradient(0deg, #1b1b1f 0 19px, #23232a 19px 20px), repeating-linear-gradient(90deg, transparent 0 19px, #23232a 19px 20px); }
+  @media (max-width: 800px) { .raster { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="raster">
+  <div class="kachel gross name"><div class="etikett">Hallo, ich bin</div><h1>Christian<br>Hörauf</h1><p>Softwareentwickler. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p></div>
+  <div class="kachel breit hoch chat"><div class="etikett">ChrisBot – frag einfach</div><div id="antwort"></div><form id="formular"><input id="eingabe" placeholder="Frage …" autocomplete="off"><button>→</button></form></div>
+  <div class="kachel"><div class="etikett">Jahre Erfahrung</div><div class="zahl">20+</div></div>
+  <div class="kachel"><div class="etikett">Tests im Bot</div><div class="zahl">800</div></div>
+  <div class="kachel breit tags"><div class="etikett">Werkzeuge</div><span>TypeScript</span><span>Python</span><span>Angular</span><span>AWS</span><span>TDD</span><span>Java</span><span>C++</span></div>
+  <div class="kachel karte"><div class="etikett">Standort</div>Erlangen</div>
+  <div class="kachel frage-kachel" id="f0"></div>
+  <div class="kachel frage-kachel" id="f1"></div>
+  <div class="kachel frage-kachel" id="f2"></div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const antwort = document.getElementById("antwort");
+  async function stelleFrage(frage) {
+    antwort.innerHTML = "<em style='color:#8a8a95'>„" + frage + "“</em><br>…";
+    const { text } = await frageBot(frage);
+    antwort.innerHTML = "<em style='color:#8a8a95'></em><br>";
+    antwort.firstChild.textContent = "„" + frage + "“";
+    antwort.appendChild(document.createTextNode(text));
+  }
+  VORSCHLAEGE.forEach((v, i) => {
+    const kachel = document.getElementById("f" + i);
+    kachel.textContent = v;
+    kachel.onclick = () => stelleFrage(v);
+  });
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  antwort.textContent = findeAntwort("");
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 · Lebenslauf, der antwortet</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Helvetica Neue", Arial, sans-serif; background: #e9ecef; color: #222; }
+  .blatt { max-width: 820px; margin: 30px auto 140px; background: white; padding: 50px 60px; box-shadow: 0 4px 30px rgba(0,0,0,.12); }
+  h1 { margin: 0; font-size: 34px; } .unter { color: #666; margin: 4px 0 30px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .15em; color: #0b6e4f; border-bottom: 2px solid #0b6e4f; padding-bottom: 4px; margin-top: 30px; }
+  .station { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 10px; border-radius: 6px; transition: background .4s, box-shadow .4s; }
+  .station .zeit { color: #777; font-size: 14px; }
+  .station b { display: block; } .station p { margin: 4px 0 0; color: #555; font-size: 14px; line-height: 1.5; }
+  .station.markiert { background: #fff7d6; box-shadow: inset 4px 0 0 #f2c200; }
+  .leiste { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; width: min(760px, 94vw); background: #0b6e4f; color: white; border-radius: 16px; padding: 14px 16px; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+  #antwort { font-size: 15px; line-height: 1.5; margin-bottom: 10px; min-height: 1.5em; }
+  #antwort:empty { display: none; }
+  form { display: flex; gap: 8px; }
+  input { flex: 1; border: none; border-radius: 10px; padding: 12px 14px; font-size: 15px; outline: none; }
+  form button { border: none; border-radius: 10px; background: #f2c200; font-weight: 700; padding: 0 16px; cursor: pointer; }
+  .chips { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips button { background: transparent; border: 1px solid #ffffff88; color: white; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="blatt">
+  <h1>Christian Hörauf</h1>
+  <div class="unter">Softwareentwickler · Erlangen · Lorem ipsum</div>
+  <h2>Berufserfahrung</h2>
+  <div class="station" data-thema="beruf"><div class="zeit">2020 – heute</div><div><b>Softwareentwicklung, Lorem GmbH</b><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor.</p></div></div>
+  <div class="station" data-thema="beruf"><div class="zeit">2014 – 2020</div><div><b>Senior Expert, Ipsum AG</b><p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p></div></div>
+  <div class="station"><div class="zeit">2008 – 2014</div><div><b>Projektleitung, Dolor KG</b><p>Duis aute irure dolor in reprehenderit in voluptate velit esse.</p></div></div>
+  <h2>Ausbildung</h2>
+  <div class="station"><div class="zeit">1998 – 2003</div><div><b>Dipl.-Ing. Medientechnologie</b><p>Excepteur sint occaecat cupidatat non proident.</p></div></div>
+  <h2>Über mich</h2>
+  <div class="station" data-thema="person"><div class="zeit">immer</div><div><b>Neugierig, testgetrieben, verspielt</b><p>Lorem ipsum dolor sit amet, sunt in culpa qui officia deserunt mollit anim id est laborum.</p></div></div>
+  <div class="station" data-thema="lang"><div class="zeit">Hobbys</div><div><b>Zaubertricks, Elektronik, Kinder-Informatik</b><p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</p></div></div>
+</div>
+<div class="leiste">
+  <div id="antwort"></div>
+  <form id="formular"><input id="eingabe" placeholder="Frag den Lebenslauf …" autocomplete="off"><button>Fragen</button></form>
+  <div class="chips" id="chips"></div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Welche Abschnitte des Lebenslaufs zu welcher Frage gehören. Im echten Bot käme das
+  // als "gimmick" oder Quellenangabe aus dem Backend.
+  function themaZu(frage) {
+    const f = frage.toLowerCase();
+    if (/beruf|job|arbeit|machst/.test(f)) return "beruf";
+    if (/wer|name|hallo/.test(f)) return "person";
+    if (/lang|erzähl/.test(f)) return "lang";
+    return null;
+  }
+
+  // Beantwortet die Frage in der Leiste unten und markiert die passenden Stationen im Blatt.
+  async function stelleFrage(frage) {
+    const antwort = document.getElementById("antwort");
+    antwort.textContent = "…";
+    document.querySelectorAll(".station").forEach((s) => s.classList.remove("markiert"));
+    const { text } = await frageBot(frage);
+    antwort.textContent = text;
+    const thema = themaZu(frage);
+    const treffer = document.querySelectorAll('.station[data-thema="' + thema + '"]');
+    treffer.forEach((s) => s.classList.add("markiert"));
+    if (treffer[0]) treffer[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>50 · Der Fluchtknopf</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; overflow: hidden; background: #fff0f5; font-family: "Trebuchet MS", system-ui, sans-serif; color: #3a0d26; }
+  h1 { text-align: center; margin: 40px 0 6px; font-size: 34px; } .unter { text-align: center; color: #9a4f76; }
+  #feld { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); display: flex; gap: 8px; transition: left .25s cubic-bezier(.3,1.5,.6,1), top .25s cubic-bezier(.3,1.5,.6,1), transform .25s; background: white; padding: 10px; border-radius: 999px; box-shadow: 0 8px 24px #c2185b33; }
+  #feld input { width: 280px; border: 2px solid #c2185b; border-radius: 999px; padding: 10px 16px; font: inherit; outline: none; }
+  #feld button { background: #c2185b; color: white; border: none; border-radius: 999px; padding: 0 18px; font: inherit; cursor: pointer; }
+  .sprueche { position: absolute; bottom: 90px; width: 100%; text-align: center; font-size: 18px; min-height: 1.5em; font-style: italic; }
+  #antwort { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); width: min(620px, 92vw); text-align: center; line-height: 1.6; font-size: 18px; }
+  .zaehler { position: absolute; top: 14px; right: 18px; font-size: 13px; color: #9a4f76; }
+</style>
+</head>
+<body>
+<h1>Frag mich was!</h1>
+<div class="unter">… wenn du mich erwischst.</div>
+<div class="zaehler" id="zaehler">Fluchtversuche: 0</div>
+<form id="feld"><input id="eingabe" placeholder="Hier tippen. Theoretisch." autocomplete="off"><button>Fragen</button></form>
+<div id="antwort"></div>
+<div class="sprueche" id="sprueche"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Das Eingabefeld weicht der Maus aus. Nach 7 Fluchten gibt es auf ("Respekt, du bist
+  // hartnäckig") und bleibt stehen. Per Tastatur (Tab) kommt man sofort ran – Barrierefreiheit
+  // schlägt Witz. Auf Touchgeräten flieht es nur dreimal.
+  const feld = document.getElementById("feld");
+  const SPRUECHE = ["Hoppla!", "Zu langsam!", "Fast …", "Nicht so stürmisch.", "Ich bin ein Chatbot, kein Ponyhof.", "Probier's mal mit Tab.", "Okay, okay …"];
+  const GRENZE = matchMedia("(pointer: coarse)").matches ? 3 : 7;
+  let fluchten = 0, gefangen = false, letzteFlucht = 0;
+  function fliehe(mx, my) {
+    // Kurze Pause nach jeder Flucht: während das Feld noch wegrutscht, zählt die Maus nicht.
+    if (gefangen || performance.now() - letzteFlucht < 400) return;
+    letzteFlucht = performance.now();
+    fluchten++;
+    document.getElementById("zaehler").textContent = "Fluchtversuche: " + fluchten;
+    document.getElementById("sprueche").textContent = SPRUECHE[Math.min(fluchten - 1, SPRUECHE.length - 1)];
+    if (fluchten >= GRENZE) { gibAuf(); return; }
+    // Neue Stelle: möglichst weit weg von der Maus, aber im Fenster
+    const r = feld.getBoundingClientRect();
+    let x, y, versuche = 0;
+    do {
+      x = r.width / 2 + Math.random() * (innerWidth - r.width);
+      y = 120 + Math.random() * (innerHeight - 260);
+    } while (Math.hypot(x - mx, y - my) < 260 && ++versuche < 30);
+    feld.style.left = x + "px";
+    feld.style.top = y + "px";
+    feld.style.transform = "translate(-50%, -50%) rotate(" + (Math.random() * 16 - 8) + "deg)";
+  }
+  function gibAuf() {
+    gefangen = true;
+    feld.style.left = "50%"; feld.style.top = "45%"; feld.style.transform = "translate(-50%, -50%)";
+    document.getElementById("sprueche").textContent = "Respekt, du bist hartnäckig. Das mögen wir hier.";
+    document.getElementById("eingabe").focus();
+  }
+  addEventListener("pointermove", (e) => {
+    const r = feld.getBoundingClientRect();
+    const nah = e.clientX > r.left - 30 && e.clientX < r.right + 30 && e.clientY > r.top - 30 && e.clientY < r.bottom + 30;
+    if (nah && document.activeElement !== document.getElementById("eingabe")) fliehe(e.clientX, e.clientY);
+  });
+  document.getElementById("eingabe").addEventListener("focus", () => { if (!gefangen) gibAuf(); });
+  feld.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    const frage = eingabe.value.trim() || VORSCHLAEGE[Math.floor(Math.random() * 3)];
+    eingabe.value = "";
+    document.getElementById("antwort").textContent = "…";
+    const { text } = await frageBot(frage);
+    document.getElementById("antwort").textContent = "„" + frage + "“ – " + text;
+  });
+</script>
+</body>
+</html>

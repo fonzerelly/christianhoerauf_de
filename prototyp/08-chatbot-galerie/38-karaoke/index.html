@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>38 · Karaoke</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: linear-gradient(135deg, #12002e, #3d0066 50%, #001a4d); color: white; font-family: "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+  .lichter { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 20% 0%, #ff00aa44, transparent 40%), radial-gradient(circle at 80% 0%, #00e5ff44, transparent 40%); animation: schwenk 3s ease-in-out infinite alternate; }
+  @keyframes schwenk { to { filter: hue-rotate(90deg); transform: translateX(30px); } }
+  .titel { font-size: 14px; letter-spacing: .4em; color: #ffcc00; text-transform: uppercase; }
+  .lied { font-size: 22px; margin: 6px 0 30px; color: #ddd; }
+  #text { max-width: 900px; padding: 0 20px; text-align: center; font-size: clamp(24px, 4vw, 44px); line-height: 1.4; font-weight: 800; min-height: 4.2em; }
+  .wort { color: #ffffff55; transition: color .15s, text-shadow .15s; }
+  .wort.gesungen { color: #00e5ff; text-shadow: 0 0 20px #00e5ff; }
+  .ball { width: 22px; height: 22px; border-radius: 50%; background: #ffcc00; box-shadow: 0 0 20px #ffcc00; position: fixed; transition: left .25s, top .25s; pointer-events: none; animation: huepf .25s infinite alternate; }
+  @keyframes huepf { to { transform: translateY(-14px); } }
+  .balken { width: min(600px, 80vw); height: 6px; background: #ffffff22; border-radius: 3px; margin-top: 30px; overflow: hidden; } .balken div { height: 100%; width: 0; background: linear-gradient(90deg, #ff00aa, #00e5ff); }
+  form { margin-top: 30px; display: flex; gap: 8px; }
+  input { width: min(400px, 70vw); background: #ffffff15; border: 2px solid #ff00aa; border-radius: 999px; color: white; padding: 10px 18px; font: inherit; outline: none; }
+  form button, .chips button { background: #ff00aa; border: none; color: white; border-radius: 999px; padding: 0 18px; font: inherit; cursor: pointer; }
+  .chips { margin-top: 10px; display: flex; gap: 8px; } .chips button { padding: 6px 12px; background: #ffffff22; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="lichter"></div>
+<div class="titel">♪ ChrisBot Karaoke ♪</div>
+<div class="lied" id="lied">Wähle ein Lied (eine Frage)</div>
+<div id="text"></div>
+<div class="balken"><div id="balken"></div></div>
+<form id="formular"><input id="eingabe" placeholder="Wunschtitel (= Frage)" autocomplete="off"><button>🎤</button></form>
+<div class="chips" id="chips"></div>
+<div class="ball" id="ball" style="display:none"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Die Antwort erscheint ganz, aber blass; dann wird sie Wort für Wort "gesungen" (hell) und
+  // ein hüpfender Ball springt mit. Lesen kann man sofort – das Mitsingen ist Bonus.
+  const textFeld = document.getElementById("text");
+  const ball = document.getElementById("ball");
+  let lauf = 0;
+  async function singe(titel, text) {
+    const meinLauf = ++lauf;
+    document.getElementById("lied").textContent = "„" + titel + "“ – interpretiert von ChrisBot";
+    textFeld.innerHTML = "";
+    const woerter = text.split(" ").map((w) => {
+      const s = document.createElement("span");
+      s.className = "wort"; s.textContent = w + " ";
+      textFeld.appendChild(s);
+      return s;
+    });
+    ball.style.display = "block";
+    for (let i = 0; i < woerter.length; i++) {
+      if (meinLauf !== lauf) return;
+      const r = woerter[i].getBoundingClientRect();
+      ball.style.left = r.left + r.width / 2 - 11 + "px";
+      ball.style.top = r.top - 30 + "px";
+      woerter[i].classList.add("gesungen");
+      document.getElementById("balken").style.width = ((i + 1) / woerter.length) * 100 + "%";
+      await new Promise((r) => setTimeout(r, 140 + woerter[i].textContent.length * 25));
+    }
+    ball.style.display = "none";
+  }
+  async function stelleFrage(frage) { singe(frage, (await frageBot(frage, 300)).text); }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  singe("Intro", findeAntwort(""));
+</script>
+</body>
+</html>

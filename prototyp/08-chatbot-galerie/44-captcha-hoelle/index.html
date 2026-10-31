@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>44 · Captcha-Hölle</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f9f9f9; font-family: Roboto, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 40px 14px; color: #222; }
+  .karte { width: min(420px, 94vw); background: white; border: 1px solid #d3d3d3; border-radius: 4px; box-shadow: 0 2px 6px #0001; }
+  .kopf { background: #4a90e2; color: white; padding: 20px; }
+  .kopf small { display: block; font-size: 14px; } .kopf b { font-size: 22px; }
+  .raster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 8px; }
+  .kachel { aspect-ratio: 1; display: grid; place-items: center; font-size: 44px; background: #eee; cursor: pointer; position: relative; user-select: none; transition: transform .1s; }
+  .kachel.an { transform: scale(.86); } .kachel.an::after { content: "✓"; position: absolute; top: 4px; left: 4px; background: #4a90e2; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; display: grid; place-items: center; }
+  .fuss { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid #eee; color: #777; }
+  .fuss button { background: #4a90e2; color: white; border: none; padding: 10px 22px; border-radius: 2px; font-weight: bold; cursor: pointer; }
+  .meldung { color: #d0021b; font-size: 13px; padding: 0 14px 10px; min-height: 1em; }
+  .chat { width: min(560px, 94vw); margin-top: 30px; display: none; }
+  .chat.frei { display: block; }
+  #verlauf div { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; line-height: 1.5; }
+  #verlauf .ich { background: #4a90e2; color: white; border: none; margin-left: 20%; }
+  form { display: flex; gap: 8px; } input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+  form button { background: #4a90e2; color: white; border: none; border-radius: 6px; padding: 0 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="karte" id="karte">
+  <div class="kopf"><small>Wählen Sie alle Bilder mit</small><b id="aufgabe"></b><small id="unteraufgabe">Klicken Sie auf „Bestätigen“, wenn Sie fertig sind.</small></div>
+  <div class="raster" id="raster"></div>
+  <div class="meldung" id="meldung"></div>
+  <div class="fuss"><span>⟳ 🎧 ⓘ</span><button id="pruefen">BESTÄTIGEN</button></div>
+</div>
+<div class="chat" id="chat">
+  <div id="verlauf"></div>
+  <form id="formular"><input id="eingabe" placeholder="Willkommen, Mensch. Ihre Frage:" autocomplete="off"><button>Fragen</button></form>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Drei Runden, die immer absurder werden. Die dritte ist unlösbar ("Bilder mit Gefühlen")
+  // und wird nach dem Klick auf Bestätigen trotzdem durchgewunken: "Sie haben gezögert. Nur
+  // Menschen zögern." Dann erst gibt's den Chat. Satire auf Zugangshürden.
+  const RUNDEN = [
+    { aufgabe: "Ampeln", bilder: ["🚦", "🌳", "🚦", "🚗", "🏠", "🚦", "🐈", "🚲", "🌳"], richtig: [0, 2, 5] },
+    { aufgabe: "Programmiersprachen", bilder: ["🐍", "☕", "🦀", "💎", "🐘", "🍕", "🐹", "🦆", "🌮"], richtig: [0, 1, 2, 3, 4, 6] },
+    { aufgabe: "Gefühlen", bilder: ["🧱", "🧱", "🧱", "🧱", "🧱", "🧱", "🧱", "🧱", "🧱"], richtig: null, unter: "…die Sie beim Lesen eines Lebenslaufs empfinden." },
+  ];
+  let runde = 0;
+  const gewaehlt = new Set();
+  function zeigeRunde() {
+    const r = RUNDEN[runde];
+    gewaehlt.clear();
+    document.getElementById("aufgabe").textContent = r.aufgabe;
+    document.getElementById("unteraufgabe").textContent = r.unter || "Klicken Sie auf „Bestätigen“, wenn Sie fertig sind.";
+    const raster = document.getElementById("raster");
+    raster.innerHTML = "";
+    r.bilder.forEach((b, i) => {
+      const k = document.createElement("div");
+      k.className = "kachel"; k.textContent = b;
+      k.onclick = () => { gewaehlt.has(i) ? gewaehlt.delete(i) : gewaehlt.add(i); k.classList.toggle("an"); };
+      raster.appendChild(k);
+    });
+  }
+  document.getElementById("pruefen").onclick = () => {
+    const r = RUNDEN[runde];
+    const meldung = document.getElementById("meldung");
+    if (r.richtig === null) {
+      meldung.style.color = "#417505";
+      meldung.textContent = "Sie haben gezögert. Nur Menschen zögern. Willkommen!";
+      setTimeout(() => { document.getElementById("karte").style.display = "none"; document.getElementById("chat").classList.add("frei"); }, 1400);
+      return;
+    }
+    const ok = r.richtig.length === gewaehlt.size && r.richtig.every((i) => gewaehlt.has(i));
+    if (ok) { meldung.textContent = ""; runde++; zeigeRunde(); }
+    else meldung.textContent = runde === 1 ? "Bitte erneut versuchen. (Pizza ist keine Programmiersprache. Noch nicht.)" : "Bitte erneut versuchen.";
+  };
+  zeigeRunde();
+
+  const verlauf = document.getElementById("verlauf");
+  async function stelleFrage(frage) {
+    const ich = document.createElement("div"); ich.className = "ich"; ich.textContent = frage; verlauf.appendChild(ich);
+    const bot = document.createElement("div"); bot.textContent = "…"; verlauf.appendChild(bot);
+    bot.textContent = (await frageBot(frage)).text;
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  const begruessung = document.createElement("div");
+  begruessung.textContent = findeAntwort("") + " Vorschläge: " + VORSCHLAEGE.join(" · ");
+  verlauf.appendChild(begruessung);
+</script>
+</body>
+</html>

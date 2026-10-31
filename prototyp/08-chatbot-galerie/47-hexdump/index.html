@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>47 · Hexdump</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #101418; color: #9aa5b1; font-family: ui-monospace, "Fira Code", monospace; font-size: 14px; padding: 24px; }
+  .befehl { color: #e6e6e6; } .befehl b { color: #7ee787; }
+  .dump { margin: 10px 0 26px; line-height: 1.6; }
+  .zeile { display: flex; gap: 18px; white-space: pre; }
+  .off { color: #58a6ff; } .hex span, .asc span { cursor: default; border-radius: 2px; }
+  .hex span.hl, .asc span.hl { background: #f2cc60; color: #000; }
+  .asc { color: #7ee787; } .nicht { color: #555; }
+  form { display: flex; gap: 6px; align-items: center; position: sticky; bottom: 0; background: #101418; padding: 10px 0; }
+  form b { color: #7ee787; white-space: nowrap; } input { flex: 1; background: none; border: none; border-bottom: 1px solid #333; color: #e6e6e6; font: inherit; outline: none; }
+  .hinweis { color: #555; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="hinweis">Antworten kommen als Hexdump (wie <code>xxd</code>). Maus über ein Byte: Hex und Klartext leuchten zusammen auf. Tipp: Die rechte Spalte ist lesbar … meistens.</div>
+<div id="ausgabe"></div>
+<form id="formular"><b>$ echo "</b><input id="eingabe" autocomplete="off" spellcheck="false" placeholder="wer bist du?"><b>" | chrisbot | xxd</b></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Baut einen Hexdump im Format von xxd: Offset, 16 Bytes in Hex (paarweise gruppiert),
+  // dann die druckbaren Zeichen. UTF-8-Folgebytes (Umlaute) erscheinen als Punkt.
+  // Jedes Byte ist ein eigenes Span mit Index, damit Hex- und Textspalte gemeinsam leuchten.
+  function hexdump(text) {
+    const bytes = new TextEncoder().encode(text + "\n");
+    const block = document.createElement("div");
+    block.className = "dump";
+    for (let start = 0; start < bytes.length; start += 16) {
+      const zeile = document.createElement("div");
+      zeile.className = "zeile";
+      const off = document.createElement("span");
+      off.className = "off";
+      off.textContent = start.toString(16).padStart(8, "0") + ":";
+      const hex = document.createElement("span"); hex.className = "hex";
+      const asc = document.createElement("span"); asc.className = "asc";
+      for (let i = start; i < start + 16; i++) {
+        const h = document.createElement("span");
+        const a = document.createElement("span");
+        if (i < bytes.length) {
+          h.textContent = bytes[i].toString(16).padStart(2, "0");
+          const druckbar = bytes[i] >= 32 && bytes[i] < 127;
+          a.textContent = druckbar ? String.fromCharCode(bytes[i]) : ".";
+          if (!druckbar) a.className = "nicht";
+          h.onmouseenter = a.onmouseenter = () => { h.classList.add("hl"); a.classList.add("hl"); };
+          h.onmouseleave = a.onmouseleave = () => { h.classList.remove("hl"); a.classList.remove("hl"); };
+        } else h.textContent = "  ";
+        hex.appendChild(h);
+        hex.appendChild(document.createTextNode(i % 2 ? " " : ""));
+        asc.appendChild(a);
+      }
+      zeile.append(off, hex, asc);
+      block.appendChild(zeile);
+    }
+    return block;
+  }
+  const ausgabe = document.getElementById("ausgabe");
+  async function stelleFrage(frage) {
+    const befehl = document.createElement("div");
+    befehl.className = "befehl";
+    befehl.innerHTML = "<b>$</b> ";
+    befehl.appendChild(document.createTextNode('echo "' + frage + '" | chrisbot | xxd'));
+    ausgabe.appendChild(befehl);
+    const { text } = await frageBot(frage);
+    ausgabe.appendChild(hexdump(text));
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    stelleFrage(eingabe.value.trim() || eingabe.placeholder);
+    eingabe.value = "";
+  });
+  const start = document.createElement("div");
+  start.className = "befehl";
+  start.innerHTML = "<b>$</b> chrisbot --hello | xxd";
+  ausgabe.appendChild(start);
+  ausgabe.appendChild(hexdump(findeAntwort("")));
+  document.getElementById("eingabe").focus();
+</script>
+</body>
+</html>

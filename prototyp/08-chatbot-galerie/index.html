@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galerie · 50 Chatbot-Prototypen</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #f2f1ee; color: #1d1d1f; }
+  header { padding: 30px 30px 10px; max-width: 1400px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 30px; } header p { color: #666; max-width: 760px; line-height: 1.5; }
+  .filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 6px; }
+  .filter button { border: 1px solid #ccc; background: white; border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+  .filter button.aktiv { background: #1d1d1f; color: white; border-color: #1d1d1f; }
+  .sortierung { font-size: 13px; color: #666; } .sortierung select { font: inherit; }
+  main { max-width: 1400px; margin: 0 auto; padding: 10px 30px 60px; }
+  h2 { font-size: 18px; margin: 30px 0 12px; color: #555; }
+  .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+  a.karte { background: white; border-radius: 14px; overflow: hidden; text-decoration: none; color: inherit; box-shadow: 0 2px 10px #0000000d; transition: transform .15s, box-shadow .15s; display: flex; flex-direction: column; }
+  a.karte:hover { transform: translateY(-3px); box-shadow: 0 10px 24px #0000001a; }
+  .karte img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: #ddd; display: block; border-bottom: 1px solid #eee; }
+  .text { padding: 12px 14px 14px; }
+  .text b { font-size: 16px; } .nr { color: #999; font-weight: 400; margin-right: 6px; }
+  .text p { margin: 6px 0 10px; font-size: 13.5px; line-height: 1.45; color: #444; }
+  .werte { display: flex; gap: 14px; font-size: 12px; color: #777; }
+  .punkte { letter-spacing: 1px; } .punkte i { font-style: normal; color: #d0d0d0; }
+  .hr .punkte { color: #0b7a3b; } .nerd .punkte { color: #7a2bd6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>50 Chatbot-Prototypen für christianhoerauf.de</h1>
+  <p>Alternativen und Ergänzungen zum Labyrinth. Alle nutzen dieselben drei Platzhalter-Antworten (<code>gemeinsam/antworten.js</code>). Ein Klick öffnet den Prototyp. „HR“ und „Nerd“ sind grobe Einschätzungen von 1 bis 5. Ideen und Empfehlung stehen in <code>doc.md</code>.</p>
+  <div class="filter" id="filter"></div>
+  <div class="sortierung">Sortieren: <select id="sortierung"><option value="nr">nach Nummer</option><option value="hr">HR-tauglichste zuerst</option><option value="nerd">nerdigste zuerst</option></select></div>
+</header>
+<main id="inhalt"></main>
+<script src="gemeinsam/katalog.js"></script>
+<script>
+  // Baut die Galerie aus dem Katalog: Filter nach Abteilung, Sortierung nach Nummer oder Wertung.
+  // Die Vorschaubilder in vorschau/ macht ein Playwright-Lauf (siehe doc.md).
+  let gewaehlteAbteilung = "alle";
+  const punkte = (n) => "●".repeat(n) + "<i>" + "●".repeat(5 - n) + "</i>";
+
+  function karte(eintrag) {
+    const a = document.createElement("a");
+    a.className = "karte";
+    a.href = eintrag.ordner + "/index.html";
+    a.target = "_blank";
+    a.innerHTML = '<img loading="lazy" alt=""><div class="text"><b><span class="nr"></span><span class="titel"></span></b><p></p><div class="werte"><span class="hr">HR <span class="punkte">' + punkte(eintrag.hr) + '</span></span><span class="nerd">Nerd <span class="punkte">' + punkte(eintrag.nerd) + "</span></span></div></div>";
+    a.querySelector("img").src = "vorschau/" + eintrag.ordner.slice(0, 2) + ".jpg";
+    a.querySelector(".nr").textContent = eintrag.ordner.slice(0, 2);
+    a.querySelector(".titel").textContent = eintrag.titel;
+    a.querySelector("p").textContent = eintrag.idee;
+    return a;
+  }
+  function zeige() {
+    const inhalt = document.getElementById("inhalt");
+    const sortierung = document.getElementById("sortierung").value;
+    inhalt.innerHTML = "";
+    const auswahl = KATALOG.filter((e) => gewaehlteAbteilung === "alle" || e.abteilung === gewaehlteAbteilung);
+    if (sortierung !== "nr") {
+      const raster = document.createElement("div");
+      raster.className = "raster";
+      auswahl.slice().sort((a, b) => b[sortierung] - a[sortierung]).forEach((e) => raster.appendChild(karte(e)));
+      inhalt.appendChild(raster);
+      return;
+    }
+    for (const [schluessel, name] of Object.entries(ABTEILUNGEN)) {
+      const teil = auswahl.filter((e) => e.abteilung === schluessel);
+      if (!teil.length) continue;
+      const h2 = document.createElement("h2");
+      h2.textContent = name + " (" + teil.length + ")";
+      const raster = document.createElement("div");
+      raster.className = "raster";
+      teil.forEach((e) => raster.appendChild(karte(e)));
+      inhalt.append(h2, raster);
+    }
+  }
+  [["alle", "Alle 50"]].concat(Object.entries(ABTEILUNGEN)).forEach(([schluessel, name]) => {
+    const b = document.createElement("button");
+    b.textContent = name;
+    b.className = schluessel === "alle" ? "aktiv" : "";
+    b.onclick = () => {
+      gewaehlteAbteilung = schluessel;
+      document.querySelectorAll("#filter button").forEach((x) => x.classList.toggle("aktiv", x === b));
+      zeige();
+    };
+    document.getElementById("filter").appendChild(b);
+  });
+  document.getElementById("sortierung").onchange = zeige;
+  zeige();
+</script>
+</body>
+</html>

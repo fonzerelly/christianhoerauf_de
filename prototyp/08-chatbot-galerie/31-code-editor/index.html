@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>31 · Code-Editor</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: grid; grid-template-columns: 48px 220px 1fr; grid-template-rows: 1fr 22px; background: #1e1e1e; color: #d4d4d4; font-family: system-ui, sans-serif; font-size: 13px; }
+  .aktivitaet { background: #333; display: flex; flex-direction: column; align-items: center; padding-top: 10px; gap: 18px; font-size: 20px; color: #858585; }
+  .explorer { background: #252526; padding: 8px 0; }
+  .explorer h3 { font-size: 11px; text-transform: uppercase; margin: 0 14px 8px; color: #bbb; font-weight: 400; }
+  .explorer div { padding: 3px 22px; cursor: pointer; } .explorer div:hover { background: #2a2d2e; } .explorer .aktiv { background: #37373d; }
+  .editor { display: flex; flex-direction: column; min-width: 0; }
+  .reiter { background: #252526; display: flex; } .reiter span { padding: 8px 14px; background: #1e1e1e; border-top: 1px solid #0078d4; }
+  .code { flex: 1; overflow-y: auto; font-family: "Cascadia Code", ui-monospace, monospace; font-size: 14px; line-height: 1.55; padding: 10px 0; counter-reset: zeile; }
+  .z { display: flex; white-space: pre-wrap; } .z::before { counter-increment: zeile; content: counter(zeile); width: 50px; text-align: right; padding-right: 18px; color: #858585; flex-shrink: 0; }
+  .kw { color: #569cd6; } .fn { color: #dcdcaa; } .str { color: #ce9178; } .kom { color: #6a9955; } .typ { color: #4ec9b0; }
+  .eingabezeile input { flex: 1; background: #264f78; border: none; color: #6a9955; font: inherit; outline: 1px solid #0078d4; padding: 0 4px; }
+  .ghost { color: #6a6a6a; font-style: italic; }
+  .status { grid-column: 1 / 4; background: #0078d4; color: white; display: flex; gap: 18px; padding: 0 10px; align-items: center; font-size: 12px; }
+  @media (max-width: 700px) { body { grid-template-columns: 0 0 1fr; } .explorer, .aktivitaet { display: none; } }
+</style>
+</head>
+<body>
+<div class="aktivitaet"><span>📄</span><span>🔍</span><span>⑂</span><span>🐞</span></div>
+<div class="explorer"><h3>Explorer · christian-hoerauf</h3><div class="aktiv">📜 chrisbot.ts</div><div>📄 lebenslauf.md</div><div>🧪 chris.test.ts</div><div>⚙️ package.json</div></div>
+<div class="editor">
+  <div class="reiter"><span>chrisbot.ts</span></div>
+  <div class="code" id="code"></div>
+</div>
+<div class="status"><span>⑂ master</span><span>✓ 800 Tests</span><span style="margin-left:auto">TypeScript · UTF-8 · ChrisBot Copilot ✨</span></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Fragen schreibt man als Kommentar ("// …"), wie beim Prompten eines KI-Assistenten im
+  // Editor. Der Bot ergänzt darunter eine Funktion, die die Antwort als String zurückgibt.
+  const code = document.getElementById("code");
+  const schutz = (t) => t.replace(/[&<>]/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[z]);
+  function zeile(html) {
+    const z = document.createElement("div");
+    z.className = "z"; z.innerHTML = html || " ";
+    code.insertBefore(z, code.querySelector(".eingabezeile"));
+    return z;
+  }
+  const kamel = (t) => t.replace(/[^\p{L}\s]/gu, "").trim().split(/\s+/).map((w, i) => (i ? w[0].toUpperCase() + w.slice(1) : w.toLowerCase())).join("") || "antwort";
+  async function stelleFrage(frage) {
+    zeile('<span class="kom">// ' + schutz(frage) + "</span>");
+    const geist = zeile('<span class="ghost">  ChrisBot Copilot schreibt …</span>');
+    const { text } = await frageBot(frage);
+    geist.remove();
+    zeile('<span class="kw">export function</span> <span class="fn">' + schutz(kamel(frage)) + '</span>(): <span class="typ">string</span> {');
+    const woerter = text.split(" ");
+    let z = "";
+    const zeilen = [];
+    for (const w of woerter) { if ((z + w).length > 60) { zeilen.push(z.trim()); z = ""; } z += w + " "; }
+    zeilen.push(z.trim());
+    for (let i = 0; i < zeilen.length; i++) {
+      zeile("  " + (i === 0 ? '<span class="kw">return</span> ' : "    ") + '<span class="str">"' + schutz(zeilen[i]) + (i < zeilen.length - 1 ? ' " +' : '";') + "</span>");
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    zeile("}");
+    zeile("");
+    code.scrollTop = code.scrollHeight;
+  }
+  code.innerHTML = '<div class="z eingabezeile"><span class="kom">// </span><input id="eingabe" placeholder="Frage als Kommentar tippen, Enter …" autocomplete="off" spellcheck="false"></div>';
+  zeile('<span class="kw">import</span> { <span class="typ">Lebenslauf</span> } <span class="kw">from</span> <span class="str">"./lebenslauf"</span>;');
+  zeile("");
+  zeile('<span class="kom">/** ' + schutz(findeAntwort("")) + " */</span>");
+  zeile('<span class="kom">// Vorschläge: ' + VORSCHLAEGE.map(schutz).join(" · ") + "</span>");
+  zeile("");
+  const eingabe = document.getElementById("eingabe");
+  eingabe.focus();
+  eingabe.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && eingabe.value.trim()) { stelleFrage(eingabe.value.trim()); eingabe.value = ""; }
+    if (e.key === "Tab") { e.preventDefault(); eingabe.value = VORSCHLAEGE[Math.floor(Math.random() * 3)]; }
+  });
+</script>
+</body>
+</html>

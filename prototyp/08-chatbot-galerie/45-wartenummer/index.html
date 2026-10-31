@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>45 · Wartenummer ziehen</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #cfd8dc; font-family: "DIN", "Arial Narrow", Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 24px 10px; }
+  .anzeige { background: #111; border-radius: 6px; padding: 14px 26px; display: flex; gap: 40px; box-shadow: 0 8px 20px #0005; }
+  .anzeige div { text-align: center; color: #888; font-size: 13px; letter-spacing: .1em; }
+  .anzeige b { display: block; font-family: "Courier New", monospace; font-size: 54px; color: #ff3b1f; text-shadow: 0 0 10px #ff3b1f; letter-spacing: .05em; }
+  .anzeige b.blink { animation: blink .4s 4; } @keyframes blink { 50% { opacity: .2; } }
+  .automat { margin-top: 30px; width: 240px; background: #eceff1; border-radius: 10px; padding: 18px; text-align: center; box-shadow: 0 6px 16px #0003; }
+  .automat button { width: 100%; background: #c62828; color: white; border: none; border-radius: 50%; aspect-ratio: 1; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 6px 0 #7f1414; }
+  .automat button:active { transform: translateY(4px); box-shadow: 0 2px 0 #7f1414; }
+  .schlitz { height: 8px; background: #263238; border-radius: 4px; margin-top: 14px; }
+  .bon { width: 200px; background: white; margin: 0 auto; padding: 12px; font-family: "Courier New", monospace; text-align: center; box-shadow: 0 4px 8px #0003; animation: raus .5s; }
+  @keyframes raus { from { transform: translateY(-40px); opacity: 0; } }
+  .bon b { font-size: 40px; display: block; }
+  .schalter { margin-top: 26px; width: min(600px, 96vw); background: white; border-radius: 8px; padding: 18px; display: none; box-shadow: 0 6px 16px #0003; }
+  .schalter.offen { display: block; }
+  .schalter h3 { margin: 0 0 10px; } .schalter p { line-height: 1.55; }
+  form { display: flex; gap: 8px; } input { flex: 1; padding: 10px; font: inherit; border: 1px solid #90a4ae; }
+  form button { background: #1565c0; color: white; border: none; padding: 0 14px; cursor: pointer; }
+  .chips { margin-top: 8px; font-size: 13px; } .chips a { margin-right: 10px; color: #1565c0; cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="anzeige"><div>NUMMER<b id="aufruf">---</b></div><div>SCHALTER<b id="schalter">-</b></div></div>
+<div class="automat"><button id="ziehen">Nummer<br>ziehen</button><div class="schlitz"></div><div id="bonFach"></div></div>
+<div class="schalter" id="schalterBox">
+  <h3 id="schalterTitel">Schalter 3 – ChrisBot</h3>
+  <p id="antwort">Ihr Anliegen bitte.</p>
+  <form id="formular"><input id="eingabe" placeholder="Anliegen" autocomplete="off"><button>Vortragen</button></form>
+  <div class="chips" id="chips"></div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Erst Nummer ziehen, dann zählt die Anzeige von einer niedrigeren Nummer hoch, bis man
+  // aufgerufen wird (ca. 4 s – kurz genug, um nicht wirklich zu nerven). Danach ist der
+  // Schalter offen und man kann beliebig viele Fragen stellen.
+  let eigene = null;
+  document.getElementById("ziehen").onclick = async () => {
+    if (eigene) return;
+    eigene = Math.floor(Math.random() * 400 + 100);
+    document.getElementById("bonFach").innerHTML = '<div class="bon">Ihre Nummer<b>' + eigene + "</b>Bitte warten Sie,<br>bis Ihre Nummer<br>aufgerufen wird.<br><small>" + new Date().toLocaleTimeString("de-DE") + "</small></div>";
+    const aufruf = document.getElementById("aufruf");
+    for (let n = eigene - 6; n <= eigene; n++) {
+      aufruf.textContent = n;
+      document.getElementById("schalter").textContent = 1 + (n % 4);
+      await new Promise((r) => setTimeout(r, 650));
+    }
+    document.getElementById("schalter").textContent = "3";
+    aufruf.classList.add("blink");
+    try { const a = new AudioContext(), o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; g.gain.value = .1; o.connect(g).connect(a.destination); o.start(); o.frequency.setValueAtTime(660, a.currentTime + .25); o.stop(a.currentTime + .6); } catch (e) {}
+    document.getElementById("schalterBox").classList.add("offen");
+    document.getElementById("schalterTitel").textContent = "Schalter 3 – Nummer " + eigene + ", bitte!";
+    document.getElementById("eingabe").focus();
+  };
+  async function stelleFrage(frage) {
+    const antwort = document.getElementById("antwort");
+    antwort.textContent = "(Sachbearbeiter tippt mit zwei Fingern …)";
+    antwort.textContent = (await frageBot(frage)).text;
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.textContent = v;
+    a.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(a);
+  });
+</script>
+</body>
+</html>

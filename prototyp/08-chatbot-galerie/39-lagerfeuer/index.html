@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>39 · Lagerfeuer</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; background: #05060f; color: #ffe7c2; font-family: "Press Start 2P", "Courier New", monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+  canvas { image-rendering: pixelated; width: min(640px, 100vw); height: auto; margin-top: 20px; }
+  .erzaehlung { width: min(640px, 94vw); background: #000a; border: 4px solid #ffe7c2; padding: 14px 16px; font-size: 14px; line-height: 1.7; min-height: 110px; margin-top: -10px; position: relative; }
+  .erzaehlung::after { content: "▼"; position: absolute; right: 10px; bottom: 6px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  form { width: min(640px, 94vw); display: flex; gap: 8px; margin-top: 12px; }
+  input { flex: 1; background: #111; border: 2px solid #ffe7c2; color: #ffe7c2; font: inherit; font-size: 13px; padding: 8px; outline: none; }
+  form button, .chips button { background: #c2410c; border: 2px solid #ffe7c2; color: #ffe7c2; font: inherit; font-size: 12px; padding: 0 12px; cursor: pointer; }
+  .chips { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; justify-content: center; } .chips button { padding: 6px 8px; font-size: 11px; }
+</style>
+</head>
+<body>
+<canvas id="leinwand" width="160" height="90"></canvas>
+<div class="erzaehlung" id="erzaehlung"></div>
+<form id="formular"><input id="eingabe" placeholder="Frag den Erzähler …" autocomplete="off"><button>OK</button></form>
+<div class="chips" id="chips"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Pixelszene in 160×90: Sternenhimmel, zwei Figuren, ein flackerndes Feuer. Die Funken
+  // fliegen höher, solange erzählt wird. Darunter ein Textkasten wie in alten Rollenspielen.
+  const ctx = document.getElementById("leinwand").getContext("2d");
+  const sterne = Array.from({ length: 50 }, () => [Math.random() * 160, Math.random() * 50, Math.random()]);
+  let funken = [], erzaehlt = false, t = 0;
+  function pixel(x, y, farbe, b = 1, h = 1) { ctx.fillStyle = farbe; ctx.fillRect(Math.round(x), Math.round(y), b, h); }
+  function figur(x, farbe) { pixel(x, 58, "#f1c9a0", 4, 4); pixel(x - 1, 62, farbe, 6, 8); pixel(x, 70, "#333", 2, 4); pixel(x + 2, 70, "#333", 2, 4); }
+  function bild() {
+    t++;
+    pixel(0, 0, "#05060f", 160, 90);
+    for (const [x, y, p] of sterne) if (Math.sin(t / 20 + p * 10) > -0.3) pixel(x, y, "#ffffffaa");
+    pixel(0, 74, "#0f1a0f", 160, 16);
+    pixel(119, 18, "#fff3c4", 6, 8); pixel(118, 19, "#fff3c4", 8, 6); // Vollmond, Ecken abgerundet
+    figur(52, "#2563eb");
+    figur(102, "#16a34a");
+    pixel(100, 56, "#8a5a2a", 8, 2);
+    pixel(70, 72, "#5a3a1a", 20, 3);
+    for (let i = 0; i < 14; i++) {
+      const h = 6 + Math.random() * 10;
+      const x = 72 + i + Math.sin(t / 3 + i) * 0.8;
+      pixel(x, 72 - h, i % 3 ? "#f97316" : "#facc15", 1, h);
+    }
+    pixel(77, 64, "#fff7cc", 6, 6);
+    if (Math.random() < (erzaehlt ? 0.8 : 0.25)) funken.push({ x: 80 + Math.random() * 6 - 3, y: 60, v: 0.4 + Math.random() * (erzaehlt ? 0.9 : 0.4) });
+    funken = funken.filter((f) => (f.y -= f.v) > 10);
+    for (const f of funken) pixel(f.x + Math.sin(f.y / 4), f.y, f.y > 40 ? "#facc15" : "#f9731688");
+    requestAnimationFrame(bild);
+  }
+  bild();
+  const kasten = document.getElementById("erzaehlung");
+  let lauf = 0;
+  async function erzaehle(text) {
+    const meinLauf = ++lauf;
+    erzaehlt = true;
+    kasten.textContent = "";
+    for (const z of text) {
+      if (meinLauf !== lauf) return;
+      kasten.textContent += z;
+      await new Promise((r) => setTimeout(r, 22));
+    }
+    erzaehlt = false;
+  }
+  async function stelleFrage(frage) {
+    kasten.textContent = "Der Erzähler stochert im Feuer …";
+    erzaehle("„" + (await frageBot(frage)).text + "“");
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  erzaehle("Setz dich ans Feuer, Wanderer. " + findeAntwort(""));
+</script>
+</body>
+</html>

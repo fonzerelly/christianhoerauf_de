@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>49 · Halt still</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; overflow: hidden; background: #0a0f1f; color: #cfe3ff; font-family: Georgia, serif; }
+  .wort { position: fixed; left: 0; top: 0; font-size: 24px; white-space: nowrap; will-change: transform; transition: color .4s; pointer-events: none; }
+  body.ruhig .wort { color: #fff; }
+  .status { position: fixed; top: 16px; width: 100%; text-align: center; font-family: system-ui; font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: #6a83b5; }
+  form { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; width: min(560px, 92vw); z-index: 1; }
+  input { flex: 1; background: #ffffff10; border: 1px solid #3a4f80; color: white; border-radius: 999px; padding: 12px 18px; font: inherit; outline: none; }
+  form button { background: #3a4f80; color: white; border: none; border-radius: 999px; padding: 0 16px; cursor: pointer; font-family: system-ui; }
+</style>
+</head>
+<body>
+<div class="status" id="status">Beweg die Maus nicht. Dann reden wir.</div>
+<div id="woerter"></div>
+<form id="formular"><input id="eingabe" placeholder="Frage stellen – und dann: still halten" autocomplete="off"><button>Fragen</button><button type="button" id="vorschlag">?</button></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Die Wörter der Antwort schwärmen umher, solange sich Maus oder Finger bewegen. Erst nach
+  // 0,8 s Ruhe ordnen sie sich zum lesbaren Satz. Wer zappelt, liest nichts.
+  // Die Positionen werden per transform gesetzt (nicht left/top), sonst ruckelt es bei
+  // vielen Wörtern – daher die etwas technischere Schreibweise unten.
+  let woerter = [], letzteBewegung = 0, zeit = 0;
+  function setzeText(text) {
+    const feld = document.getElementById("woerter");
+    feld.innerHTML = "";
+    const breite = Math.min(720, innerWidth - 40), links = (innerWidth - breite) / 2;
+    let x = links, y = innerHeight * 0.3;
+    woerter = text.split(" ").map((w) => {
+      const el = document.createElement("span");
+      el.className = "wort"; el.textContent = w;
+      feld.appendChild(el);
+      const b = el.offsetWidth + 8;
+      if (x + b > links + breite) { x = links; y += 36; }
+      const wort = { el, tx: x, ty: y, x: Math.random() * innerWidth, y: Math.random() * innerHeight, phase: Math.random() * 6.28, radius: 80 + Math.random() * 220 };
+      x += b;
+      return wort;
+    });
+    letzteBewegung = performance.now();
+  }
+  function bild(jetzt) {
+    zeit = jetzt / 1000;
+    const ruhig = jetzt - letzteBewegung > 800;
+    document.body.classList.toggle("ruhig", ruhig);
+    document.getElementById("status").textContent = ruhig ? "Danke. So ist es besser." : "Beweg die Maus nicht. Dann reden wir.";
+    for (const w of woerter) {
+      // Schwarm: jedes Wort kreist auf seiner eigenen Bahn um die Bildschirmmitte
+      const zielX = ruhig ? w.tx : innerWidth / 2 + Math.cos(zeit * 1.3 + w.phase) * w.radius * 1.6 - 40;
+      const zielY = ruhig ? w.ty : innerHeight / 2 + Math.sin(zeit * 1.7 + w.phase * 2) * w.radius * 0.9;
+      const tempo = ruhig ? 0.12 : 0.05;
+      w.x += (zielX - w.x) * tempo;
+      w.y += (zielY - w.y) * tempo;
+      w.el.style.transform = "translate(" + w.x + "px," + w.y + "px)";
+    }
+    requestAnimationFrame(bild);
+  }
+  requestAnimationFrame(bild);
+  ["pointermove", "touchmove", "scroll"].forEach((ereignis) => addEventListener(ereignis, () => (letzteBewegung = performance.now())));
+  async function stelleFrage(frage) { setzeText((await frageBot(frage)).text); }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  let n = 0;
+  document.getElementById("vorschlag").onclick = () => stelleFrage(VORSCHLAEGE[n++ % VORSCHLAEGE.length]);
+  setzeText(findeAntwort(""));
+</script>
+</body>
+</html>

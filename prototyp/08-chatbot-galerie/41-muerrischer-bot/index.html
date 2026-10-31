@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>41 · Mürrischer Bot</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b2d31; color: #dbdee1; font-family: system-ui, sans-serif; min-height: 100vh; display: flex; justify-content: center; }
+  .chat { width: min(680px, 96vw); display: flex; flex-direction: column; height: 100vh; padding: 20px 0; }
+  header { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .gesicht { font-size: 44px; transition: transform .3s; } .gesicht.genervt { transform: rotate(-12deg) scale(1.1); }
+  header b { font-size: 20px; display: block; } header small { color: #949ba4; }
+  .laune { margin-left: auto; text-align: right; font-size: 12px; color: #949ba4; }
+  .laune div { width: 140px; height: 8px; background: #1e1f22; border-radius: 4px; margin-top: 4px; overflow: hidden; } .laune span { display: block; height: 100%; background: linear-gradient(90deg, #f23f43, #f0b232); transition: width .5s; }
+  #verlauf { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .n { max-width: 85%; padding: 10px 14px; border-radius: 12px; line-height: 1.5; }
+  .bot { background: #383a40; align-self: flex-start; } .bot i { color: #f0b232; display: block; margin-bottom: 4px; font-size: 14px; }
+  .ich { background: #5865f2; color: white; align-self: flex-end; }
+  .chips { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; } .chips button { background: #383a40; border: none; color: #dbdee1; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  form { display: flex; gap: 8px; } input { flex: 1; background: #383a40; border: none; color: white; border-radius: 10px; padding: 13px 16px; font-size: 15px; outline: none; }
+  form button { background: #5865f2; color: white; border: none; border-radius: 10px; padding: 0 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="chat">
+  <header><div class="gesicht" id="gesicht">😒</div><div><b>GrummelBot</b><small>Mein Chatbot ist kein Ponyhof.</small></div><div class="laune">Laune<div><span id="laune" style="width:40%"></span></div></div></header>
+  <div id="verlauf"></div>
+  <div class="chips" id="chips"></div>
+  <form id="formular"><input id="eingabe" placeholder="Na los, frag schon …" autocomplete="off"><button>Seufz</button></form>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Der Bot antwortet korrekt (gleiche Antworten wie überall), stellt aber einen mürrischen
+  // Kommentar voran. Je mehr Fragen, desto schlechter die Laune; nach "danke" oder "bitte" wird
+  // sie besser. Die eigentliche Antwort bleibt immer vollständig – genervt, aber hilfsbereit.
+  const MURREN = {
+    gut: ["Na gut. Ausnahmsweise.", "Weil du so nett fragst:", "Hm. Okay."],
+    mittel: ["Schon wieder du.", "Steht doch alles im Lebenslauf. Aber bitte:", "Ich hatte gerade Pause.", "*seufz*"],
+    schlecht: ["Ernsthaft? Noch eine Frage?", "Ich mach das hier nicht zum Spaß. Okay, doch. Aber trotzdem.", "Frag doch die KI von nebenan.", "Wenn's sein muss:"],
+  };
+  let laune = 40;
+  const verlauf = document.getElementById("verlauf");
+  function nachricht(wer, text, kommentar) {
+    const el = document.createElement("div");
+    el.className = "n " + wer;
+    if (kommentar) { const i = document.createElement("i"); i.textContent = kommentar; el.appendChild(i); }
+    el.appendChild(document.createTextNode(text));
+    verlauf.appendChild(el);
+    verlauf.scrollTop = verlauf.scrollHeight;
+  }
+  function zeigeLaune() {
+    document.getElementById("laune").style.width = laune + "%";
+    document.getElementById("gesicht").textContent = laune > 60 ? "🙂" : laune > 30 ? "😒" : "😤";
+    document.getElementById("gesicht").classList.toggle("genervt", laune <= 30);
+  }
+  async function stelleFrage(frage) {
+    nachricht("ich", frage);
+    laune += /\b(danke|bitte)\b/i.test(frage) ? 25 : -12;
+    laune = Math.max(5, Math.min(95, laune));
+    zeigeLaune();
+    const { text } = await frageBot(frage, 900 + (100 - laune) * 15);
+    const topf = laune > 60 ? MURREN.gut : laune > 30 ? MURREN.mittel : MURREN.schlecht;
+    nachricht("bot", text, topf[Math.floor(Math.random() * topf.length)]);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.concat("Danke!").forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  nachricht("bot", "Ich bin GrummelBot. Ich beantworte Fragen über Chris. Nicht gern, aber zuverlässig.", "Oh. Besuch.");
+</script>
+</body>
+</html>

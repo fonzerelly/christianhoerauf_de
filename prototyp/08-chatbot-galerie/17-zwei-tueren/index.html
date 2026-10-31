@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>17 · Zwei Türen</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; font-family: system-ui, sans-serif; }
+  .tuer { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; cursor: pointer; transition: flex .5s; position: relative; overflow: hidden; text-decoration: none; }
+  .tuer h2 { font-size: clamp(28px, 4vw, 48px); margin: 14px 0 8px; }
+  .tuer p { max-width: 340px; line-height: 1.5; opacity: .85; }
+  .tuer .knopf { margin-top: 20px; padding: 12px 22px; border-radius: 999px; font-weight: 700; }
+  .klar { background: #f7f7f5; color: #1e2a3a; }
+  .klar .knopf { background: #1e2a3a; color: white; }
+  .nerd { background: #020a05; color: #c4ffd6; font-family: ui-monospace, monospace; }
+  .nerd .knopf { border: 1px solid #2bdc5a; color: #2bdc5a; }
+  .nerd canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .5; }
+  .nerd > *:not(canvas) { position: relative; }
+  .tuer:hover { filter: brightness(1.04); }
+  .mitte { position: fixed; top: 22px; left: 50%; transform: translateX(-50%); background: white; border-radius: 999px; padding: 8px 18px; box-shadow: 0 6px 20px #0003; font-weight: 700; color: #1e2a3a; z-index: 2; white-space: nowrap; }
+  .symbol { font-size: 54px; }
+  @media (max-width: 700px) { body { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="mitte">Christian Hörauf – wie möchten Sie fragen?</div>
+<a class="tuer klar" href="../01-wie-chatgpt/index.html">
+  <div class="symbol">💬</div>
+  <h2>Klassisch</h2>
+  <p>Ein ganz normaler Chat. Schnell, klar, ohne Umwege. Für alle, die in fünf Minuten wissen wollen, wer ich bin.</p>
+  <span class="knopf">Zum Chat</span>
+</a>
+<a class="tuer nerd" href="../../live/index.html">
+  <canvas id="leinwand"></canvas>
+  <div class="symbol">◈</div>
+  <h2>Das Labyrinth</h2>
+  <p>Ein Lichtpunkt schreibt die Antwort als Weg durch ein Labyrinth. Langsamer. Schöner. Für alle, die Zeit mitbringen.</p>
+  <span class="knopf">&gt; betreten_</span>
+</a>
+<script src="../gemeinsam/labyrinth-mini.js"></script>
+<script>
+  // Diese Seite beantwortet selbst nichts: sie ist die Weiche zwischen einem normalen
+  // Chat (hier verlinkt: Prototyp 01) und der bestehenden Labyrinth-Seite (prototyp/live).
+  const leinwand = document.getElementById("leinwand");
+  const ctx = leinwand.getContext("2d");
+  function zeichne() {
+    leinwand.width = leinwand.clientWidth;
+    leinwand.height = leinwand.clientHeight;
+    const lab = erzeugeLabyrinth(Math.ceil(leinwand.width / 24), Math.ceil(leinwand.height / 24));
+    zeichneLabyrinth(ctx, lab, 24, "#0d4a22", 2);
+  }
+  addEventListener("resize", zeichne);
+  zeichne();
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>25 · Retro-Desktop</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; background: #008080; font-family: "MS Sans Serif", Tahoma, sans-serif; font-size: 13px; overflow: hidden; user-select: none; }
+  .symbol { position: absolute; width: 80px; text-align: center; color: white; cursor: pointer; }
+  .symbol div { font-size: 34px; }
+  .symbol span { padding: 1px 3px; } .symbol:focus span { background: #000080; outline: 1px dotted white; }
+  .fenster { position: absolute; background: #c0c0c0; border: 2px outset #fff; box-shadow: 1px 1px 0 #000; min-width: 300px; display: none; }
+  .fenster.offen { display: block; }
+  .kopf { background: linear-gradient(90deg, #000080, #1084d0); color: white; font-weight: bold; padding: 3px 4px; display: flex; justify-content: space-between; cursor: move; }
+  .kopf button { width: 18px; height: 16px; font-size: 10px; line-height: 1; border: 2px outset #fff; background: #c0c0c0; padding: 0; cursor: pointer; }
+  .koerper { padding: 8px; }
+  #verlauf { background: white; border: 2px inset #fff; height: 220px; overflow-y: auto; padding: 6px; user-select: text; line-height: 1.4; }
+  #verlauf b { color: #000080; }
+  .reihe { display: flex; gap: 6px; margin-top: 8px; }
+  .reihe input { flex: 1; border: 2px inset #fff; padding: 3px; font: inherit; }
+  .knopf { border: 2px outset #fff; background: #c0c0c0; padding: 3px 12px; font: inherit; cursor: pointer; }
+  .knopf:active { border-style: inset; }
+  .leiste { position: fixed; bottom: 0; left: 0; right: 0; height: 32px; background: #c0c0c0; border-top: 2px outset #fff; display: flex; align-items: center; padding: 2px; gap: 4px; }
+  .start { font-weight: bold; } .uhr { margin-left: auto; border: 2px inset #fff; padding: 2px 10px; }
+  .aufgabe { border: 2px inset #fff; padding: 2px 10px; background: #dcdcdc; }
+  .dialog p { margin: 4px 4px 12px; display: flex; gap: 10px; align-items: center; } .dialog p::before { content: "ℹ️"; font-size: 28px; }
+</style>
+</head>
+<body>
+<div class="symbol" style="left:20px;top:20px" tabindex="0" data-oeffne="chat"><div>🤖</div><span>ChrisBot.exe</span></div>
+<div class="symbol" style="left:20px;top:110px" tabindex="0" data-oeffne="lebenslauf"><div>📄</div><span>Lebenslauf.txt</span></div>
+<div class="symbol" style="left:20px;top:200px" tabindex="0" data-oeffne="papierkorb"><div>🗑️</div><span>Papierkorb</span></div>
+
+<div class="fenster offen" id="chat" style="left:140px;top:40px;width:min(480px,80vw)">
+  <div class="kopf"><span>🤖 ChrisBot – Frage-Assistent</span><span><button>_</button> <button data-zu>×</button></span></div>
+  <div class="koerper">
+    <div id="verlauf"></div>
+    <form class="reihe" id="formular"><input id="eingabe" autocomplete="off"><button class="knopf">Fragen</button></form>
+    <div class="reihe" id="chips"></div>
+  </div>
+</div>
+<div class="fenster" id="lebenslauf" style="left:220px;top:120px;width:360px">
+  <div class="kopf"><span>📄 Lebenslauf.txt – Editor</span><span><button data-zu>×</button></span></div>
+  <div class="koerper"><textarea style="width:100%;height:180px;font-family:monospace">CHRISTIAN HÖRAUF
+Softwareentwickler, Erlangen
+
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.</textarea></div>
+</div>
+<div class="fenster dialog" id="papierkorb" style="left:300px;top:200px;width:320px">
+  <div class="kopf"><span>Papierkorb</span><span><button data-zu>×</button></span></div>
+  <div class="koerper"><p>Hier liegt das alte Labyrinth-Design. Es wird nicht gelöscht – versprochen.</p><div style="text-align:center"><button class="knopf" data-zu>OK</button></div></div>
+</div>
+
+<div class="leiste"><button class="knopf start">🪟 Start</button><span class="aufgabe">🤖 ChrisBot.exe</span><span class="uhr" id="uhr"></span></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Fenster öffnen (Doppelklick auf Symbol), schließen (×) und verschieben (Titelleiste ziehen).
+  document.querySelectorAll(".symbol").forEach((s) => (s.ondblclick = () => document.getElementById(s.dataset.oeffne).classList.add("offen")));
+  document.querySelectorAll("[data-zu]").forEach((b) => (b.onclick = () => b.closest(".fenster").classList.remove("offen")));
+  let gezogen = null, dx = 0, dy = 0;
+  document.querySelectorAll(".kopf").forEach((k) => (k.onmousedown = (e) => {
+    gezogen = k.parentElement; dx = e.clientX - gezogen.offsetLeft; dy = e.clientY - gezogen.offsetTop;
+    document.querySelectorAll(".fenster").forEach((f) => (f.style.zIndex = 1)); gezogen.style.zIndex = 2;
+  }));
+  onmousemove = (e) => { if (gezogen) { gezogen.style.left = e.clientX - dx + "px"; gezogen.style.top = e.clientY - dy + "px"; } };
+  onmouseup = () => (gezogen = null);
+  setInterval(() => (document.getElementById("uhr").textContent = new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })), 1000);
+
+  const verlauf = document.getElementById("verlauf");
+  function zeile(wer, text) {
+    const el = document.createElement("div");
+    el.innerHTML = "<b></b> ";
+    el.firstChild.textContent = wer + ":";
+    el.appendChild(document.createTextNode(text));
+    verlauf.appendChild(el);
+    verlauf.scrollTop = verlauf.scrollHeight;
+  }
+  async function stelleFrage(frage) {
+    zeile("Sie", frage);
+    document.body.style.cursor = "wait";
+    const { text } = await frageBot(frage);
+    document.body.style.cursor = "";
+    zeile("ChrisBot", text);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.className = "knopf"; b.type = "button"; b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  zeile("ChrisBot", findeAntwort(""));
+</script>
+</body>
+</html>

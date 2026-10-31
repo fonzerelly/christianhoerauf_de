@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12 · Postfach</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: #f3f2f1; color: #252423; height: 100vh; display: flex; flex-direction: column; }
+  .leiste { background: #0f6cbd; color: white; padding: 10px 18px; font-weight: 600; display: flex; justify-content: space-between; }
+  .rahmen { flex: 1; display: grid; grid-template-columns: 200px 340px 1fr; min-height: 0; }
+  nav { padding: 14px; font-size: 14px; }
+  nav div { padding: 8px 10px; border-radius: 4px; cursor: default; }
+  nav .aktiv { background: #dbe8f6; font-weight: 600; }
+  nav .neu { background: #0f6cbd; color: white; text-align: center; margin-bottom: 14px; cursor: pointer; }
+  .liste { background: white; border-left: 1px solid #e1dfdd; border-right: 1px solid #e1dfdd; overflow-y: auto; }
+  .mail { padding: 12px 16px; border-bottom: 1px solid #edebe9; cursor: pointer; font-size: 14px; }
+  .mail.ungelesen { border-left: 3px solid #0f6cbd; } .mail.ungelesen b { color: #0f6cbd; }
+  .mail.aktiv { background: #e6f0fb; }
+  .mail b { display: block; } .mail span { color: #605e5c; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lesen { padding: 28px 36px; overflow-y: auto; background: white; }
+  .lesen h2 { font-weight: 600; margin-top: 0; }
+  .kopf { display: flex; gap: 12px; align-items: center; margin-bottom: 22px; font-size: 14px; color: #605e5c; }
+  .kreis { width: 40px; height: 40px; border-radius: 50%; background: #8764b8; color: white; display: grid; place-items: center; font-weight: 600; }
+  .text { line-height: 1.65; white-space: pre-wrap; }
+  form { display: flex; flex-direction: column; gap: 10px; max-width: 600px; }
+  form input, form textarea { border: 1px solid #c8c6c4; padding: 10px; font: inherit; }
+  form textarea { min-height: 120px; }
+  form button { align-self: flex-start; background: #0f6cbd; color: white; border: none; padding: 8px 20px; cursor: pointer; }
+  @media (max-width: 800px) { .rahmen { grid-template-columns: 1fr; } nav { display: none; } .liste { max-height: 35vh; } }
+</style>
+</head>
+<body>
+<div class="leiste"><span>✉ Post an Chris</span><span>ChrisBot antwortet meist innerhalb einer Sekunde</span></div>
+<div class="rahmen">
+  <nav><div class="neu" id="neu">+ Neue Frage</div><div class="aktiv">Posteingang</div><div>Gesendet</div><div>Entwürfe</div><div>Junk (Recruiter-Spam)</div></nav>
+  <div class="liste" id="liste"></div>
+  <div class="lesen" id="lesen"></div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const liste = document.getElementById("liste");
+  const lesen = document.getElementById("lesen");
+  const mails = [];
+
+  // Jede Antwort landet als neue Mail im Posteingang. Ein Klick zeigt sie rechts an.
+  function neueMail(betreff, text) {
+    const mail = { betreff, text, zeit: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }), gelesen: false };
+    mails.unshift(mail);
+    zeigeListe();
+  }
+  function zeigeListe() {
+    liste.innerHTML = "";
+    mails.forEach((mail) => {
+      const el = document.createElement("div");
+      el.className = "mail" + (mail.gelesen ? "" : " ungelesen");
+      el.innerHTML = "<b></b><span></span><span></span>";
+      el.children[0].textContent = "ChrisBot · " + mail.zeit;
+      el.children[1].textContent = mail.betreff;
+      el.children[2].textContent = mail.text;
+      el.onclick = () => { mail.gelesen = true; zeigeListe(); zeigeMail(mail); el.classList.add("aktiv"); };
+      liste.appendChild(el);
+    });
+  }
+  function zeigeMail(mail) {
+    lesen.innerHTML = '<h2></h2><div class="kopf"><div class="kreis">CB</div><div>ChrisBot &lt;bot@christianhoerauf.de&gt;<br>an: Sie</div></div><div class="text"></div>';
+    lesen.querySelector("h2").textContent = mail.betreff;
+    lesen.querySelector(".text").textContent = "Hallo,\n\n" + mail.text + "\n\nViele Grüße\nChrisBot\n\n— \nAutomatisch erstellt. Antworten Sie gern, ich lese alles.";
+  }
+  function zeigeFormular() {
+    lesen.innerHTML = '<h2>Neue Frage</h2><form id="formular"><input value="An: ChrisBot" disabled><input id="betreff" placeholder="Betreff (Ihre Frage)" list="vorschlaege"><datalist id="vorschlaege"></datalist><textarea placeholder="Optional: mehr Kontext"></textarea><button>Senden</button></form>';
+    VORSCHLAEGE.forEach((v) => { const o = document.createElement("option"); o.value = v; lesen.querySelector("datalist").appendChild(o); });
+    document.getElementById("formular").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const frage = document.getElementById("betreff").value.trim();
+      if (!frage) return;
+      lesen.innerHTML = "<h2>Gesendet ✓</h2><p>Die Antwort kommt gleich in den Posteingang.</p>";
+      neueMail("AW: " + frage, (await frageBot(frage)).text);
+    });
+  }
+  document.getElementById("neu").onclick = zeigeFormular;
+  neueMail("Willkommen!", findeAntwort(""));
+  VORSCHLAEGE.forEach((v) => { mails.push({ betreff: "Vorschlag: " + v, text: findeAntwort(v), zeit: "gestern", gelesen: true }); });
+  zeigeListe();
+  zeigeFormular();
+</script>
+</body>
+</html>

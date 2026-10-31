@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>26 · Videotext</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #000; color: #fff; font-family: "Courier New", monospace; font-weight: bold; display: grid; place-items: center; min-height: 100vh; }
+  .tafel { width: min(720px, 98vw); font-size: clamp(13px, 2.3vw, 20px); line-height: 1.25; }
+  .z { white-space: pre; overflow: hidden; }
+  .gelb { color: #ff0; } .cyan { color: #0ff; } .gruen { color: #0f0; } .rot { color: #f00; } .weiss { color: #fff; }
+  .bg-blau { background: #00f; } .bg-rot { background: #f00; } .bg-gelb { background: #ff0; color: #000; }
+  .blk { display: inline-block; width: 1ch; }
+  .tasten { margin-top: 14px; display: flex; gap: 0; }
+  .tasten button { flex: 1; font: inherit; border: none; padding: 6px; cursor: pointer; }
+  form { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+  input { flex: 1; font: inherit; background: #000; border: 2px solid #0ff; color: #0ff; padding: 6px; outline: none; }
+  #antwort { min-height: 11em; white-space: normal; }
+</style>
+</head>
+<body>
+<div class="tafel">
+  <div class="z"><span class="weiss">P<span id="seite">100</span></span>  <span class="gelb">CHB-TEXT</span>  <span class="cyan" id="datum"></span>  <span class="weiss" id="uhr"></span></div>
+  <div class="z bg-blau gelb"> ████ ChrisBot-Text ████████████████ </div>
+  <div class="z cyan" id="titel"> Übersicht</div>
+  <div class="z"> </div>
+  <div class="z gruen" id="antwort"></div>
+  <div class="z"> </div>
+  <div class="z gelb" id="index"></div>
+  <div class="tasten"><button class="bg-rot" data-s="101">101</button><button style="background:#0f0" data-s="102">102</button><button class="bg-gelb" data-s="103">103</button><button style="background:#0ff" data-s="100">Index</button></div>
+  <form id="formular"><span class="cyan">Frage:</span><input id="eingabe" autocomplete="off" placeholder="oder Seitennummer 100–103"></form>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Seite 100 ist das Inhaltsverzeichnis, 101–103 sind die drei vorbereiteten Fragen.
+  // Freie Fragen landen auf Seite 888 (die "Untertitel-Seite"). Vor jeder Seite läuft der
+  // typische Seitenzähler hoch, wie beim Warten auf die richtige Videotext-Tafel.
+  const SEITEN = { 101: VORSCHLAEGE[0], 102: VORSCHLAEGE[1], 103: VORSCHLAEGE[2] };
+  const antwortFeld = document.getElementById("antwort");
+  document.getElementById("datum").textContent = new Date().toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
+  setInterval(() => (document.getElementById("uhr").textContent = new Date().toLocaleTimeString("de-DE")), 1000);
+  document.getElementById("index").textContent = Object.entries(SEITEN).map(([n, f]) => " " + f.padEnd(30, ".") + " " + n).join("\n");
+  document.getElementById("index").style.whiteSpace = "pre";
+
+  async function zaehleHoch(ziel) {
+    const anzeige = document.getElementById("seite");
+    let n = Number(anzeige.textContent);
+    while (n !== ziel) {
+      n = n < ziel ? n + 1 : n - 1;
+      if (Math.abs(n - ziel) > 15) n = ziel - Math.sign(ziel - n) * 15;
+      anzeige.textContent = n;
+      await new Promise((r) => setTimeout(r, 40));
+    }
+  }
+  async function zeigeSeite(nummer, frage) {
+    antwortFeld.textContent = "";
+    await zaehleHoch(nummer);
+    document.getElementById("titel").textContent = " " + (frage || "Übersicht");
+    if (nummer === 100) { antwortFeld.textContent = findeAntwort(""); return; }
+    antwortFeld.textContent = (await frageBot(frage, 200)).text;
+  }
+  document.querySelectorAll("[data-s]").forEach((b) => (b.onclick = () => zeigeSeite(Number(b.dataset.s), SEITEN[b.dataset.s])));
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const wert = document.getElementById("eingabe").value.trim();
+    document.getElementById("eingabe").value = "";
+    if (!wert) return;
+    if (/^\d{3}$/.test(wert)) zeigeSeite(Number(wert), SEITEN[wert]);
+    else zeigeSeite(888, wert);
+  });
+  zeigeSeite(100);
+</script>
+</body>
+</html>

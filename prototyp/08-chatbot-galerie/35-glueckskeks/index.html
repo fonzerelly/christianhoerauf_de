@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>35 · Glückskeks</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #b3261e; background-image: radial-gradient(#d4443a 2px, transparent 3px); background-size: 34px 34px; font-family: Georgia, serif; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff4e0; }
+  h1 { font-weight: 400; letter-spacing: .1em; margin: 0 0 40px; }
+  .teller { width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, #fff 0 55%, #e8e2d6 56% 60%, #fff 61%); box-shadow: 0 20px 40px #0005; display: grid; place-items: center; position: relative; }
+  .keks { width: 180px; height: 120px; position: relative; cursor: pointer; transition: transform .2s; }
+  .keks:hover { transform: rotate(-6deg) scale(1.05); }
+  .haelfte { position: absolute; top: 0; width: 100px; height: 110px; background: radial-gradient(circle at 50% 30%, #f7c46c, #d99a3a 70%, #b9781f); transition: transform .6s cubic-bezier(.3,1.4,.5,1); }
+  .links { left: 0; border-radius: 80% 20% 50% 50%; } .rechts { right: 0; border-radius: 20% 80% 50% 50%; }
+  .keks.offen .links { transform: translate(-70px, 20px) rotate(-40deg); } .keks.offen .rechts { transform: translate(70px, 20px) rotate(40deg); }
+  .zettel { position: absolute; left: 50%; top: 50%; width: 0; background: white; color: #333; font-size: 14px; line-height: 1.4; padding: 0; overflow: hidden; transform: translate(-50%, -50%); transition: width .6s .3s, padding .6s .3s; box-shadow: 0 2px 6px #0003; white-space: normal; text-align: center; font-style: italic; z-index: 2; max-height: 220px; overflow-y: auto; }
+  .keks.offen .zettel { width: 300px; padding: 12px 16px; }
+  .zettel .zahlen { display: block; margin-top: 8px; color: #b3261e; font-style: normal; font-size: 12px; }
+  .hinweis { margin-top: 30px; font-size: 15px; opacity: .9; }
+  form { margin-top: 16px; display: flex; gap: 8px; }
+  input { width: min(360px, 66vw); padding: 10px 14px; border: none; border-radius: 6px; font: inherit; }
+  form button { background: #f7c46c; border: none; border-radius: 6px; padding: 0 14px; font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Chris' Glückskekse</h1>
+<div class="teller"><div class="keks" id="keks"><div class="haelfte links"></div><div class="haelfte rechts"></div><div class="zettel" id="zettel"></div></div></div>
+<div class="hinweis">Klick den Keks für eine zufällige Frage – oder wünsch dir eine:</div>
+<form id="formular"><input id="eingabe" placeholder="Meine Frage für den Keks" autocomplete="off"><button>Neuer Keks</button></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Ein Klick bricht den Keks auf; drin steckt die Antwort auf eine zufällige (oder die
+  // eingegebene) Frage, samt "Glückszahlen". Nächster Klick: neuer Keks.
+  const keks = document.getElementById("keks");
+  const zettel = document.getElementById("zettel");
+  async function brich(frage) {
+    if (keks.classList.contains("offen")) { keks.classList.remove("offen"); await new Promise((r) => setTimeout(r, 700)); }
+    const { text } = await frageBot(frage, 200);
+    const zahlen = Array.from({ length: 6 }, () => 1 + Math.floor(Math.random() * 49)).join(" · ");
+    zettel.innerHTML = "<span></span><span class='zahlen'></span>";
+    zettel.firstChild.textContent = text;
+    zettel.lastChild.textContent = "Frage: " + frage + " — Glückszahlen: " + zahlen;
+    keks.classList.add("offen");
+  }
+  keks.onclick = () => {
+    if (keks.classList.contains("offen")) keks.classList.remove("offen");
+    else brich(VORSCHLAEGE[Math.floor(Math.random() * VORSCHLAEGE.length)]);
+  };
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) brich(eingabe.value.trim());
+    eingabe.value = "";
+  });
+</script>
+</body>
+</html>

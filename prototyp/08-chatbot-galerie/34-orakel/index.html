@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>34 · Das Orakel</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at 50% 70%, #2b1055, #0a0018 70%); color: #e9dcff; font-family: "Cinzel", "Trajan Pro", Georgia, serif; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+  .sterne { position: fixed; inset: 0; background-image: radial-gradient(1px 1px at 20% 30%, white, transparent), radial-gradient(1px 1px at 70% 20%, white, transparent), radial-gradient(2px 2px at 40% 80%, #fff8, transparent), radial-gradient(1px 1px at 85% 60%, white, transparent), radial-gradient(1px 1px at 10% 70%, white, transparent), radial-gradient(1px 1px at 55% 45%, #fffa, transparent); animation: funkeln 4s infinite alternate; pointer-events: none; }
+  @keyframes funkeln { to { opacity: .4; } }
+  h1 { letter-spacing: .3em; font-weight: 400; font-size: clamp(20px, 3vw, 30px); margin: 0 0 30px; text-align: center; }
+  .kugel { width: 300px; height: 300px; border-radius: 50%; position: relative; display: grid; place-items: center; text-align: center; padding: 50px;
+    background: radial-gradient(circle at 35% 30%, #fff9 0 6%, transparent 18%), radial-gradient(circle at 50% 50%, #7b4dd6 0%, #3a1a7a 55%, #14052e 100%); box-shadow: 0 0 80px #8f5bff88, inset 0 -20px 60px #000a; font-size: 15px; line-height: 1.45; font-family: Georgia, serif; font-style: italic; }
+  .kugel.wabert { animation: wabern 1.2s infinite; }
+  @keyframes wabern { 50% { box-shadow: 0 0 140px #c49bff, inset 0 -20px 60px #000a; filter: hue-rotate(40deg); } }
+  #antwort { transition: opacity 1.2s, filter 1.2s; max-height: 200px; overflow: hidden; }
+  #antwort.nebel { opacity: 0; filter: blur(8px); }
+  .sockel { width: 200px; height: 40px; background: linear-gradient(#5a3a1a, #2a1a0a); border-radius: 0 0 50% 50% / 0 0 100% 100%; margin-top: -10px; }
+  form { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  input { width: min(460px, 90vw); background: #ffffff10; border: 1px solid #8f5bff66; color: #e9dcff; padding: 12px 18px; border-radius: 999px; font: inherit; font-family: Georgia, serif; text-align: center; outline: none; }
+  form button { background: none; border: 1px solid #c49bff; color: #c49bff; padding: 8px 24px; border-radius: 999px; font: inherit; letter-spacing: .2em; cursor: pointer; }
+  .vorschlaege { font-size: 13px; font-family: Georgia, serif; color: #a58fd0; } .vorschlaege a { cursor: pointer; margin: 0 8px; border-bottom: 1px dotted; }
+</style>
+</head>
+<body>
+<div class="sterne"></div>
+<h1>Das Orakel von Erlangen</h1>
+<div class="kugel" id="kugel"><div id="antwort">Lege deine Hände auf die Tastatur und stelle deine Frage, Sterblicher.</div></div>
+<div class="sockel"></div>
+<form id="formular"><input id="eingabe" placeholder="Was willst du über Chris erfahren?" autocomplete="off"><button>BEFRAGEN</button><div class="vorschlaege" id="vorschlaege"></div></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Die Kugel wabert, solange das Orakel "in die Zukunft schaut" (künstlich 2 s), dann
+  // tritt die Antwort langsam aus dem Nebel hervor.
+  const kugel = document.getElementById("kugel");
+  const antwort = document.getElementById("antwort");
+  async function stelleFrage(frage) {
+    antwort.classList.add("nebel");
+    kugel.classList.add("wabert");
+    const [{ text }] = await Promise.all([frageBot(frage), new Promise((r) => setTimeout(r, 2000))]);
+    kugel.classList.remove("wabert");
+    antwort.textContent = text.length > 220 ? text.slice(0, 220) + " … mehr verraten die Sterne nicht." : text;
+    antwort.classList.remove("nebel");
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.textContent = v;
+    a.onclick = () => stelleFrage(v);
+    document.getElementById("vorschlaege").appendChild(a);
+  });
+</script>
+</body>
+</html>

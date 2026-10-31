@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19 · Grüner Monitor als Chat</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #111; min-height: 100vh; display: grid; place-items: center; font-family: "VT323", "Courier New", monospace; }
+  .gehaeuse { background: linear-gradient(145deg, #d8d2c0, #a8a290); padding: 34px 34px 60px; border-radius: 24px; box-shadow: 0 30px 60px #000a; }
+  .schirm { width: min(720px, 86vw); height: min(480px, 66vh); background: radial-gradient(ellipse at center, #062c12, #010803 80%); border-radius: 30px / 24px; position: relative; overflow: hidden; padding: 26px 30px; color: #3dff6e; text-shadow: 0 0 4px #3dff6e, 0 0 12px #2bdc5a88; font-size: 20px; line-height: 1.35; display: flex; flex-direction: column; }
+  .schirm::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, #0005 0 1px, transparent 1px 3px); animation: flimmern .12s infinite; }
+  @keyframes flimmern { 50% { opacity: .85; } }
+  #ausgabe { flex: 1; overflow-y: auto; white-space: pre-wrap; scrollbar-width: none; }
+  form { display: flex; gap: 8px; }
+  form span { white-space: nowrap; }
+  input { flex: 1; background: transparent; border: none; color: inherit; font: inherit; text-shadow: inherit; outline: none; caret-color: #3dff6e; }
+  .marke { text-align: center; color: #555; font: 700 14px system-ui; letter-spacing: .3em; margin-top: 16px; }
+  .stoerung { animation: zucken .3s steps(3); }
+  @keyframes zucken { 33% { transform: translateX(4px) skewX(3deg); filter: hue-rotate(40deg); } 66% { transform: translateX(-3px); } }
+</style>
+</head>
+<body>
+<div class="gehaeuse">
+  <div class="schirm" id="schirm">
+    <div id="ausgabe"></div>
+    <form id="formular"><span>FRAGE&gt;</span><input id="eingabe" autocomplete="off" autofocus></form>
+  </div>
+  <div class="marke">CHRISBOT · MODELL 1978</div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Das Aussehen von Prototyp 5/6 (grüner Monitor, Zeilenraster, Bildstörung), aber die
+  // Antwort ist normaler Text, Zeile für Zeile. Kein Labyrinth, keine Wartezeit zum Lesen.
+  const ausgabe = document.getElementById("ausgabe");
+  async function schreibe(text) {
+    for (const zeichen of text) {
+      ausgabe.textContent += zeichen;
+      ausgabe.scrollTop = ausgabe.scrollHeight;
+      await new Promise((r) => setTimeout(r, 8));
+    }
+  }
+  // Ausgaben laufen streng nacheinander: jede wartet, bis die vorige fertig getippt ist.
+  let warteschlange = Promise.resolve();
+  const nacheinander = (aufgabe) => (warteschlange = warteschlange.then(aufgabe));
+  async function stelleFrage(frage) {
+    await nacheinander(() => schreibe("FRAGE> " + frage + "\n"));
+    const schirm = document.getElementById("schirm");
+    schirm.classList.add("stoerung");
+    setTimeout(() => schirm.classList.remove("stoerung"), 300);
+    const { text } = await frageBot(frage);
+    await nacheinander(() => schreibe(text.toUpperCase() + "\n\n"));
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  nacheinander(() => schreibe("CHRISBOT BEREIT.\n" + findeAntwort("").toUpperCase() + "\nVORSCHLÄGE: " + VORSCHLAEGE.join(" / ").toUpperCase() + "\n\n"));
+</script>
+</body>
+</html>

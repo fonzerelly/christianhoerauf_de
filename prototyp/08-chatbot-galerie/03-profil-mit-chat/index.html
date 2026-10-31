@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · Profilseite mit Chat</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Inter", system-ui, sans-serif; background: #f6f7f9; color: #1d2433; }
+  .seite { max-width: 1100px; margin: 0 auto; padding: 48px 24px; display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: start; }
+  .foto { width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #2c5282, #63b3ed); display: grid; place-items: center; color: white; font-size: 42px; font-weight: 700; }
+  h1 { font-size: 42px; margin: 22px 0 6px; letter-spacing: -0.02em; }
+  .rolle { font-size: 20px; color: #4a5568; margin: 0 0 22px; }
+  p { line-height: 1.6; color: #4a5568; }
+  .fakten { display: flex; gap: 10px; flex-wrap: wrap; margin: 22px 0; }
+  .fakten span { background: white; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
+  .knoepfe a { display: inline-block; margin-right: 10px; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 600; }
+  .primaer { background: #2c5282; color: white; }
+  .sekundaer { border: 1px solid #cbd5e0; color: #2c5282; }
+  .chat { background: white; border-radius: 18px; box-shadow: 0 10px 40px rgba(30,40,60,.08); display: flex; flex-direction: column; height: 560px; }
+  .chat header { padding: 16px 20px; border-bottom: 1px solid #edf2f7; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .chat header::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #38a169; }
+  #verlauf { flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .nachricht { max-width: 85%; padding: 10px 14px; border-radius: 14px; line-height: 1.5; font-size: 15px; }
+  .bot { background: #edf2f7; align-self: flex-start; }
+  .ich { background: #2c5282; color: white; align-self: flex-end; }
+  .chips { padding: 0 20px 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips button { border: 1px solid #cbd5e0; background: white; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  form { display: flex; border-top: 1px solid #edf2f7; }
+  input { flex: 1; border: none; padding: 16px 20px; font-size: 15px; outline: none; border-radius: 0 0 0 18px; }
+  form button { border: none; background: none; color: #2c5282; font-weight: 700; padding: 0 20px; cursor: pointer; }
+  @media (max-width: 800px) { .seite { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="seite">
+  <section>
+    <div class="foto">CH</div>
+    <h1>Christian Hörauf</h1>
+    <p class="rolle">Softwareentwickler · Erlangen</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.</p>
+    <div class="fakten"><span>20+ Jahre Erfahrung</span><span>TypeScript</span><span>Python</span><span>TDD</span><span>Angular</span></div>
+    <div class="knoepfe"><a class="primaer" href="#">Lebenslauf (PDF)</a><a class="sekundaer" href="#">Kontakt</a></div>
+  </section>
+  <section class="chat">
+    <header>Frag meinen Bot</header>
+    <div id="verlauf"></div>
+    <div class="chips" id="chips"></div>
+    <form id="formular"><input id="eingabe" placeholder="Deine Frage …" autocomplete="off"><button>Senden</button></form>
+  </section>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const verlauf = document.getElementById("verlauf");
+  function nachricht(wer, text) {
+    const el = document.createElement("div");
+    el.className = "nachricht " + wer;
+    el.textContent = text;
+    verlauf.appendChild(el);
+    verlauf.scrollTop = verlauf.scrollHeight;
+    return el;
+  }
+  async function stelleFrage(frage) {
+    nachricht("ich", frage);
+    const warte = nachricht("bot", "…");
+    warte.textContent = (await frageBot(frage)).text;
+    verlauf.scrollTop = verlauf.scrollHeight;
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  nachricht("bot", findeAntwort(""));
+</script>
+</body>
+</html>

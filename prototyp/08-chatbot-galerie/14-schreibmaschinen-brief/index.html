@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 · Brief von der Schreibmaschine</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2d2a26; min-height: 100vh; display: flex; flex-direction: column; align-items: center; font-family: "Courier New", Courier, monospace; color: #222; }
+  .papier { width: min(620px, 94vw); background: #fbf8ef; margin-top: 30px; padding: 50px 56px; min-height: 70vh; box-shadow: 0 10px 30px #0008; position: relative; background-image: radial-gradient(#0000000a 1px, transparent 1px); background-size: 3px 3px; }
+  .briefkopf { text-align: right; font-size: 14px; line-height: 1.4; margin-bottom: 40px; }
+  .text { font-size: 17px; line-height: 1.7; white-space: pre-wrap; }
+  .text span { display: inline-block; }
+  .text .zeichen { animation: anschlag .1s; text-shadow: 0 0 1px #000a; }
+  @keyframes anschlag { from { transform: translateY(-2px); opacity: .3; } }
+  .wagen { width: 4px; height: 20px; background: #b22222; display: inline-block; vertical-align: middle; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .walze { width: min(700px, 98vw); height: 50px; background: linear-gradient(180deg, #111, #444 40%, #111); border-radius: 25px; margin-top: -10px; position: sticky; bottom: 140px; }
+  .tastatur { position: sticky; bottom: 0; width: 100%; background: #1a1816; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  form { display: flex; gap: 10px; width: min(620px, 94vw); }
+  input { flex: 1; font: inherit; font-size: 17px; background: #fbf8ef; border: none; padding: 10px; outline: none; }
+  form button, .chips button { font: inherit; background: #b22222; color: white; border: none; border-radius: 50%; width: 52px; height: 52px; cursor: pointer; box-shadow: 0 3px 0 #600; font-weight: bold; }
+  .chips { display: flex; gap: 8px; } .chips button { border-radius: 20px; width: auto; height: auto; padding: 6px 12px; background: #3a3632; box-shadow: 0 3px 0 #000; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="papier">
+  <div class="briefkopf">Christian Hörauf<br>Erlangen<br><span id="datum"></span></div>
+  <div class="text" id="text"></div>
+</div>
+<div class="tastatur">
+  <div class="chips" id="chips"></div>
+  <form id="formular"><input id="eingabe" placeholder="Ihre Frage an den Absender" autocomplete="off"><button title="Abschicken">↵</button></form>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  document.getElementById("datum").textContent = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+  const text = document.getElementById("text");
+  const wagen = document.createElement("span");
+  wagen.className = "wagen";
+
+  // Tippt den Text Anschlag für Anschlag. Ein kurzes Klacken kommt aus einem
+  // Rauschstoß der Web Audio API, damit keine Tondatei nötig ist.
+  let audio;
+  function klack() {
+    audio = audio || new AudioContext();
+    const dauer = 0.03;
+    const puffer = audio.createBuffer(1, audio.sampleRate * dauer, audio.sampleRate);
+    const daten = puffer.getChannelData(0);
+    for (let i = 0; i < daten.length; i++) daten[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / daten.length, 4);
+    const quelle = audio.createBufferSource();
+    const pegel = audio.createGain();
+    pegel.gain.value = 0.25;
+    quelle.buffer = puffer;
+    quelle.connect(pegel).connect(audio.destination);
+    quelle.start();
+  }
+  async function tippe(inhalt) {
+    for (const zeichen of inhalt) {
+      const span = document.createElement("span");
+      span.className = "zeichen";
+      span.textContent = zeichen === " " ? " " : zeichen;
+      if (zeichen === "\n") { text.insertBefore(document.createElement("br"), wagen); continue; }
+      text.insertBefore(span, wagen);
+      if (zeichen !== " ") { try { klack(); } catch (e) {} }
+      await new Promise((r) => setTimeout(r, 30 + Math.random() * 40));
+    }
+  }
+  // Ausgaben laufen streng nacheinander: jede wartet, bis die vorige fertig getippt ist.
+  let warteschlange = Promise.resolve();
+  const nacheinander = (aufgabe) => (warteschlange = warteschlange.then(aufgabe));
+  let ersterBrief = true;
+  async function stelleFrage(frage) {
+    const { text: antwort } = await frageBot(frage);
+    await nacheinander(() => tippe((ersterBrief ? "" : "\n\n") + "Betreff: " + frage + "\n\n" + antwort + "\n\nHochachtungsvoll\nChrisBot"));
+    ersterBrief = false;
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+  text.appendChild(wagen);
+  nacheinander(() => tippe("Sehr geehrte Damen und Herren,\n\nstellen Sie mir unten eine Frage. Ich antworte postwendend.\n\n"));
+  ersterBrief = false;
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+</script>
+</body>
+</html>

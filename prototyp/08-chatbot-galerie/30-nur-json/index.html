@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>30 · Nur JSON</title>
+<style>
+  body { margin: 0; background: #fff; color: #000; font-family: ui-monospace, monospace; font-size: 14px; padding: 12px; }
+  pre { margin: 0; white-space: pre-wrap; }
+  .s { color: #a31515; } .k { color: #0451a5; } .n { color: #098658; } .b { color: #0000ff; }
+  input { font: inherit; border: none; border-bottom: 1px dotted #a31515; color: #a31515; outline: none; width: min(500px, 80vw); }
+</style>
+</head>
+<body>
+<pre id="ausgabe"></pre>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Die ganze Seite ist ein JSON-Dokument, wie der Browser es roh anzeigt. Die Frage tippt man
+  // direkt in den Wert von "question" – Enter schickt sie ab, die Antwort erscheint als
+  // nächstes Objekt im Array "conversation". Nichts sonst. Für Puristen.
+  const ausgabe = document.getElementById("ausgabe");
+  const gespraech = [{ question: "", answer: { text: findeAntwort("") } }];
+  const farbe = (wert) => {
+    const json = JSON.stringify(wert, null, 2).replace(/[&<>]/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[z]);
+    return json.replace(/("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?/g, (t, str, doppelpunkt, bool) =>
+      str ? (doppelpunkt ? '<span class="k">' + str + "</span>" + doppelpunkt : '<span class="s">' + str + "</span>") : bool ? '<span class="b">' + t + "</span>" : '<span class="n">' + t + "</span>");
+  };
+  function zeige() {
+    const dokument = { bot: "ChrisBot", owner: "Christian Hörauf", suggestions: VORSCHLAEGE, conversation: gespraech, next: { question: "§EINGABE§" } };
+    ausgabe.innerHTML = farbe(dokument).replace('<span class="s">"§EINGABE§"</span>', '"<input id="eingabe" autocomplete="off" spellcheck="false">"');
+    const eingabe = document.getElementById("eingabe");
+    eingabe.focus();
+    eingabe.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter" || !eingabe.value.trim()) return;
+      const frage = eingabe.value.trim();
+      const eintrag = { question: frage, answer: null };
+      gespraech.push(eintrag);
+      zeige();
+      eintrag.answer = await frageBot(frage);
+      zeige();
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+  }
+  zeige();
+</script>
+</body>
+</html>

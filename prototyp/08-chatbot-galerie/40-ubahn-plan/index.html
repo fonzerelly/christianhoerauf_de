@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>40 · U-Bahn-Plan</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: #222; font-family: "Helvetica Neue", Arial, sans-serif; }
+  .kopf { display: flex; align-items: center; gap: 14px; padding: 18px 26px; border-bottom: 6px solid #003d7a; }
+  .kopf .u { width: 40px; height: 40px; background: #003d7a; color: white; font-weight: 900; font-size: 26px; display: grid; place-items: center; border-radius: 4px; }
+  .kopf h1 { margin: 0; font-size: 24px; } .kopf small { color: #666; display: block; }
+  svg { width: 100%; max-width: 1100px; display: block; margin: 20px auto; }
+  svg text { font-size: 13px; font-weight: 700; } svg .klein { font-size: 11px; font-weight: 400; fill: #666; }
+  .halt { cursor: pointer; } .halt circle { fill: white; stroke: #222; stroke-width: 4; transition: r .2s; }
+  .halt:hover circle, .halt.aktiv circle { r: 13; fill: #ffd400; }
+  .tafel { max-width: 760px; margin: 0 auto 20px; background: #003d7a; color: white; border-radius: 6px; padding: 16px 20px; font-size: 16px; line-height: 1.55; min-height: 80px; }
+  .tafel b { color: #ffd400; display: block; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+  form { max-width: 760px; margin: 0 auto 40px; display: flex; gap: 8px; }
+  input { flex: 1; border: 2px solid #003d7a; padding: 10px 12px; font-size: 15px; }
+  form button { background: #ffd400; border: 2px solid #003d7a; font-weight: 700; padding: 0 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="kopf"><div class="u">C</div><div><h1>Liniennetz Christian Hörauf</h1><small>Klicke eine Haltestelle an – oder frag den Fahrgastinformations-Bot.</small></div></div>
+<svg viewBox="0 0 1100 390" id="plan">
+  <path d="M60 280 H360 Q400 280 400 240 V140 Q400 100 440 100 H1040" fill="none" stroke="#e3000f" stroke-width="12" stroke-linecap="round"/>
+  <path d="M220 60 V180 Q220 220 260 220 H700 Q740 220 740 260 V320" fill="none" stroke="#009a44" stroke-width="12" stroke-linecap="round"/>
+  <path d="M560 30 V100 M560 100 V330" fill="none" stroke="#f39200" stroke-width="12" stroke-linecap="round" stroke-dasharray="1 0"/>
+  <g id="legende"><rect x="10" y="10" width="130" height="78" fill="#f4f4f4" rx="4"/><text x="22" y="32" fill="#e3000f">U1 Beruf</text><text x="22" y="54" fill="#009a44">U2 Ausbildung</text><text x="22" y="76" fill="#f39200">U3 Hobbys</text></g>
+</svg>
+<div class="tafel" id="tafel"><b>Nächster Halt</b>Willkommen an Bord. Bitte wählen Sie eine Haltestelle.</div>
+<form id="formular"><input id="eingabe" placeholder="Frage an die Fahrgastinformation …" autocomplete="off"><button>Fragen</button></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Haltestellen: Lebensstationen als U-Bahn-Netz. Umsteigebahnhöfe (wo sich Linien kreuzen)
+  // sind die drei vorbereiteten Fragen. Ein Klick schreibt die Antwort auf die Anzeigetafel.
+  const HALTE = [
+    { x: 60, y: 280, name: "Schwabach", info: "1978", frage: "Erzähl mir was Langes" },
+    { x: 170, y: 280, name: "Navigon", info: "2004–2008" },
+    { x: 300, y: 280, name: "Elektrobit", info: "2008–2011" },
+    { x: 560, y: 100, name: "Consorsbank", info: "Umstieg U3", frage: "Was machst du beruflich?" },
+    { x: 800, y: 100, name: "Teambank", info: "seit 2020" },
+    { x: 1040, y: 100, name: "Nächster Job?", info: "Endhaltestelle offen" },
+    { x: 220, y: 60, name: "Gymnasium", info: "–1997" },
+    { x: 220, y: 160, name: "TU Ilmenau", info: "Dipl.-Ing." },
+    { x: 400, y: 220, name: "Umstieg", info: "U1/U2", frage: "Wer bist du?" },
+    { x: 560, y: 220, name: "FernUni Hagen", info: "Dipl.-Wirt.-Ing." },
+    { x: 740, y: 320, name: "Hochschule Ansbach", info: "Lehrauftrag" },
+    { x: 560, y: 320, name: "Zaubertricks", info: "U3" },
+  ];
+  const plan = document.getElementById("plan");
+  const tafel = document.getElementById("tafel");
+  async function zeige(titel, frage) {
+    tafel.innerHTML = "<b></b>…";
+    tafel.firstChild.textContent = titel;
+    const { text } = await frageBot(frage, 300);
+    tafel.lastChild.textContent = text;
+  }
+  HALTE.forEach((h) => {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", "halt");
+    const oben = h.y < 150;
+    // Am rechten Rand steht die Beschriftung links vom Punkt, sonst ragt sie aus dem Bild.
+    const rechtsBuendig = h.x > 950;
+    const tx = rechtsBuendig ? h.x - 14 : h.x + 14;
+    const anker = rechtsBuendig ? ' text-anchor="end"' : "";
+    g.innerHTML = '<circle cx="' + h.x + '" cy="' + h.y + '" r="' + (h.frage ? 11 : 8) + '"/><text' + anker + ' x="' + tx + '" y="' + (h.y + (oben ? -16 : 28)) + '"></text><text' + anker + ' class="klein" x="' + tx + '" y="' + (h.y + (oben ? -3 : 42)) + '"></text>';
+    g.children[1].textContent = h.name;
+    g.children[2].textContent = h.info;
+    g.onclick = () => {
+      plan.querySelectorAll(".halt").forEach((x) => x.classList.remove("aktiv"));
+      g.classList.add("aktiv");
+      zeige("Halt: " + h.name, h.frage || "Was machst du beruflich?");
+    };
+    plan.appendChild(g);
+  });
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) zeige(eingabe.value.trim(), eingabe.value.trim());
+    eingabe.value = "";
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 · Befehlspalette</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: radial-gradient(circle at 30% 20%, #3b2a6e, #0d0b1a 70%); color: #e8e6f0; min-height: 100vh; }
+  .hinweis { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; }
+  .hinweis h1 { font-size: 48px; margin: 0; font-weight: 700; }
+  .hinweis p { color: #a39fc0; }
+  kbd { background: #2a2540; border: 1px solid #4a4270; border-bottom-width: 3px; border-radius: 6px; padding: 3px 8px; font-family: ui-monospace, monospace; font-size: 14px; }
+  .hinweis button { margin-top: 16px; background: #6d5bd0; color: white; border: none; border-radius: 10px; padding: 10px 18px; cursor: pointer; font-size: 15px; }
+  .schleier { position: fixed; inset: 0; background: #0008; backdrop-filter: blur(4px); display: none; justify-content: center; padding-top: 14vh; }
+  .schleier.offen { display: flex; }
+  .palette { width: min(640px, 94vw); background: #1c1930ee; border: 1px solid #3a3458; border-radius: 16px; box-shadow: 0 30px 80px #0009; overflow: hidden; height: fit-content; animation: rein .15s ease-out; }
+  @keyframes rein { from { transform: scale(.97); opacity: 0; } }
+  .palette input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #3a3458; color: white; font-size: 18px; padding: 18px 20px; outline: none; }
+  .gruppe { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: #8a84ad; padding: 12px 20px 4px; }
+  .eintrag { padding: 11px 20px; display: flex; gap: 12px; align-items: center; cursor: pointer; }
+  .eintrag.aktiv { background: #6d5bd033; box-shadow: inset 3px 0 #8f7bff; }
+  .eintrag .symbol { width: 26px; height: 26px; border-radius: 6px; background: #2a2540; display: grid; place-items: center; font-size: 13px; }
+  .antwort { padding: 16px 20px 20px; line-height: 1.6; border-top: 1px solid #3a3458; color: #d8d4ef; }
+  .fuss { display: flex; gap: 16px; padding: 10px 20px; font-size: 12px; color: #8a84ad; border-top: 1px solid #3a3458; }
+</style>
+</head>
+<body>
+<div class="hinweis"><div><h1>Christian Hörauf</h1><p>Drück <kbd>Strg</kbd> + <kbd>K</kbd> (oder <kbd>/</kbd>), um ChrisBot zu fragen.</p><button id="oeffnen">Palette öffnen</button></div></div>
+<div class="schleier" id="schleier">
+  <div class="palette">
+    <input id="eingabe" placeholder="Frage eingeben oder auswählen …" autocomplete="off">
+    <div id="liste"></div>
+    <div class="fuss"><span><kbd>↑</kbd><kbd>↓</kbd> wählen</span><span><kbd>↵</kbd> fragen</span><span><kbd>Esc</kbd> schließen</span></div>
+  </div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const schleier = document.getElementById("schleier");
+  const eingabe = document.getElementById("eingabe");
+  const liste = document.getElementById("liste");
+  let gewaehlt = 0;
+
+  // Die Liste zeigt die Vorschläge, gefiltert nach dem Getippten. Ganz oben steht immer
+  // die freie Eingabe als "Frage stellen: …", damit man auch Unvorhergesehenes fragen kann.
+  function eintraege() {
+    const getippt = eingabe.value.trim();
+    const passend = VORSCHLAEGE.filter((v) => v.toLowerCase().includes(getippt.toLowerCase()));
+    return (getippt && !passend.includes(getippt) ? [getippt] : []).concat(passend);
+  }
+  function zeigeListe() {
+    const alle = eintraege();
+    gewaehlt = Math.min(gewaehlt, alle.length - 1);
+    liste.innerHTML = '<div class="gruppe">Fragen an ChrisBot</div>';
+    alle.forEach((text, i) => {
+      const el = document.createElement("div");
+      el.className = "eintrag" + (i === gewaehlt ? " aktiv" : "");
+      el.innerHTML = '<span class="symbol">?</span><span></span>';
+      el.lastChild.textContent = text;
+      el.onclick = () => stelleFrage(text);
+      liste.appendChild(el);
+    });
+  }
+  async function stelleFrage(frage) {
+    liste.innerHTML = '<div class="gruppe"></div><div class="antwort">…</div>';
+    liste.firstChild.textContent = frage;
+    liste.lastChild.textContent = (await frageBot(frage)).text;
+    eingabe.value = "";
+  }
+  function oeffne() { schleier.classList.add("offen"); eingabe.focus(); zeigeListe(); }
+  function schliesse() { schleier.classList.remove("offen"); }
+
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); oeffne(); }
+    else if (e.key === "/" && !schleier.classList.contains("offen")) { e.preventDefault(); oeffne(); }
+    else if (e.key === "Escape") schliesse();
+  });
+  eingabe.addEventListener("input", () => { gewaehlt = 0; zeigeListe(); });
+  eingabe.addEventListener("keydown", (e) => {
+    const alle = eintraege();
+    if (e.key === "ArrowDown") { gewaehlt = (gewaehlt + 1) % alle.length; zeigeListe(); e.preventDefault(); }
+    if (e.key === "ArrowUp") { gewaehlt = (gewaehlt - 1 + alle.length) % alle.length; zeigeListe(); e.preventDefault(); }
+    if (e.key === "Enter" && alle[gewaehlt]) stelleFrage(alle[gewaehlt]);
+  });
+  schleier.addEventListener("click", (e) => { if (e.target === schleier) schliesse(); });
+  document.getElementById("oeffnen").onclick = oeffne;
+</script>
+</body>
+</html>

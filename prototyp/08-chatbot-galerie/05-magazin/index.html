@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 · Magazin-Interview</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #faf7f2; color: #1a1a1a; font-family: Georgia, "Times New Roman", serif; }
+  .kopf { border-bottom: 3px double #1a1a1a; text-align: center; padding: 26px 0 12px; margin: 0 24px; }
+  .kopf .titel { font-size: 54px; font-weight: 700; letter-spacing: .02em; font-variant: small-caps; }
+  .kopf .zeile { display: flex; justify-content: space-between; font-size: 13px; font-family: system-ui, sans-serif; text-transform: uppercase; letter-spacing: .12em; border-top: 1px solid #1a1a1a; margin-top: 8px; padding-top: 6px; }
+  article { max-width: 700px; margin: 40px auto; padding: 0 24px; }
+  .rubrik { font-family: system-ui, sans-serif; color: #b22222; text-transform: uppercase; letter-spacing: .15em; font-size: 13px; font-weight: 700; }
+  h1 { font-size: 46px; line-height: 1.08; margin: 10px 0 14px; }
+  .vorspann { font-size: 21px; line-height: 1.5; font-style: italic; color: #444; margin-bottom: 30px; }
+  .frage { font-weight: 700; font-family: system-ui, sans-serif; font-size: 17px; margin: 30px 0 8px; }
+  .frage::before { content: "— "; color: #b22222; }
+  .antwort { font-size: 19px; line-height: 1.7; margin: 0; }
+  .antwort.erste::first-letter { float: left; font-size: 74px; line-height: .8; padding: 6px 8px 0 0; color: #b22222; }
+  .zitat { font-size: 28px; line-height: 1.3; text-align: center; border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a; padding: 18px 0; margin: 34px 0; font-style: italic; }
+  form { margin: 40px 0 80px; border-top: 1px solid #1a1a1a; padding-top: 18px; }
+  form label { font-family: system-ui, sans-serif; font-size: 13px; text-transform: uppercase; letter-spacing: .12em; }
+  .eingabezeile { display: flex; gap: 10px; margin-top: 8px; }
+  input { flex: 1; font: inherit; font-size: 19px; border: none; border-bottom: 1px solid #1a1a1a; background: transparent; padding: 8px 0; outline: none; }
+  form button { font-family: system-ui, sans-serif; background: #1a1a1a; color: #faf7f2; border: none; padding: 0 20px; cursor: pointer; text-transform: uppercase; letter-spacing: .1em; font-size: 12px; }
+  .vorschlaege { margin-top: 10px; font-family: system-ui, sans-serif; font-size: 14px; }
+  .vorschlaege a { color: #b22222; cursor: pointer; margin-right: 14px; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="kopf">
+  <div class="titel">Das Hörauf-Journal</div>
+  <div class="zeile"><span>Ausgabe Nr. 1</span><span id="datum"></span><span>Interview</span></div>
+</div>
+<article>
+  <div class="rubrik">Im Gespräch</div>
+  <h1>„Lorem ipsum ist erst der Anfang“</h1>
+  <p class="vorspann">Ein Gespräch mit ChrisBot über Christian Hörauf, Software und die Frage, warum man einen Lebenslauf eigentlich nicht einfach fragen kann. Die Fragen stellen Sie.</p>
+  <div id="interview"></div>
+  <form id="formular">
+    <label for="eingabe">Ihre Frage an ChrisBot</label>
+    <div class="eingabezeile"><input id="eingabe" autocomplete="off"><button>Fragen</button></div>
+    <div class="vorschlaege" id="vorschlaege"></div>
+  </form>
+</article>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  document.getElementById("datum").textContent = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+  const interview = document.getElementById("interview");
+  let anzahl = 0;
+
+  // Jede Frage wird als Interview-Abschnitt gesetzt; nach der zweiten Antwort kommt ein
+  // herausgestelltes Zitat (Pull Quote) aus dem ersten Satz, wie in einem echten Magazin.
+  async function stelleFrage(frage) {
+    const f = document.createElement("p");
+    f.className = "frage";
+    f.textContent = frage;
+    interview.appendChild(f);
+    const a = document.createElement("p");
+    a.className = "antwort" + (anzahl === 0 ? " erste" : "");
+    a.textContent = "…";
+    interview.appendChild(a);
+    const { text } = await frageBot(frage);
+    a.textContent = text;
+    anzahl++;
+    if (anzahl === 2) {
+      const zitat = document.createElement("div");
+      zitat.className = "zitat";
+      zitat.textContent = "„" + text.split(/[.!?]/)[0] + ".“";
+      interview.appendChild(zitat);
+    }
+    a.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.textContent = v;
+    a.onclick = () => stelleFrage(v);
+    document.getElementById("vorschlaege").appendChild(a);
+  });
+</script>
+</body>
+</html>

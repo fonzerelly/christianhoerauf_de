@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>20 · Endlospapier</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #3b3f45; min-height: 100vh; font-family: "Courier New", monospace; display: flex; flex-direction: column; align-items: center; }
+  .drucker { width: min(700px, 96vw); background: linear-gradient(#cfcac0, #a9a49a); height: 70px; border-radius: 0 0 10px 10px; position: sticky; top: 0; z-index: 2; box-shadow: 0 6px 16px #0008; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font: 700 12px system-ui; color: #555; letter-spacing: .2em; }
+  .lampe { width: 10px; height: 10px; border-radius: 50%; background: #2a2; box-shadow: 0 0 8px #2f2; }
+  .lampe.druckt { background: #fa0; box-shadow: 0 0 8px #fa0; animation: blink .3s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .papier { width: min(640px, 92vw); background: #fdfdf8; padding: 18px 50px 120px; position: relative; font-size: 15px; line-height: 22px; color: #333;
+    background-image: repeating-linear-gradient(180deg, #fdfdf8 0 44px, #e8f3e3 44px 88px); white-space: pre-wrap; min-height: 60vh; }
+  .papier::before, .papier::after { content: ""; position: absolute; top: 0; bottom: 0; width: 26px; background: radial-gradient(circle, #3b3f45 5px, transparent 6px) 0 0 / 26px 22px; }
+  .papier::before { left: 6px; } .papier::after { right: 6px; }
+  .papier .zeile { animation: rein .12s; font-weight: bold; letter-spacing: .03em; filter: contrast(1.2); opacity: .85; }
+  @keyframes rein { from { opacity: 0; } }
+  .perforation { border-top: 2px dashed #bbb; margin: 22px -50px; }
+  .eingabe { position: fixed; bottom: 0; width: 100%; background: #22252a; padding: 12px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .eingabe input { width: min(460px, 70vw); font: inherit; padding: 10px; border: none; }
+  .eingabe button { font: inherit; background: #e7e2d6; border: none; padding: 0 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="drucker"><span>CHRISBOT LQ-9</span><span class="lampe" id="lampe"></span></div>
+<div class="papier" id="papier"></div>
+<form class="eingabe" id="formular"><input id="eingabe" placeholder="Frage für den Druckauftrag" autocomplete="off"><button>Drucken</button><button type="button" id="vorschlag">Vorschlag</button></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Die Antwort wird zeilenweise "gedruckt", mit dem Kreischen eines Nadeldruckers aus
+  // Rechteckwellen (Web Audio). Im echten Einsatz gäbe es den Klang aus prototyp/07.
+  const papier = document.getElementById("papier");
+  const lampe = document.getElementById("lampe");
+  let audio;
+  function nadelton(dauer) {
+    try {
+      audio = audio || new AudioContext();
+      const osz = audio.createOscillator();
+      const pegel = audio.createGain();
+      osz.type = "square";
+      osz.frequency.value = 900 + Math.random() * 500;
+      pegel.gain.value = 0.03;
+      osz.connect(pegel).connect(audio.destination);
+      osz.start();
+      osz.stop(audio.currentTime + dauer);
+    } catch (e) {}
+  }
+  // Bricht den Text auf 56 Zeichen pro Zeile um, wie ein Drucker mit fester Spaltenbreite.
+  function umbrechen(text, breite = 56) {
+    const zeilen = [];
+    let zeile = "";
+    for (const wort of text.split(" ")) {
+      if ((zeile + " " + wort).trim().length > breite) { zeilen.push(zeile); zeile = wort; }
+      else zeile = (zeile + " " + wort).trim();
+    }
+    return zeilen.concat(zeile);
+  }
+  async function drucke(text) {
+    lampe.classList.add("druckt");
+    for (const zeile of umbrechen(text)) {
+      const el = document.createElement("div");
+      el.className = "zeile";
+      el.textContent = zeile || " ";
+      papier.appendChild(el);
+      nadelton(0.12);
+      window.scrollTo(0, document.body.scrollHeight);
+      await new Promise((r) => setTimeout(r, 180));
+    }
+    lampe.classList.remove("druckt");
+  }
+  // Ausgaben laufen streng nacheinander: jede wartet, bis die vorige fertig getippt ist.
+  let warteschlange = Promise.resolve();
+  const nacheinander = (aufgabe) => (warteschlange = warteschlange.then(aufgabe));
+  async function stelleFrage(frage) {
+    const { text } = await frageBot(frage);
+    await nacheinander(async () => {
+      await drucke("> " + frage.toUpperCase());
+      await drucke(text);
+      const p = document.createElement("div");
+      p.className = "perforation";
+      papier.appendChild(p);
+    });
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  let n = 0;
+  document.getElementById("vorschlag").onclick = () => stelleFrage(VORSCHLAEGE[n++ % VORSCHLAEGE.length]);
+  nacheinander(() => drucke("*** CHRISBOT DRUCKPROTOKOLL ***\n" + findeAntwort("")));
+</script>
+</body>
+</html>

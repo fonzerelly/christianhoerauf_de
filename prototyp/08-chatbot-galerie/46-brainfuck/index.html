@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>46 · What the Brainfuck</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #000; color: #f0f; font-family: ui-monospace, monospace; padding: 20px; min-height: 100vh; }
+  h1 { margin: 0; font-size: 22px; color: #0ff; } .unter { color: #888; font-size: 13px; margin-bottom: 14px; }
+  #code { font-size: 12px; line-height: 1.3; word-break: break-all; max-height: 30vh; overflow-y: auto; color: #555; border: 1px solid #222; padding: 8px; }
+  #code .ip { background: #f0f; color: #000; }
+  .band { display: flex; gap: 4px; margin: 14px 0; overflow-x: auto; }
+  .zelle { min-width: 52px; border: 1px solid #333; text-align: center; padding: 6px 0; color: #0ff; font-size: 14px; }
+  .zelle small { display: block; color: #666; font-size: 10px; } .zelle.zeiger { border-color: #f0f; box-shadow: 0 0 10px #f0f; }
+  #ausgabe { font-size: 18px; color: #0f0; min-height: 3em; line-height: 1.5; white-space: pre-wrap; border-left: 3px solid #0f0; padding-left: 12px; }
+  .regler { margin: 12px 0; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: #aaa; font-size: 13px; }
+  .regler button { background: #222; color: #0ff; border: 1px solid #0ff; font: inherit; padding: 4px 10px; cursor: pointer; }
+  form { display: flex; gap: 8px; margin-top: 14px; } input { flex: 1; background: #111; border: 1px solid #f0f; color: #f0f; font: inherit; padding: 10px; outline: none; }
+  form button { background: #f0f; color: #000; border: none; font: inherit; padding: 0 14px; cursor: pointer; }
+  .chips a { color: #0ff; cursor: pointer; margin-right: 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>++++++++[&gt;ChrisBot&lt;-]</h1>
+<div class="unter">Die Antwort kommt als Brainfuck-Programm und wird live interpretiert. Für alle, die wirklich wissen wollen, ob ich programmieren kann.</div>
+<form id="formular"><input id="eingabe" placeholder="Frage (wird natürlich NICHT in Brainfuck erwartet)" autocomplete="off"><button>Kompilieren</button></form>
+<div class="chips" id="chips" style="margin-top:8px"></div>
+<div class="regler"><span>Tempo</span><input type="range" id="tempo" min="1" max="4000" value="400"><button id="sofort">Ich bin HR, zeig einfach den Text</button><span id="schritte"></span></div>
+<div id="code"></div>
+<div class="band" id="band"></div>
+<div id="ausgabe"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // 1. Text → UTF-8-Bytes → Brainfuck. Zelle 0 hält den aktuellen Wert, Zelle 1 ist Hilfszelle
+  //    für eine Multiplikationsschleife: Für eine Änderung um d wird (d / 10) Mal um 10 gezählt,
+  //    der Rest einzeln. So bleibt der Code einigermaßen kurz.
+  function nachBrainfuck(text) {
+    const bytes = new TextEncoder().encode(text);
+    let code = "", aktuell = 0;
+    for (const b of bytes) {
+      const d = b - aktuell, op = d > 0 ? "+" : "-", betrag = Math.abs(d);
+      const zehner = Math.floor(betrag / 10);
+      if (zehner > 0) code += ">" + "+".repeat(zehner) + "[<" + op.repeat(10) + ">-]<";
+      code += op.repeat(betrag % 10) + ".";
+      aktuell = b;
+    }
+    return code;
+  }
+
+  // 2. Interpreter, Schritt für Schritt, damit man Band und Zeiger arbeiten sieht.
+  //    Pro Bild laufen "tempo" Befehle. Klammerpaare werden vorab einmal zugeordnet.
+  let lauf = 0;
+  function interpretiere(code) {
+    const meinLauf = ++lauf;
+    const sprung = {}, stapel = [];
+    for (let i = 0; i < code.length; i++) {
+      if (code[i] === "[") stapel.push(i);
+      if (code[i] === "]") { const auf = stapel.pop(); sprung[auf] = i; sprung[i] = auf; }
+    }
+    const band = new Uint8Array(16), dekoder = new TextDecoder();
+    let ip = 0, zeiger = 0, schritte = 0;
+    const ausgabe = document.getElementById("ausgabe");
+    ausgabe.textContent = "";
+    // Code einmal als einzelne Spans aufbauen, damit sich die aktuelle Stelle markieren lässt.
+    const codeFeld = document.getElementById("code");
+    codeFeld.innerHTML = "";
+    const spans = Array.from(code, (z) => { const s = document.createElement("span"); s.textContent = z; codeFeld.appendChild(s); return s; });
+    function bild() {
+      if (meinLauf !== lauf) return;
+      const tempo = Number(document.getElementById("tempo").value);
+      spans[ip]?.classList.remove("ip");
+      for (let n = 0; n < tempo && ip < code.length; n++, ip++, schritte++) {
+        const befehl = code[ip];
+        if (befehl === "+") band[zeiger]++;
+        else if (befehl === "-") band[zeiger]--;
+        else if (befehl === ">") zeiger++;
+        else if (befehl === "<") zeiger--;
+        else if (befehl === ".") ausgabe.textContent += dekoder.decode(new Uint8Array([band[zeiger]]), { stream: true });
+        else if (befehl === "[" && band[zeiger] === 0) ip = sprung[ip];
+        else if (befehl === "]" && band[zeiger] !== 0) ip = sprung[ip];
+      }
+      spans[ip]?.classList.add("ip");
+      zeigeBand(band, zeiger);
+      document.getElementById("schritte").textContent = schritte + " Schritte · " + code.length + " Zeichen Code";
+      if (ip < code.length) requestAnimationFrame(bild);
+    }
+    bild();
+  }
+  function zeigeBand(band, zeiger) {
+    const feld = document.getElementById("band");
+    feld.innerHTML = "";
+    for (let i = 0; i < 8; i++) {
+      const z = document.createElement("div");
+      z.className = "zelle" + (i === zeiger ? " zeiger" : "");
+      z.innerHTML = band[i] + "<small>#" + i + "</small>";
+      feld.appendChild(z);
+    }
+  }
+  let letzteAntwort = "";
+  async function stelleFrage(frage) {
+    letzteAntwort = (await frageBot(frage)).text;
+    interpretiere(nachBrainfuck(letzteAntwort));
+  }
+  document.getElementById("sofort").onclick = () => { lauf++; document.getElementById("ausgabe").textContent = letzteAntwort; };
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.textContent = v;
+    a.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(a);
+  });
+  letzteAntwort = findeAntwort("");
+  interpretiere(nachBrainfuck(letzteAntwort));
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 · Porträt mit Sprechblase</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Trebuchet MS", system-ui, sans-serif; background: linear-gradient(180deg, #ffe9c7, #ffd29a); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; overflow: hidden; }
+  .blase { position: relative; background: white; border-radius: 28px; padding: 24px 28px; max-width: min(560px, 90vw); font-size: 20px; line-height: 1.5; box-shadow: 0 10px 30px rgba(120,60,0,.15); margin-bottom: 26px; min-height: 80px; }
+  .blase::after { content: ""; position: absolute; bottom: -22px; left: 50%; border: 12px solid transparent; border-top: 14px solid white; border-left: 18px solid white; transform: translateX(-50%) skewX(-12deg); }
+  /* Gezeichnete Figur statt Foto: im echten Einsatz käme hier ein freigestelltes Foto hin */
+  .figur { position: relative; width: 220px; height: 260px; }
+  .kopf { position: absolute; left: 50px; top: 0; width: 120px; height: 140px; background: #f1c9a0; border-radius: 50% 50% 46% 46%; }
+  .haare { position: absolute; left: 44px; top: -6px; width: 132px; height: 56px; background: #6b4a2e; border-radius: 60px 60px 10px 10px; }
+  .brille { position: absolute; top: 62px; left: 66px; width: 88px; height: 26px; }
+  .brille::before, .brille::after { content: ""; position: absolute; top: 0; width: 34px; height: 24px; border: 3px solid #222; border-radius: 8px; }
+  .brille::before { left: 0; } .brille::after { right: 0; }
+  .mund { position: absolute; top: 108px; left: 92px; width: 36px; height: 8px; background: #8a3b2a; border-radius: 0 0 20px 20px; transition: height .08s; }
+  .figur.spricht .mund { animation: sprechen .18s infinite alternate; }
+  @keyframes sprechen { to { height: 18px; } }
+  .koerper { position: absolute; bottom: 0; left: 10px; width: 200px; height: 110px; background: #2f5d8a; border-radius: 90px 90px 0 0; }
+  .figur.denkt .kopf { animation: wackeln 1s infinite; }
+  @keyframes wackeln { 50% { transform: rotate(4deg); } }
+  .unten { width: 100%; background: #fff6; backdrop-filter: blur(6px); padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  form { display: flex; gap: 8px; width: min(560px, 92vw); }
+  input { flex: 1; border: 2px solid #c47a2c; border-radius: 999px; padding: 12px 18px; font-size: 16px; outline: none; }
+  form button, .chips button { background: #c47a2c; color: white; border: none; border-radius: 999px; padding: 0 18px; cursor: pointer; font-size: 15px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .chips button { padding: 6px 12px; background: #fff; color: #c47a2c; border: 1px solid #c47a2c; }
+</style>
+</head>
+<body>
+<div class="blase" id="blase"></div>
+<div class="figur" id="figur"><div class="koerper"></div><div class="kopf"></div><div class="haare"></div><div class="brille"></div><div class="mund"></div></div>
+<div class="unten">
+  <div class="chips" id="chips"></div>
+  <form id="formular"><input id="eingabe" placeholder="Frag mich was!" autocomplete="off"><button>Fragen</button></form>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const blase = document.getElementById("blase");
+  const figur = document.getElementById("figur");
+
+  // Schreibt den Text Zeichen für Zeichen in die Sprechblase; solange bewegt sich der Mund.
+  // Jeder Aufruf bekommt eine laufende Nummer; ist inzwischen ein neuer gestartet, hört
+  // der alte auf. Sonst mischen sich zwei Texte Zeichen für Zeichen.
+  let lauf = 0;
+  async function sprich(text) {
+    const meinLauf = ++lauf;
+    figur.className = "figur spricht";
+    blase.textContent = "";
+    for (const zeichen of text) {
+      if (meinLauf !== lauf) return;
+      blase.textContent += zeichen;
+      await new Promise((r) => setTimeout(r, 18));
+    }
+    figur.className = "figur";
+  }
+  async function stelleFrage(frage) {
+    figur.className = "figur denkt";
+    blase.textContent = "Hmm …";
+    sprich((await frageBot(frage)).text);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  sprich(findeAntwort(""));
+</script>
+</body>
+</html>

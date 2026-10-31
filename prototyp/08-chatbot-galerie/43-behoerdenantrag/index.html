@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>43 · Behördenantrag</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #d6d3c9; font-family: Arial, sans-serif; color: #111; padding: 24px 10px; }
+  .formular { max-width: 760px; margin: 0 auto; background: #f4f6ec; border: 1px solid #999; padding: 26px 32px; box-shadow: 0 6px 20px #0003; position: relative; }
+  .kopf { display: flex; justify-content: space-between; border-bottom: 2px solid #111; padding-bottom: 8px; font-size: 12px; }
+  .kopf b { font-size: 18px; display: block; }
+  h1 { font-size: 20px; margin: 18px 0 4px; } .nr { font-size: 12px; color: #555; }
+  fieldset { border: 1px solid #111; margin: 16px 0; padding: 10px 14px; }
+  legend { font-weight: bold; font-size: 13px; padding: 0 6px; }
+  label { display: block; font-size: 13px; margin: 8px 0 2px; }
+  input[type=text], textarea, select { width: 100%; border: none; border-bottom: 1px dotted #111; background: #fffde8; font: inherit; padding: 4px; }
+  textarea { border: 1px dotted #111; min-height: 60px; }
+  .kaestchen label { display: inline-flex; gap: 4px; margin-right: 16px; }
+  .fehler { color: #b00; font-size: 12px; min-height: 1em; }
+  .absenden { background: #e8e4d0; border: 2px outset #ccc; padding: 8px 20px; font: inherit; font-weight: bold; cursor: pointer; margin-top: 10px; }
+  .bescheid { display: none; margin-top: 20px; border: 2px solid #111; padding: 18px; background: white; position: relative; line-height: 1.6; }
+  .bescheid.da { display: block; animation: rein .4s; } @keyframes rein { from { opacity: 0; } }
+  .stempel { position: absolute; right: 20px; bottom: 16px; border: 4px double #1a4fb0; color: #1a4fb0; padding: 6px 12px; transform: rotate(-12deg); font-weight: bold; text-align: center; font-size: 13px; opacity: .85; animation: stempeln .3s .4s both; }
+  @keyframes stempeln { from { transform: rotate(-12deg) scale(3); opacity: 0; } }
+  .klein { font-size: 11px; color: #555; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="formular">
+  <div class="kopf"><div><b>Amt für Auskünfte über Christian Hörauf</b>Referat B-0T · Erlangen</div><div>Eingangsstempel<br><br>__________</div></div>
+  <h1>Antrag auf Erteilung einer Auskunft</h1>
+  <div class="nr">Formular CH-A38 · gem. § 42 Auskunftsbegehrensverordnung (AuskBegV) · Bitte in Druckbuchstaben</div>
+  <form id="formular">
+    <fieldset><legend>Abschnitt 1 – Antragsteller/in</legend>
+      <label>Name, Vorname (freiwillig, aber erwünscht)</label><input type="text" id="name">
+      <label>Eigenschaft</label>
+      <div class="kaestchen"><label><input type="radio" name="rolle" value="hr"> Personalabteilung</label><label><input type="radio" name="rolle" value="tech"> Technik</label><label><input type="radio" name="rolle" value="neugier"> Reine Neugier</label></div>
+    </fieldset>
+    <fieldset><legend>Abschnitt 2 – Gegenstand der Auskunft</legend>
+      <label>Art der Auskunft</label>
+      <select id="art"><option value="">– bitte wählen –</option></select>
+      <label>bzw. freie Fragestellung (Anlage A)</label><textarea id="frei"></textarea>
+    </fieldset>
+    <fieldset><legend>Abschnitt 3 – Erklärung</legend>
+      <div class="kaestchen"><label><input type="checkbox" id="wahr"> Ich versichere, dass meine Frage ernst gemeint ist.</label></div>
+      <div class="kaestchen"><label><input type="checkbox" id="kaffee"> Ich habe zur Kenntnis genommen, dass Kaffee nicht erstattet wird.</label></div>
+    </fieldset>
+    <div class="fehler" id="fehler"></div>
+    <button class="absenden">Antrag einreichen</button>
+  </form>
+  <div class="bescheid" id="bescheid"></div>
+  <div class="klein">Hinweis: Die Bearbeitungszeit beträgt in der Regel weniger als eine Sekunde. Ein Widerspruch ist zwecklos, eine neue Frage jederzeit möglich.</div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Satire auf Formulare: man muss Pflichtfelder ausfüllen, bekommt dann aber sofort einen
+  // "Bescheid" mit Aktenzeichen, Stempel und der ganz normalen Antwort. Fehlende Felder
+  // werden in Amtsdeutsch angemahnt.
+  VORSCHLAEGE.forEach((v) => { const o = document.createElement("option"); o.value = v; o.textContent = v; document.getElementById("art").appendChild(o); });
+  document.getElementById("formular").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fehler = document.getElementById("fehler");
+    const frage = document.getElementById("frei").value.trim() || document.getElementById("art").value;
+    if (!document.querySelector("[name=rolle]:checked")) { fehler.textContent = "Abschnitt 1: Die Angabe der Eigenschaft ist gem. § 42 Abs. 2 zwingend erforderlich."; return; }
+    if (!frage) { fehler.textContent = "Abschnitt 2: Ein Antrag ohne Gegenstand ist unzulässig."; return; }
+    if (!document.getElementById("wahr").checked || !document.getElementById("kaffee").checked) { fehler.textContent = "Abschnitt 3: Die Erklärung ist vollständig abzugeben (beide Kästchen)."; return; }
+    fehler.textContent = "";
+    const bescheid = document.getElementById("bescheid");
+    bescheid.classList.remove("da");
+    const { text } = await frageBot(frage);
+    const az = "CH-" + new Date().getFullYear() + "/" + Math.floor(Math.random() * 90000 + 10000);
+    const name = document.getElementById("name").value.trim() || "Antragsteller/in";
+    bescheid.innerHTML = "<b>BESCHEID</b> · Aktenzeichen <span></span><br><br>Sehr geehrte/r <span></span>,<br><br>auf Ihren Antrag „<span></span>“ ergeht folgende Auskunft:<br><br><span></span><br><br>Mit freundlichen Grüßen<br>i. A. ChrisBot<div class='stempel'>GENEHMIGT<br>" + new Date().toLocaleDateString("de-DE") + "</div>";
+    const felder = bescheid.querySelectorAll("span");
+    [az, name, frage, text].forEach((wert, i) => (felder[i].textContent = wert));
+    bescheid.classList.add("da");
+    bescheid.scrollIntoView({ behavior: "smooth" });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13 · Notizbuch</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #6b4f3a; background-image: repeating-linear-gradient(90deg, #6b4f3a 0 40px, #654a36 40px 41px); min-height: 100vh; display: grid; place-items: center; padding: 30px 10px; font-family: "Comic Sans MS", "Segoe Print", "Bradley Hand", cursive; }
+  .buch { width: min(680px, 96vw); min-height: 80vh; background: #fffdf5; position: relative; box-shadow: 0 14px 40px #0007; border-radius: 4px 12px 12px 4px; padding: 54px 40px 40px 90px;
+    background-image: linear-gradient(90deg, transparent 70px, #f3a1a1 70px 72px, transparent 72px), repeating-linear-gradient(180deg, transparent 0 31px, #b9d3ee 31px 32px); background-position: 0 22px; }
+  .ringe { position: absolute; left: 18px; top: 30px; bottom: 30px; width: 24px; background: repeating-linear-gradient(180deg, transparent 0 22px, #999 22px 30px, transparent 30px 44px); border-radius: 4px; }
+  .eintrag { font-size: 21px; line-height: 32px; color: #1d3c8a; }
+  .eintrag.frage { color: #b22222; margin-top: 32px; }
+  .eintrag.frage::before { content: "F: "; }
+  .eintrag.antwort::before { content: "A: "; }
+  .datum { position: absolute; top: 18px; right: 30px; color: #888; font-size: 16px; }
+  form { margin-top: 32px; display: flex; gap: 10px; }
+  input { flex: 1; font: inherit; font-size: 21px; border: none; background: transparent; color: #b22222; outline: none; line-height: 32px; }
+  input::placeholder { color: #c9a3a3; }
+  form button { font: inherit; background: none; border: 2px solid #1d3c8a; color: #1d3c8a; border-radius: 30% 70% 50% 50% / 50%; padding: 0 14px; cursor: pointer; transform: rotate(-3deg); }
+  .krakel { margin-top: 20px; font-size: 16px; color: #777; }
+  .krakel a { color: #1d3c8a; cursor: pointer; margin-right: 12px; text-decoration: underline wavy; }
+</style>
+</head>
+<body>
+<div class="buch">
+  <div class="ringe"></div>
+  <div class="datum" id="datum"></div>
+  <div id="seite"></div>
+  <form id="formular"><input id="eingabe" placeholder="Schreib deine Frage hier rein …" autocomplete="off"><button>fragen</button></form>
+  <div class="krakel" id="krakel">Ideen: </div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  document.getElementById("datum").textContent = new Date().toLocaleDateString("de-DE");
+  const seite = document.getElementById("seite");
+
+  // "Schreibt" mit leicht unregelmäßigem Tempo, wie jemand mit dem Kuli.
+  async function schreibe(klasse, text) {
+    const el = document.createElement("div");
+    el.className = "eintrag " + klasse;
+    seite.appendChild(el);
+    for (const zeichen of text) {
+      el.textContent += zeichen;
+      await new Promise((r) => setTimeout(r, zeichen === " " ? 50 : 12 + Math.random() * 30));
+    }
+  }
+  async function stelleFrage(frage) {
+    await schreibe("frage", frage);
+    await schreibe("antwort", (await frageBot(frage)).text);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.textContent = v;
+    a.onclick = () => stelleFrage(v);
+    document.getElementById("krakel").appendChild(a);
+  });
+  schreibe("antwort", findeAntwort(""));
+</script>
+</body>
+</html>

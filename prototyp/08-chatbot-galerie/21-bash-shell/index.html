@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>21 · Bash-Shell</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #1e1e2e; color: #cdd6f4; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 15px; }
+  .fenster { margin: 30px auto; width: min(900px, 96vw); background: #181825; border-radius: 10px; box-shadow: 0 20px 50px #0008; overflow: hidden; }
+  .titel { background: #313244; padding: 9px 14px; display: flex; gap: 8px; align-items: center; font-size: 13px; color: #a6adc8; }
+  .titel i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .inhalt { padding: 14px 18px; height: 75vh; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; }
+  .prompt { color: #a6e3a1; } .pfad { color: #89b4fa; } .fehler { color: #f38ba8; } .gelb { color: #f9e2af; } .grau { color: #6c7086; }
+  .zeile { display: flex; } .zeile input { flex: 1; background: none; border: none; color: inherit; font: inherit; outline: none; padding: 0; }
+</style>
+</head>
+<body>
+<div class="fenster">
+  <div class="titel"><i style="background:#f38ba8"></i><i style="background:#f9e2af"></i><i style="background:#a6e3a1"></i>&nbsp; besucher@christianhoerauf.de: ~</div>
+  <div class="inhalt" id="inhalt"></div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const inhalt = document.getElementById("inhalt");
+  const historie = [];
+  let historienIndex = 0;
+
+  function ausgabe(html) {
+    const el = document.createElement("div");
+    el.innerHTML = html;
+    inhalt.appendChild(el);
+    inhalt.scrollTop = inhalt.scrollHeight;
+  }
+  const schutz = (t) => t.replace(/[&<>]/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[z]);
+  const PROMPT = '<span class="prompt">besucher@chris</span>:<span class="pfad">~</span>$ ';
+
+  // Kleine Befehlsauswahl. Alles, was kein bekannter Befehl ist, wird einfach als Frage an
+  // den Bot behandelt – damit auch Leute ohne Shell-Kenntnisse nicht hängen bleiben.
+  const BEFEHLE = {
+    help: () => "Befehle:\n  <span class='gelb'>ask</span> &lt;frage&gt;   ChrisBot fragen (oder einfach lostippen)\n  <span class='gelb'>ls</span>             Dateien anzeigen\n  <span class='gelb'>cat</span> &lt;datei&gt;    Datei lesen\n  <span class='gelb'>whoami</span>         Wer bin ich?\n  <span class='gelb'>clear</span>          Bildschirm leeren\n  <span class='gelb'>sudo</span> …         Versuch's ruhig",
+    ls: () => "<span class='pfad'>projekte/</span>  lebenslauf.pdf  fragen.txt  <span class='prompt'>chrisbot*</span>",
+    whoami: () => "besucher (uid=1000) – aber die spannendere Frage ist: <span class='gelb'>ask wer bist du</span>",
+    clear: () => { inhalt.innerHTML = ""; return null; },
+    cat: (arg) => arg === "fragen.txt" ? VORSCHLAEGE.join("\n") : arg === "lebenslauf.pdf" ? "<span class='grau'>%PDF-1.7 ��� Binärsalat. Lieber: ask was machst du beruflich</span>" : "<span class='fehler'>cat: " + schutz(arg || "") + ": Datei oder Verzeichnis nicht gefunden</span>",
+    sudo: () => "<span class='fehler'>besucher ist nicht in der sudoers-Datei. Dieser Vorfall wird gemeldet. 🚨</span>",
+  };
+
+  async function ausfuehren(zeile) {
+    ausgabe(PROMPT + schutz(zeile));
+    const [befehl, ...rest] = zeile.trim().split(/\s+/);
+    if (!befehl) return;
+    if (BEFEHLE[befehl]) {
+      const ergebnis = BEFEHLE[befehl](rest.join(" "));
+      if (ergebnis) ausgabe(ergebnis);
+      return;
+    }
+    const frage = befehl === "ask" || befehl === "./chrisbot" ? rest.join(" ") : zeile;
+    ausgabe("<span class='grau'>[chrisbot] denke nach …</span>");
+    const { text } = await frageBot(frage);
+    inhalt.lastChild.remove();
+    ausgabe(schutz(text));
+  }
+  function neueEingabe() {
+    const zeile = document.createElement("div");
+    zeile.className = "zeile";
+    zeile.innerHTML = PROMPT + '<input autocomplete="off" spellcheck="false">';
+    inhalt.appendChild(zeile);
+    const input = zeile.querySelector("input");
+    input.focus();
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "ArrowUp" && historienIndex > 0) { input.value = historie[--historienIndex]; e.preventDefault(); }
+      if (e.key === "ArrowDown") { input.value = historie[++historienIndex] || ""; historienIndex = Math.min(historienIndex, historie.length); }
+      if (e.key !== "Enter") return;
+      const wert = input.value;
+      zeile.remove();
+      if (wert.trim()) { historie.push(wert); historienIndex = historie.length; }
+      await ausfuehren(wert);
+      neueEingabe();
+    });
+  }
+  document.querySelector(".fenster").onclick = () => inhalt.querySelector("input")?.focus();
+  ausgabe("<span class='grau'>Last login: " + new Date().toLocaleString("de-DE") + " on ttys001</span>\n" + schutz(findeAntwort("")) + "\nTippe <span class='gelb'>help</span> oder stell einfach eine Frage.\n");
+  neueEingabe();
+</script>
+</body>
+</html>

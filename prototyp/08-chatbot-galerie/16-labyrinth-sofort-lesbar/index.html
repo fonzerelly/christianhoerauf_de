@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>16 · Labyrinth, aber sofort lesbar</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #031207; color: #c4ffd6; font-family: ui-monospace, "Cascadia Mono", monospace; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 30px 14px; }
+  .buehne { position: relative; width: min(760px, 100%); }
+  canvas { width: 100%; display: block; }
+  /* Der Text liegt über dem Labyrinth und ist sofort da. Der Lichtpunkt "unterstreicht"
+     ihn nur noch hinterher – Lesen muss niemand mehr abwarten. */
+  .text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 30px; font-size: clamp(16px, 2.4vw, 22px); line-height: 1.6; text-shadow: 0 0 12px #2bdc5a, 0 0 2px #000; font-weight: 600; }
+  .text span { background: #031207cc; padding: 2px 6px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  form { width: min(760px, 100%); display: flex; gap: 8px; margin-top: 16px; }
+  input { flex: 1; background: #06210f; border: 1px solid #2bdc5a; color: #c4ffd6; padding: 12px 14px; font: inherit; outline: none; }
+  form button { background: #2bdc5a; color: #031207; border: none; padding: 0 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  .chips { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .chips button { background: none; border: 1px dashed #2bdc5a; color: #2bdc5a; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  .hinweis { color: #4f8f62; font-size: 13px; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="buehne"><canvas id="leinwand" width="760" height="420"></canvas><div class="text"><span id="text"></span></div></div>
+<form id="formular"><input id="eingabe" placeholder="> Frage" autocomplete="off"><button>OK</button></form>
+<div class="chips" id="chips"></div>
+<div class="hinweis">Idee: Das Labyrinth bleibt als Markenzeichen, aber die Antwort steht ab der ersten Millisekunde da.</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script src="../gemeinsam/labyrinth-mini.js"></script>
+<script>
+  const leinwand = document.getElementById("leinwand");
+  const ctx = leinwand.getContext("2d");
+  const ZELLE = 20;
+  let lab, fortschritt = 0, laeuft = false;
+
+  // Pro Antwort ein neues Labyrinth; der Lichtpunkt läuft in ca. 2 s einmal den Rundgang ab
+  // und hinterlässt eine Leuchtspur. Das ist Dekoration – der Text ist längst lesbar.
+  function neueAntwort(text) {
+    document.getElementById("text").textContent = text;
+    lab = erzeugeLabyrinth(leinwand.width / ZELLE, leinwand.height / ZELLE);
+    fortschritt = 0;
+    if (!laeuft) { laeuft = true; requestAnimationFrame(bild); }
+  }
+  function bild() {
+    ctx.fillStyle = "#031207";
+    ctx.fillRect(0, 0, leinwand.width, leinwand.height);
+    zeichneLabyrinth(ctx, lab, ZELLE, "#0d4a22", 3);
+    const weg = lab.rundgang;
+    fortschritt = Math.min(weg.length, fortschritt + weg.length / 120);
+    ctx.strokeStyle = "#2bdc5a"; ctx.lineWidth = 2; ctx.shadowColor = "#2bdc5a"; ctx.shadowBlur = 8;
+    ctx.beginPath();
+    for (let i = 0; i < fortschritt; i++) {
+      const x = weg[i].x * ZELLE + ZELLE / 2, y = weg[i].y * ZELLE + ZELLE / 2;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke(); ctx.shadowBlur = 0;
+    if (fortschritt < weg.length) requestAnimationFrame(bild); else laeuft = false;
+  }
+  async function stelleFrage(frage) {
+    document.getElementById("text").textContent = "…";
+    neueAntwort((await frageBot(frage, 250)).text);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  neueAntwort(findeAntwort(""));
+</script>
+</body>
+</html>

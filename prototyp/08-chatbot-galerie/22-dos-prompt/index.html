@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>22 · DOS-Prompt</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #000; color: #aaa; font-family: "Perfect DOS VGA 437", "Lucida Console", "Courier New", monospace; font-size: 18px; line-height: 1.25; padding: 10px 14px; min-height: 100vh; }
+  #bildschirm { white-space: pre-wrap; }
+  .zeile { display: flex; } input { flex: 1; background: #000; color: #aaa; border: none; font: inherit; outline: none; padding: 0; caret-color: transparent; }
+  .cursor { display: inline-block; width: .6em; height: 3px; background: #aaa; animation: blink .5s steps(1) infinite; vertical-align: -2px; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .weiss { color: #fff; } .blau { background: #0000aa; color: #fff; }
+</style>
+</head>
+<body>
+<div id="bildschirm"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const bildschirm = document.getElementById("bildschirm");
+  const wartezeit = (ms) => new Promise((r) => setTimeout(r, ms));
+  function schreibe(text, klasse) {
+    const el = document.createElement("div");
+    if (klasse) el.className = klasse;
+    el.textContent = text;
+    bildschirm.appendChild(el);
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  // Bootvorgang mit Speichertest, dann die Eingabezeile C:\CHRIS>. DIR, CLS, HELP, VER
+  // funktionieren; alles andere geht als Frage an CHRISBOT.EXE.
+  async function booten() {
+    schreibe("ChrisBIOS (C) 1978 Hörauf Megatrends");
+    for (let kb = 0; kb <= 640; kb += 64) { bildschirm.lastChild.textContent = "ChrisBIOS (C) 1978 Hörauf Megatrends\nSpeichertest: " + kb + " KB OK"; await wartezeit(60); }
+    await wartezeit(300);
+    schreibe("\nStarte CHRIS-DOS ...\n");
+    await wartezeit(400);
+    schreibe("HIMEM ist geladen.\nC:\\>CD CHRIS\n");
+    schreibe(findeAntwort("").toUpperCase());
+    schreibe("Geben Sie HELP ein, oder stellen Sie einfach eine Frage.\n");
+    eingabezeile();
+  }
+  const BEFEHLE = {
+    DIR: () => " Datenträger in Laufwerk C: ist CHRIS\n Verzeichnis von C:\\CHRIS\n\nCHRISBOT EXE    42.069  31.10.26  13:37\nLEBENSL  TXT     1.978  28.02.78   6:00\nFRAGEN   TXT       512  31.10.26  13:37\n        3 Datei(en)   44.559 Bytes\n                   640 KB frei",
+    HELP: () => "CHRISBOT [frage]   Frage an Chris\nTYPE FRAGEN.TXT    Vorschläge\nDIR  CLS  VER",
+    VER: () => "CHRIS-DOS Version 6.22 (Lorem-Ipsum-Edition)",
+    CLS: () => { bildschirm.innerHTML = ""; return null; },
+    "TYPE": (arg) => arg.toUpperCase() === "FRAGEN.TXT" ? VORSCHLAEGE.join("\n") : "Datei nicht gefunden",
+  };
+  function eingabezeile() {
+    const z = document.createElement("div");
+    z.className = "zeile";
+    z.innerHTML = "<span>C:\\CHRIS&gt;</span><input autocomplete='off' spellcheck='false'>";
+    bildschirm.appendChild(z);
+    const input = z.querySelector("input");
+    input.focus();
+    input.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter") return;
+      const zeile = input.value;
+      z.innerHTML = "";
+      z.textContent = "C:\\CHRIS>" + zeile;
+      const [befehl, ...rest] = zeile.trim().split(" ");
+      const gross = (befehl || "").toUpperCase();
+      if (!gross) { /* nur Enter */ }
+      else if (BEFEHLE[gross]) { const a = BEFEHLE[gross](rest.join(" ")); if (a) schreibe(a); }
+      else {
+        const frage = gross === "CHRISBOT" ? rest.join(" ") : zeile;
+        schreibe("Lade CHRISBOT.EXE ...");
+        const { text } = await frageBot(frage);
+        schreibe(text.toUpperCase(), "weiss");
+      }
+      schreibe("");
+      eingabezeile();
+    });
+  }
+  document.body.onclick = () => bildschirm.querySelector("input")?.focus();
+  booten();
+</script>
+</body>
+</html>

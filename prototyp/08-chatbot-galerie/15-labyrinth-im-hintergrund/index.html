@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15 · Labyrinth im Hintergrund</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #020a05; color: #d6ffe0; font-family: system-ui, sans-serif; min-height: 100vh; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
+  .chat { position: relative; z-index: 1; width: min(640px, 94vw); margin: 0 auto; height: 100vh; display: flex; flex-direction: column; padding: 30px 0 20px; }
+  h1 { font-weight: 600; margin: 0 0 4px; } .unter { color: #7fbf91; margin-bottom: 20px; }
+  #verlauf { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .n { padding: 12px 16px; border-radius: 14px; line-height: 1.55; max-width: 85%; backdrop-filter: blur(8px); }
+  .bot { background: #0c2a16cc; border: 1px solid #1f6b37; align-self: flex-start; }
+  .ich { background: #2bdc5a; color: #02160a; align-self: flex-end; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .chips button { background: #0c2a16cc; border: 1px solid #2bdc5a; color: #2bdc5a; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  form { display: flex; gap: 8px; }
+  input { flex: 1; background: #06170ccc; border: 1px solid #1f6b37; color: white; border-radius: 12px; padding: 13px 16px; font-size: 16px; outline: none; backdrop-filter: blur(8px); }
+  form button { background: #2bdc5a; border: none; border-radius: 12px; padding: 0 18px; font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="leinwand"></canvas>
+<div class="chat">
+  <h1>Christian Hörauf</h1>
+  <div class="unter">Frag ChrisBot. Der Lichtpunkt im Hintergrund läuft trotzdem – er stört nur nicht mehr.</div>
+  <div id="verlauf"></div>
+  <div class="chips" id="chips"></div>
+  <form id="formular"><input id="eingabe" placeholder="Deine Frage …" autocomplete="off"><button>Fragen</button></form>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script src="../gemeinsam/labyrinth-mini.js"></script>
+<script>
+  // Hintergrund: ein dunkles Labyrinth, durch das ein Lichtpunkt endlos läuft. Während der
+  // Bot nachdenkt, läuft er schneller und heller – das ist die einzige "Wartezeit"-Anzeige.
+  const leinwand = document.getElementById("leinwand");
+  const ctx = leinwand.getContext("2d");
+  const ZELLE = 28;
+  let labyrinth, schritt = 0, spur = [], eile = 1;
+
+  function neuAufbauen() {
+    leinwand.width = innerWidth;
+    leinwand.height = innerHeight;
+    labyrinth = erzeugeLabyrinth(Math.ceil(innerWidth / ZELLE), Math.ceil(innerHeight / ZELLE));
+    schritt = 0;
+    spur = [];
+  }
+  function bild() {
+    ctx.fillStyle = "#020a05";
+    ctx.fillRect(0, 0, leinwand.width, leinwand.height);
+    zeichneLabyrinth(ctx, labyrinth, ZELLE, "#0b2b15", 2);
+    schritt += 0.15 * eile;
+    const weg = labyrinth.rundgang;
+    const z = weg[Math.floor(schritt) % weg.length];
+    spur.push([z.x * ZELLE + ZELLE / 2, z.y * ZELLE + ZELLE / 2]);
+    if (spur.length > 60) spur.shift();
+    spur.forEach(([x, y], i) => {
+      ctx.fillStyle = "rgba(43,220,90," + (i / spur.length) * 0.35 * eile + ")";
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill();
+    });
+    const [px, py] = spur[spur.length - 1];
+    ctx.shadowColor = "#2bdc5a"; ctx.shadowBlur = 20;
+    ctx.fillStyle = "#c4ffd6";
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+    requestAnimationFrame(bild);
+  }
+  addEventListener("resize", neuAufbauen);
+  neuAufbauen();
+  bild();
+
+  const verlauf = document.getElementById("verlauf");
+  function nachricht(wer, text) {
+    const el = document.createElement("div");
+    el.className = "n " + wer;
+    el.textContent = text;
+    verlauf.appendChild(el);
+    verlauf.scrollTop = verlauf.scrollHeight;
+  }
+  async function stelleFrage(frage) {
+    nachricht("ich", frage);
+    eile = 4;
+    const { text } = await frageBot(frage);
+    eile = 1;
+    nachricht("bot", text);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  nachricht("bot", findeAntwort(""));
+</script>
+</body>
+</html>

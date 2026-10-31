@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>37 · Comicstrip</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fffbe6; background-image: radial-gradient(#f4d06f 1.2px, transparent 1.5px); background-size: 9px 9px; font-family: "Comic Neue", "Comic Sans MS", "Chalkboard SE", cursive; min-height: 100vh; padding: 24px; }
+  h1 { text-align: center; font-size: 44px; margin: 0 0 20px; color: #e63946; -webkit-text-stroke: 2px #111; text-shadow: 4px 4px 0 #111; letter-spacing: 2px; }
+  #strip { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .panel { background: white; border: 4px solid #111; min-height: 260px; position: relative; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; animation: plopp .35s cubic-bezier(.3,1.6,.6,1); box-shadow: 6px 6px 0 #111; }
+  @keyframes plopp { from { transform: scale(.6) rotate(-4deg); opacity: 0; } }
+  .blase { background: white; border: 3px solid #111; border-radius: 50% / 40%; padding: 18px 20px; font-size: 15px; line-height: 1.3; text-align: center; position: relative; text-transform: uppercase; font-weight: bold; }
+  .blase::after { content: ""; position: absolute; bottom: -18px; width: 0; height: 0; border: 10px solid transparent; border-top: 18px solid #111; }
+  .links .blase::after { left: 30%; } .rechts .blase::after { right: 30%; }
+  .figur { font-size: 64px; line-height: 1; }
+  .links .figur { align-self: flex-start; } .rechts .figur { align-self: flex-end; }
+  .knall { position: absolute; top: -14px; right: -10px; background: #ffd166; border: 3px solid #111; padding: 6px 10px; transform: rotate(12deg); font-weight: 900; font-size: 18px; clip-path: polygon(50% 0, 62% 30%, 98% 20%, 72% 50%, 100% 80%, 62% 70%, 50% 100%, 38% 70%, 0 80%, 28% 50%, 2% 20%, 38% 30%); width: 90px; height: 70px; display: grid; place-items: center; }
+  form { max-width: 600px; margin: 30px auto 0; display: flex; gap: 8px; }
+  input { flex: 1; font: inherit; font-size: 18px; border: 3px solid #111; padding: 10px; box-shadow: 4px 4px 0 #111; outline: none; }
+  form button, .chips button { font: inherit; font-weight: 900; background: #e63946; color: white; border: 3px solid #111; box-shadow: 4px 4px 0 #111; padding: 0 16px; cursor: pointer; }
+  .chips { max-width: 600px; margin: 14px auto; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; } .chips button { padding: 6px 10px; background: #457b9d; }
+</style>
+</head>
+<body>
+<h1>DIE ABENTEUER VON CHRISBOT</h1>
+<div id="strip"></div>
+<form id="formular"><input id="eingabe" placeholder="Was sagt der Besucher?" autocomplete="off"><button>ZACK!</button></form>
+<div class="chips" id="chips"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Jede Frage ergibt ein Panel mit der Besucherfigur, jede Antwort ein Panel mit dem Roboter.
+  // Lange Antworten werden auf mehrere Panels verteilt (je zwei Sätze), wie in einem Comic.
+  const strip = document.getElementById("strip");
+  const LAUTE = ["ZACK!", "PING!", "BLING!", "WUSCH!", "KLICK!"];
+  function panel(seite, figur, text, knall) {
+    const p = document.createElement("div");
+    p.className = "panel " + seite;
+    p.innerHTML = '<div class="blase"></div><div class="figur"></div>' + (knall ? '<div class="knall"></div>' : "");
+    p.querySelector(".blase").textContent = text;
+    p.querySelector(".figur").textContent = figur;
+    if (knall) p.querySelector(".knall").textContent = LAUTE[Math.floor(Math.random() * LAUTE.length)];
+    strip.appendChild(p);
+    p.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+  async function stelleFrage(frage) {
+    panel("links", "🧑‍💼", frage);
+    const { text } = await frageBot(frage);
+    const saetze = text.match(/[^.!?]+[.!?]+/g) || [text];
+    for (let i = 0; i < saetze.length; i += 2) {
+      panel("rechts", "🤖", saetze.slice(i, i + 2).join(" ").trim(), i === 0);
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  panel("rechts", "🤖", findeAntwort(""), true);
+</script>
+</body>
+</html>

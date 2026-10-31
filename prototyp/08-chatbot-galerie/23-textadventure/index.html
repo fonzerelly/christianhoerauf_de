@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>23 · Textadventure</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0b14; color: #e8d9b0; font-family: Georgia, serif; font-size: 18px; line-height: 1.6; }
+  .spiel { width: min(760px, 94vw); margin: 0 auto; padding: 40px 0 120px; }
+  .statuszeile { position: fixed; top: 0; left: 0; right: 0; background: #e8d9b0; color: #0b0b14; font-family: ui-monospace, monospace; font-size: 14px; display: flex; justify-content: space-between; padding: 4px 16px; }
+  .raum { font-weight: bold; font-size: 20px; margin-top: 26px; color: #f5c46b; }
+  .eingabe-echo { color: #8fa3ff; margin-top: 18px; }
+  .eingabe-echo::before { content: "> "; }
+  form { position: fixed; bottom: 0; left: 0; right: 0; background: #0b0b14; border-top: 1px solid #333; padding: 14px; display: flex; justify-content: center; }
+  form span { color: #8fa3ff; margin-right: 8px; }
+  input { width: min(720px, 86vw); background: none; border: none; color: #8fa3ff; font: inherit; outline: none; }
+  .hinweis { color: #776f58; font-style: italic; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="statuszeile"><span id="ort">Eingangshalle</span><span>Punkte: <b id="punkte">0</b> / 30 · Züge: <b id="zuege">0</b></span></div>
+<div class="spiel" id="spiel"></div>
+<form id="formular"><span>&gt;</span><input id="eingabe" autocomplete="off" autofocus placeholder="z. B. frage chris wer bist du"></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Ein Mini-Textadventure: drei Räume, in jedem steht eine der drei Fragen als Gegenstand.
+  // "frage …" oder "sprich mit chris über …" geht immer an den Bot, egal in welchem Raum.
+  const RAEUME = {
+    halle: { name: "Eingangshalle", text: "Du stehst in der Eingangshalle von christianhoerauf.de. Ein Lichtpunkt schwebt geduldig in der Luft. Im Norden liegt ein Büro, im Osten eine Bibliothek. Auf einem Sockel liegt ein Namensschild.", ausgaenge: { norden: "buero", osten: "bibliothek" }, ding: "namensschild", frage: VORSCHLAEGE[0] },
+    buero: { name: "Büro", text: "Ein Schreibtisch mit drei Monitoren. Auf einem läuft ein Testlauf, alles grün. Auf dem Tisch liegt eine Visitenkarte. Der Ausgang ist im Süden.", ausgaenge: { sueden: "halle" }, ding: "visitenkarte", frage: VORSCHLAEGE[1] },
+    bibliothek: { name: "Bibliothek", text: "Regale voller Anekdoten. Ein dickes Buch liegt aufgeschlagen auf einem Pult. Der Ausgang ist im Westen.", ausgaenge: { westen: "halle" }, ding: "buch", frage: VORSCHLAEGE[2] },
+  };
+  const RICHTUNG = { n: "norden", s: "sueden", süd: "sueden", süden: "sueden", o: "osten", w: "westen", sueden: "sueden", norden: "norden", osten: "osten", westen: "westen" };
+  let raum = "halle", zuege = 0, punkte = 0;
+  const gelesen = new Set();
+  const spiel = document.getElementById("spiel");
+
+  function absatz(text, klasse) {
+    const p = document.createElement("div");
+    if (klasse) p.className = klasse;
+    p.textContent = text;
+    spiel.appendChild(p);
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+  function beschreibe() {
+    const r = RAEUME[raum];
+    document.getElementById("ort").textContent = r.name;
+    absatz(r.name, "raum");
+    absatz(r.text);
+  }
+  async function verarbeite(eingabe) {
+    absatz(eingabe, "eingabe-echo");
+    document.getElementById("zuege").textContent = ++zuege;
+    const e = eingabe.toLowerCase().trim();
+    const woerter = e.split(/\s+/);
+    const r = RAEUME[raum];
+    if (/^(frage|sprich|fragen)\b/.test(e)) {
+      const frage = e.replace(/^(frage|fragen|sprich mit) (chris|den lichtpunkt|lichtpunkt)?\s*(über)?\s*/, "");
+      absatz("Der Lichtpunkt flackert nachdenklich …", "hinweis");
+      absatz("„" + (await frageBot(frage)).text + "“");
+    } else if (["schau", "umsehen", "l", "look"].includes(woerter[0])) beschreibe();
+    else if (["nimm", "lies", "untersuche", "x"].includes(woerter[0])) {
+      if (!woerter.slice(1).some((w) => r.ding.startsWith(w))) { absatz("Hier gibt es kein " + (woerter[1] || "Ding") + "."); return; }
+      absatz("Auf dem " + r.ding + " steht: „" + r.frage + "“. Der Lichtpunkt antwortet ungefragt:");
+      absatz("„" + findeAntwort(r.frage) + "“");
+      if (!gelesen.has(raum)) { gelesen.add(raum); punkte += 10; document.getElementById("punkte").textContent = punkte; absatz("[Deine Punktzahl ist um 10 gestiegen.]", "hinweis"); }
+      if (punkte === 30) absatz("*** Du weißt jetzt alles Wichtige über Chris. Lade ihn zum Gespräch ein! ***", "raum");
+    } else if (RICHTUNG[woerter[woerter.length - 1]]) {
+      const ziel = r.ausgaenge[RICHTUNG[woerter[woerter.length - 1]]];
+      if (ziel) { raum = ziel; beschreibe(); } else absatz("Dort ist eine Wand. Vermutlich die eines Labyrinths.");
+    } else if (e === "hilfe" || e === "help") absatz("Versuch: schau, nimm <ding>, geh norden/osten/süden/westen, frage chris <frage>.");
+    else absatz("Das verstehe ich nicht. (Tipp: „hilfe“, oder „frage chris …“)");
+  }
+  document.getElementById("formular").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) verarbeite(eingabe.value);
+    eingabe.value = "";
+  });
+  absatz("CHRISBOT: EIN INTERAKTIVER LEBENSLAUF", "raum");
+  absatz("Copyright (c) 2026 Christian Hörauf. Alle Rechte vorbehalten. Tippe „hilfe“, wenn du nicht weiterweißt.", "hinweis");
+  beschreibe();
+</script>
+</body>
+</html>

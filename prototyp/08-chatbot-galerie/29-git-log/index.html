@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>29 · git log</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0d1117; color: #c9d1d9; font-family: ui-monospace, "SF Mono", monospace; font-size: 14px; }
+  .inhalt { max-width: 900px; margin: 0 auto; padding: 30px 20px 120px; }
+  h1 { font-family: system-ui; font-size: 22px; font-weight: 600; } h1 span { color: #8b949e; font-weight: 400; }
+  .commit { display: grid; grid-template-columns: 28px 1fr; gap: 0 10px; animation: rein .4s; }
+  @keyframes rein { from { opacity: 0; transform: translateY(-10px); } }
+  .graph { position: relative; }
+  .graph::before { content: ""; position: absolute; left: 12px; top: 0; bottom: 0; width: 2px; background: #30363d; }
+  .graph::after { content: ""; position: absolute; left: 7px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: #0d1117; border: 2px solid #3fb950; }
+  .commit.frage .graph::after { border-color: #a371f7; }
+  .box { border: 1px solid #30363d; border-radius: 6px; padding: 12px 14px; margin: 8px 0; background: #161b22; }
+  .hash { color: #d29922; } .autor { color: #58a6ff; } .datum { color: #8b949e; } .tag { color: #3fb950; border: 1px solid #3fb950; border-radius: 10px; padding: 0 6px; font-size: 12px; }
+  .nachricht { margin-top: 8px; white-space: pre-wrap; line-height: 1.5; color: #e6edf3; }
+  .diff { margin-top: 8px; color: #3fb950; } .diff .weg { color: #f85149; }
+  form { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 12px; display: flex; justify-content: center; gap: 8px; }
+  form span { color: #8b949e; align-self: center; }
+  input { width: min(560px, 60vw); background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; font: inherit; padding: 8px; border-radius: 6px; }
+  form button { background: #238636; color: white; border: none; border-radius: 6px; padding: 0 14px; font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="inhalt">
+  <h1>christianhoerauf / leben <span>· branch master · git log --graph</span></h1>
+  <div id="log"></div>
+</div>
+<form id="formular"><span>git commit -m "</span><input id="eingabe" autocomplete="off" placeholder="Deine Frage" list="v"><span>"</span><datalist id="v"></datalist><button>Commit</button></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Jede Frage wird ein Commit des Besuchers, die Antwort ein Commit von ChrisBot darüber.
+  // Neueste oben, wie git log. Die Hashes sind ein einfacher Hash über den Text.
+  const log = document.getElementById("log");
+  function hash(text) {
+    let h = 5381;
+    for (const z of text + Date.now()) h = (h * 33) ^ z.charCodeAt(0);
+    return (h >>> 0).toString(16).padStart(8, "0").slice(0, 7);
+  }
+  function commit(klasse, autor, text, zusatz) {
+    const el = document.createElement("div");
+    el.className = "commit " + klasse;
+    el.innerHTML = '<div class="graph"></div><div class="box"><span class="hash"></span> <span class="autor"></span> <span class="datum"></span> ' + (zusatz || "") + '<div class="nachricht"></div></div>';
+    el.querySelector(".hash").textContent = hash(text);
+    el.querySelector(".autor").textContent = autor;
+    el.querySelector(".datum").textContent = new Date().toLocaleString("de-DE");
+    el.querySelector(".nachricht").textContent = text;
+    log.prepend(el);
+  }
+  async function stelleFrage(frage) {
+    commit("frage", "Besucher <gast@internet>", frage);
+    const { text } = await frageBot(frage);
+    commit("", "ChrisBot <bot@christianhoerauf.de>", "Answer: " + frage + "\n\n" + text + "\n\nCo-Authored-By: Lorem Ipsum <lorem@ipsum.de>", '<span class="tag">HEAD → master</span>');
+    document.querySelectorAll(".tag").forEach((t, i) => i > 0 && t.remove());
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => { const o = document.createElement("option"); o.value = v; document.getElementById("v").appendChild(o); });
+  commit("", "Christian Hörauf <chris@christianhoerauf.de>", "Initial commit\n\nSchwabach, 1978. Tests: 0, Bugs: unbekannt.");
+  commit("", "Christian Hörauf <chris@christianhoerauf.de>", "Add Diplom Medientechnologie (TU Ilmenau)");
+  commit("", "ChrisBot <bot@christianhoerauf.de>", findeAntwort(""), '<span class="tag">HEAD → master</span>');
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>24 · IRC-Kanal</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Fixedsys", "Courier New", monospace; font-size: 14px; background: #c0c0c0; height: 100vh; display: flex; flex-direction: column; }
+  .menue { background: #c0c0c0; padding: 3px 8px; border-bottom: 1px solid #808080; font-family: "MS Sans Serif", Tahoma, sans-serif; font-size: 12px; }
+  .menue span { margin-right: 14px; }
+  .thema { background: white; margin: 4px; border: 2px inset #fff; padding: 3px 6px; font-family: Tahoma, sans-serif; font-size: 12px; }
+  .haupt { flex: 1; display: flex; margin: 0 4px; gap: 4px; min-height: 0; }
+  #log { flex: 1; background: white; border: 2px inset #fff; padding: 6px; overflow-y: auto; white-space: pre-wrap; line-height: 1.4; }
+  .nicks { width: 160px; background: white; border: 2px inset #fff; padding: 6px; }
+  .zeit { color: #808080; } .join { color: #009300; } .aktion { color: #9c009c; } .bot { color: #00007f; font-weight: bold; } .ich { color: #7f0000; font-weight: bold; } .info { color: #fc7f00; }
+  form { margin: 4px; } input { width: 100%; font: inherit; padding: 4px; border: 2px inset #fff; outline: none; }
+  @media (max-width: 600px) { .nicks { display: none; } }
+</style>
+</head>
+<body>
+<div class="menue"><span>Datei</span><span>Ansicht</span><span>Favoriten</span><span>Werkzeuge</span><span>Hilfe</span></div>
+<div class="thema" id="thema">#christianhoerauf: Frag den Bot! | Vorschläge: !fragen | Kein Spam, kein Ponyhof.</div>
+<div class="haupt">
+  <div id="log"></div>
+  <div class="nicks" id="nicks"></div>
+</div>
+<form id="formular"><input id="eingabe" autocomplete="off" autofocus placeholder="Nachricht an #christianhoerauf (oder /me, /nick, !fragen)"></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const log = document.getElementById("log");
+  let nick = "Gast" + Math.floor(Math.random() * 9000 + 1000);
+  const nicks = ["@ChrisBot", "@ChanServ", "+fonzerelly", "lurker42", "hr_gast"];
+  const zeit = () => "[" + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + "] ";
+
+  function zeile(klasse, text) {
+    const el = document.createElement("div");
+    el.innerHTML = '<span class="zeit"></span><span></span>';
+    el.firstChild.textContent = zeit();
+    el.lastChild.className = klasse;
+    el.lastChild.textContent = text;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+  }
+  function zeigeNicks() { document.getElementById("nicks").textContent = nicks.concat(nick).join("\n"); }
+
+  // ChrisBot reagiert auf jede normale Nachricht im Kanal. Befehle im IRC-Stil gibt's dazu.
+  async function verarbeite(text) {
+    if (text.startsWith("/nick ")) { const alt = nick; nick = text.slice(6).trim() || nick; zeile("info", "*** " + alt + " heißt jetzt " + nick); zeigeNicks(); return; }
+    if (text.startsWith("/me ")) { zeile("aktion", "* " + nick + " " + text.slice(4)); return; }
+    if (text === "!fragen") { zeile("ich", "<" + nick + "> !fragen"); VORSCHLAEGE.forEach((v) => zeile("bot", "<ChrisBot> - " + v)); return; }
+    zeile("ich", "<" + nick + "> " + text);
+    const { text: antwort } = await frageBot(text);
+    zeile("bot", "<ChrisBot> " + nick + ": " + antwort);
+    if (Math.random() < 0.25) setTimeout(() => zeile("", "<lurker42> lol"), 1200);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) verarbeite(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  zeigeNicks();
+  zeile("info", "*** Verbinde mit irc.christianhoerauf.de (6667)");
+  zeile("join", "*** " + nick + " hat #christianhoerauf betreten");
+  zeile("info", "*** Thema: " + document.getElementById("thema").textContent);
+  setTimeout(() => zeile("bot", "<ChrisBot> " + nick + ": " + findeAntwort("")), 700);
+</script>
+</body>
+</html>

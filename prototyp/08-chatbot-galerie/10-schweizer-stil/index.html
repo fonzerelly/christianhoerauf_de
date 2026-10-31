@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 · Schweizer Stil</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background: #f4f1ea; color: #111; }
+  .raster { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 20px; padding: 40px; min-height: 100vh; }
+  .nummer { grid-column: 1 / 3; font-size: 15px; font-weight: 700; }
+  .rot { grid-column: 3 / 13; height: 14px; background: #e30613; margin-bottom: 40px; }
+  h1 { grid-column: 1 / 9; font-size: clamp(60px, 11vw, 150px); line-height: .85; margin: 0; letter-spacing: -.05em; font-weight: 800; }
+  .seitlich { grid-column: 10 / 13; align-self: end; font-size: 14px; line-height: 1.5; }
+  .frage-bereich { grid-column: 1 / 13; border-top: 2px solid #111; margin-top: 60px; padding-top: 14px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+  .frage-bereich label { grid-column: 1 / 3; font-weight: 700; font-size: 14px; }
+  form { grid-column: 3 / 13; display: flex; }
+  input { flex: 1; font: inherit; font-size: 34px; font-weight: 700; border: none; background: transparent; outline: none; letter-spacing: -.02em; }
+  input::placeholder { color: #bbb; }
+  form button { border: none; background: #111; color: #f4f1ea; font-size: 26px; width: 60px; cursor: pointer; }
+  .chips { grid-column: 3 / 13; display: flex; gap: 22px; font-size: 14px; }
+  .chips a { cursor: pointer; border-bottom: 2px solid #e30613; }
+  .antwort { grid-column: 3 / 11; font-size: clamp(20px, 2.4vw, 30px); line-height: 1.3; margin-top: 30px; font-weight: 500; }
+  .antwort .frage { color: #e30613; font-size: 14px; font-weight: 700; display: block; margin-bottom: 8px; }
+  @media (max-width: 800px) { .raster > *, .frage-bereich > * { grid-column: 1 / 13 !important; } }
+</style>
+</head>
+<body>
+<div class="raster">
+  <div class="nummer">CH/01</div><div class="rot"></div>
+  <h1>Christian<br>Hörauf.</h1>
+  <div class="seitlich">Softwareentwicklung<br>Erlangen, Deutschland<br><br>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+  <div class="frage-bereich">
+    <label for="eingabe">Frage</label>
+    <form id="formular"><input id="eingabe" placeholder="Stellen Sie eine Frage." autocomplete="off"><button>→</button></form>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="antwort" id="antwort"></div>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const antwort = document.getElementById("antwort");
+  async function stelleFrage(frage) {
+    antwort.innerHTML = '<span class="frage"></span>—';
+    antwort.firstChild.textContent = frage;
+    const { text } = await frageBot(frage);
+    antwort.lastChild.textContent = text;
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.textContent = v;
+    a.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(a);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>32 · Morsecode</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #1a1410; color: #f0d9a8; font-family: "Courier New", monospace; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 30px 14px; }
+  .lampe { width: 120px; height: 120px; border-radius: 50%; background: #3a2a14; border: 6px solid #6b5230; transition: background .02s, box-shadow .02s; }
+  .lampe.an { background: #ffe9a3; box-shadow: 0 0 60px 20px #ffc94a88; }
+  .taste { margin-top: 20px; width: 160px; height: 40px; background: #6b5230; border-radius: 8px 8px 4px 4px; box-shadow: 0 6px 0 #3a2a14; cursor: pointer; display: grid; place-items: center; color: #1a1410; font-weight: bold; }
+  .taste:active, .taste.unten { transform: translateY(4px); box-shadow: 0 2px 0 #3a2a14; }
+  #morse { margin-top: 24px; font-size: 22px; letter-spacing: 2px; min-height: 2em; text-align: center; max-width: 760px; word-break: break-all; color: #c79b4a; }
+  #klartext { margin-top: 10px; max-width: 640px; font-size: 17px; line-height: 1.6; text-align: center; min-height: 3em; }
+  .regler { margin-top: 16px; font-size: 13px; color: #8a7350; display: flex; gap: 16px; align-items: center; }
+  form { margin-top: 24px; display: flex; gap: 8px; width: min(560px, 94vw); }
+  input { flex: 1; background: #2a2018; border: 1px solid #6b5230; color: #f0d9a8; font: inherit; padding: 10px; }
+  form button, .chips button { background: #6b5230; border: none; color: #f0d9a8; font: inherit; padding: 0 14px; cursor: pointer; }
+  .chips { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; } .chips button { padding: 5px 10px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="lampe" id="lampe"></div>
+<div class="taste" id="taste">FUNKTASTE</div>
+<div id="morse"></div>
+<div id="klartext"></div>
+<div class="regler"><label><input type="checkbox" id="klartextAn" checked> Klartext mitlesen (für HR)</label><label>Tempo <input type="range" id="tempo" min="20" max="120" value="60"></label></div>
+<form id="formular"><input id="eingabe" placeholder="Frage (wird gemorst übertragen)" autocomplete="off"><button>Senden</button></form>
+<div class="chips" id="chips"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Die Antwort kommt als Morsecode: Lampe und Ton gleichzeitig. Darunter erscheint der
+  // Klartext Buchstabe für Buchstabe – wer kein Morse kann, liest einfach mit.
+  const CODE = { a: ".-", b: "-...", c: "-.-.", d: "-..", e: ".", f: "..-.", g: "--.", h: "....", i: "..", j: ".---", k: "-.-", l: ".-..", m: "--", n: "-.", o: "---", p: ".--.", q: "--.-", r: ".-.", s: "...", t: "-", u: "..-", v: "...-", w: ".--", x: "-..-", y: "-.--", z: "--..", ä: ".-.-", ö: "---.", ü: "..--", ß: "...--..", 0: "-----", 1: ".----", 2: "..---", 3: "...--", 4: "....-", 5: ".....", 6: "-....", 7: "--...", 8: "---..", 9: "----.", ".": ".-.-.-", ",": "--..--", "?": "..--..", "!": "-.-.--", "–": "-....-", "-": "-....-" };
+  const lampe = document.getElementById("lampe");
+  const taste = document.getElementById("taste");
+  let audio, ton, laeuft = 0;
+  function signal(an) {
+    lampe.classList.toggle("an", an);
+    taste.classList.toggle("unten", an);
+    try {
+      audio = audio || new AudioContext();
+      if (!ton) { ton = audio.createGain(); ton.gain.value = 0; const o = audio.createOscillator(); o.frequency.value = 650; o.connect(ton).connect(audio.destination); o.start(); }
+      ton.gain.setTargetAtTime(an ? 0.12 : 0, audio.currentTime, 0.004);
+    } catch (e) {}
+  }
+  const warte = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function morse(text) {
+    const lauf = ++laeuft;
+    const morseFeld = document.getElementById("morse"), klar = document.getElementById("klartext");
+    morseFeld.textContent = ""; klar.textContent = "";
+    for (const zeichen of text.toLowerCase()) {
+      if (lauf !== laeuft) return;
+      const einheit = Number(document.getElementById("tempo").value);
+      klar.textContent += document.getElementById("klartextAn").checked ? zeichen : "·";
+      if (zeichen === " ") { morseFeld.textContent += " / "; await warte(einheit * 7); continue; }
+      const folge = CODE[zeichen] || "";
+      for (const teil of folge) {
+        morseFeld.textContent += teil === "." ? "·" : "–";
+        signal(true); await warte(teil === "." ? einheit : einheit * 3); signal(false); await warte(einheit);
+      }
+      morseFeld.textContent += " ";
+      await warte(einheit * 2);
+    }
+  }
+  async function stelleFrage(frage) { morse((await frageBot(frage)).text); }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => stelleFrage(v);
+    document.getElementById("chips").appendChild(b);
+  });
+  document.getElementById("klartext").textContent = "Stell eine Frage. Die Antwort kommt in Morsezeichen – Klartext läuft mit.";
+</script>
+</body>
+</html>

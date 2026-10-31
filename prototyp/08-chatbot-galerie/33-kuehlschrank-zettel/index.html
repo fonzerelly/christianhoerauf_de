@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>33 · Zettel am Kühlschrank</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: linear-gradient(90deg, #e9ecef, #f8f9fa 50%, #dee2e6); font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; overflow-x: hidden; }
+  .griff { position: fixed; right: 30px; top: 30vh; width: 18px; height: 260px; background: linear-gradient(90deg, #adb5bd, #f8f9fa, #868e96); border-radius: 10px; box-shadow: 2px 2px 8px #0003; }
+  .flaeche { position: relative; min-height: 100vh; padding: 30px; }
+  .zettel { position: absolute; width: 220px; min-height: 180px; padding: 28px 18px 18px; font-size: 16px; line-height: 1.35; box-shadow: 2px 6px 12px #0003; cursor: grab; animation: kleben .4s cubic-bezier(.3,1.6,.6,1); }
+  @keyframes kleben { from { transform: scale(1.3) rotate(0deg); opacity: 0; } }
+  .zettel::before { content: ""; position: absolute; top: -10px; left: 50%; width: 28px; height: 28px; margin-left: -14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8787, #c92a2a); box-shadow: 1px 3px 4px #0005; }
+  .gelb { background: #fff3a8; } .rosa { background: #ffc9de; } .blau { background: #c5e8ff; } .gruen { background: #d3f9d8; }
+  .zettel.frage { font-size: 20px; font-weight: bold; }
+  .block { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) rotate(-1deg); background: #fff3a8; padding: 16px; width: min(380px, 90vw); box-shadow: 0 8px 20px #0003; }
+  .block input { width: 100%; font: inherit; font-size: 18px; border: none; background: transparent; border-bottom: 1px dashed #aa9; outline: none; }
+  .block small { display: block; margin-top: 8px; color: #776; } .block small a { cursor: pointer; text-decoration: underline; margin-right: 8px; }
+  .magnet { position: absolute; font-family: system-ui; font-weight: 900; font-size: 34px; text-shadow: 1px 2px 0 #0003; }
+</style>
+</head>
+<body>
+<div class="griff"></div>
+<div class="flaeche" id="flaeche">
+  <div class="magnet" style="left:40px;top:30px;color:#e03131">C</div><div class="magnet" style="left:66px;top:36px;color:#1971c2">H</div><div class="magnet" style="left:98px;top:28px;color:#2f9e44">R</div><div class="magnet" style="left:124px;top:34px;color:#f08c00">I</div><div class="magnet" style="left:140px;top:30px;color:#9c36b5">S</div>
+</div>
+<form class="block" id="formular"><input id="eingabe" placeholder="Zettel für Chris schreiben …" autocomplete="off"><small id="vorschlaege">Oder: </small></form>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  // Frage und Antwort werden je ein Zettel an einer zufälligen Stelle der Kühlschranktür,
+  // leicht schief. Die Zettel lassen sich mit der Maus herumschieben.
+  const flaeche = document.getElementById("flaeche");
+  const farben = ["gelb", "rosa", "blau", "gruen"];
+  let oben = 1;
+  function zettel(text, klasse, neben) {
+    const el = document.createElement("div");
+    el.className = "zettel " + (klasse || farben[Math.floor(Math.random() * farben.length)]);
+    el.textContent = text;
+    const breite = Math.max(260, innerWidth - 320);
+    const x = neben ? Math.min(breite, neben.offsetLeft + 160) : 40 + Math.random() * breite * 0.8;
+    const y = neben ? neben.offsetTop + 60 : 100 + Math.random() * Math.max(100, innerHeight - 450);
+    el.style.left = x + "px"; el.style.top = y + "px";
+    el.style.transform = "rotate(" + (Math.random() * 10 - 5) + "deg)";
+    el.style.zIndex = oben++;
+    flaeche.appendChild(el);
+    el.onpointerdown = (e) => {
+      el.style.zIndex = oben++;
+      const dx = e.clientX - el.offsetLeft, dy = e.clientY - el.offsetTop;
+      const bewegen = (ev) => { el.style.left = ev.clientX - dx + "px"; el.style.top = ev.clientY - dy + "px"; };
+      addEventListener("pointermove", bewegen);
+      addEventListener("pointerup", () => removeEventListener("pointermove", bewegen), { once: true });
+    };
+    return el;
+  }
+  async function stelleFrage(frage) {
+    const f = zettel(frage, "gelb frage");
+    const { text } = await frageBot(frage);
+    zettel(text, farben[1 + Math.floor(Math.random() * 3)], f);
+  }
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eingabe = document.getElementById("eingabe");
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+    eingabe.value = "";
+  });
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.textContent = v;
+    a.onclick = () => stelleFrage(v);
+    document.getElementById("vorschlaege").appendChild(a);
+  });
+  zettel(findeAntwort(""), "blau");
+</script>
+</body>
+</html>

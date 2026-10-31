@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>28 · API-Dokumentation</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #fafafa; color: #3b4151; }
+  .kopf { background: #1b1b1b; color: white; padding: 14px 30px; display: flex; align-items: center; gap: 12px; }
+  .kopf b { font-size: 20px; } .kopf .version { background: #7d8492; border-radius: 30px; font-size: 11px; padding: 2px 8px; }
+  .inhalt { max-width: 1000px; margin: 0 auto; padding: 30px 20px; }
+  h1 { font-size: 34px; margin: 0 0 4px; } .basis { font-family: monospace; color: #7d8492; margin-bottom: 20px; }
+  .endpunkt { border: 1px solid; border-radius: 4px; margin-bottom: 14px; overflow: hidden; }
+  .endpunkt summary { list-style: none; display: flex; align-items: center; gap: 14px; padding: 8px; cursor: pointer; font-family: monospace; font-size: 15px; }
+  .methode { color: white; font-weight: 700; border-radius: 3px; padding: 6px 0; width: 70px; text-align: center; font-family: system-ui; font-size: 14px; }
+  .post { border-color: #49cc90; background: #ecfaf4; } .post .methode { background: #49cc90; }
+  .get { border-color: #61affe; background: #ebf3fb; } .get .methode { background: #61affe; }
+  .geloescht { border-color: #f93e3e; background: #feebeb; opacity: .6; } .geloescht .methode { background: #f93e3e; } .geloescht summary span:last-child { text-decoration: line-through; }
+  .koerper { background: white; padding: 16px; border-top: 1px solid #ddd; }
+  .koerper h4 { margin: 0 0 8px; }
+  textarea, pre { width: 100%; font-family: monospace; font-size: 13px; background: #333; color: #fff; border-radius: 4px; padding: 10px; border: none; }
+  textarea { min-height: 70px; }
+  .ausfuehren { background: #4990e2; color: white; border: none; border-radius: 4px; padding: 10px 30px; font-weight: 700; cursor: pointer; margin: 10px 0; }
+  .status { font-family: monospace; } .status b { color: #49cc90; }
+</style>
+</head>
+<body>
+<div class="kopf"><b>⟨/⟩ ChrisBot API</b><span class="version">1.0.0</span><span class="version">OAS 3.1</span></div>
+<div class="inhalt">
+  <h1>Christian Hörauf</h1>
+  <div class="basis">Basis-URL: https://christianhoerauf.de/api · Für Menschen, die lieber Schnittstellen lesen als Lebensläufe.</div>
+  <details class="endpunkt post" open>
+    <summary><span class="methode">POST</span><span>/ask</span><span style="color:#7d8492;font-family:system-ui">Eine Frage an Chris stellen</span></summary>
+    <div class="koerper">
+      <h4>Request body <small style="color:#7d8492">application/json</small></h4>
+      <textarea id="koerper"></textarea>
+      <div>Beispiele: <span id="beispiele"></span></div>
+      <button class="ausfuehren" id="ausfuehren">Execute</button>
+      <h4>Responses</h4>
+      <div class="status" id="status">–</div>
+      <pre id="antwort">{ }</pre>
+    </div>
+  </details>
+  <details class="endpunkt get"><summary><span class="methode">GET</span><span>/lebenslauf.pdf</span><span style="color:#7d8492;font-family:system-ui">Lebenslauf als PDF</span></summary><div class="koerper">Lorem ipsum: liefert ein PDF. <code>200 OK</code></div></details>
+  <details class="endpunkt get"><summary><span class="methode">GET</span><span>/health</span><span style="color:#7d8492;font-family:system-ui">Kaffeestand</span></summary><div class="koerper"><pre>{ "status": "UP", "kaffee": "ausreichend" }</pre></div></details>
+  <details class="endpunkt geloescht"><summary><span class="methode">DELETE</span><span>/labyrinth</span><span style="color:#7d8492;font-family:system-ui">deprecated – wird nie entfernt</span></summary><div class="koerper"><pre>{ "status": 405, "error": "Method Not Allowed", "message": "Das Labyrinth bleibt." }</pre></div></details>
+</div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const koerper = document.getElementById("koerper");
+  const setze = (frage) => (koerper.value = JSON.stringify({ question: frage }, null, 2));
+  setze(VORSCHLAEGE[0]);
+  VORSCHLAEGE.forEach((v) => {
+    const a = document.createElement("a");
+    a.href = "#"; a.textContent = v; a.style.marginRight = "12px";
+    a.onclick = (e) => { e.preventDefault(); setze(v); };
+    document.getElementById("beispiele").appendChild(a);
+  });
+  // "Execute" liest den JSON-Körper, ruft den (Platzhalter-)Bot und zeigt die Antwort im
+  // Vertragsformat {text} mit Statuszeile und gemessener Dauer. Kaputtes JSON gibt 400.
+  document.getElementById("ausfuehren").onclick = async () => {
+    const status = document.getElementById("status");
+    const ausgabe = document.getElementById("antwort");
+    let frage;
+    try { frage = JSON.parse(koerper.value).question; } catch (e) { frage = undefined; }
+    if (typeof frage !== "string" || !frage.trim()) {
+      status.innerHTML = "<b style='color:#f93e3e'>400</b> Bad Request";
+      ausgabe.textContent = JSON.stringify({ text: "Bitte schick ein JSON mit dem Feld \"question\"." }, null, 2);
+      return;
+    }
+    status.textContent = "Lädt …";
+    const start = performance.now();
+    const antwort = await frageBot(frage);
+    status.innerHTML = "<b>200</b> OK · " + Math.round(performance.now() - start) + " ms · content-type: application/json; charset=utf-8";
+    ausgabe.textContent = JSON.stringify(antwort, null, 2);
+  };
+</script>
+</body>
+</html>

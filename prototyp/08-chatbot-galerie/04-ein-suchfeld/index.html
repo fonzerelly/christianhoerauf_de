@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 · Nur ein Suchfeld</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, system-ui, sans-serif; background: white; color: #202124; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  .oben { transition: margin-top .5s ease; margin-top: 28vh; text-align: center; width: min(640px, 92vw); }
+  body.antwortet .oben { margin-top: 40px; }
+  .logo { font-size: 64px; font-weight: 500; letter-spacing: -2px; margin-bottom: 26px; transition: font-size .5s; }
+  body.antwortet .logo { font-size: 32px; margin-bottom: 14px; }
+  .logo b:nth-child(1) { color: #4285f4; } .logo b:nth-child(2) { color: #ea4335; } .logo b:nth-child(3) { color: #fbbc05; }
+  .logo b:nth-child(4) { color: #4285f4; } .logo b:nth-child(5) { color: #34a853; } .logo b:nth-child(6) { color: #ea4335; }
+  .logo b { font-weight: 500; }
+  form { display: flex; border: 1px solid #dfe1e5; border-radius: 24px; padding: 0 16px; height: 48px; align-items: center; gap: 10px; }
+  form:hover, form:focus-within { box-shadow: 0 1px 6px rgba(32,33,36,.28); border-color: transparent; }
+  input { flex: 1; border: none; font-size: 16px; outline: none; }
+  .knoepfe { margin-top: 26px; display: flex; gap: 12px; justify-content: center; }
+  body.antwortet .knoepfe { display: none; }
+  .knoepfe button { background: #f8f9fa; border: 1px solid #f8f9fa; border-radius: 4px; padding: 0 16px; height: 36px; cursor: pointer; color: #3c4043; }
+  .knoepfe button:hover { border-color: #dadce0; }
+  #ergebnis { width: min(640px, 92vw); margin-top: 30px; text-align: left; }
+  .karte { border: 1px solid #dadce0; border-radius: 12px; padding: 18px 20px; line-height: 1.6; font-size: 16px; }
+  .karte small { color: #5f6368; display: block; margin-bottom: 6px; }
+  .verwandt { margin-top: 26px; }
+  .verwandt h3 { font-size: 18px; font-weight: 400; }
+  .verwandt a { display: block; padding: 12px 0; border-bottom: 1px solid #ebebeb; color: #1a0dab; cursor: pointer; }
+  .verwandt a::before { content: "🔍  "; }
+</style>
+</head>
+<body>
+<div class="oben">
+  <div class="logo"><b>C</b><b>h</b><b>r</b><b>i</b><b>s</b><b>Bot</b></div>
+  <form id="formular"><span>🔍</span><input id="eingabe" autocomplete="off" aria-label="Frage"><span>🎤</span></form>
+  <div class="knoepfe"><button id="suche">Chris fragen</button><button id="glueck">Auf gut Glück!</button></div>
+</div>
+<div id="ergebnis"></div>
+<script src="../gemeinsam/antworten.js"></script>
+<script>
+  const eingabe = document.getElementById("eingabe");
+  const ergebnis = document.getElementById("ergebnis");
+
+  // Zeigt die Antwort als "Featured Snippet" und darunter die anderen Fragen als "Ähnliche Fragen".
+  async function stelleFrage(frage) {
+    eingabe.value = frage;
+    document.body.classList.add("antwortet");
+    ergebnis.innerHTML = '<div class="karte"><small>ChrisBot denkt nach …</small></div>';
+    const { text } = await frageBot(frage);
+    const andere = VORSCHLAEGE.filter((v) => v !== frage);
+    ergebnis.innerHTML =
+      '<div class="karte"><small>Antwort von ChrisBot · ca. 0,0' + Math.floor(Math.random() * 9 + 1) + ' Sekunden</small><div id="antwort"></div></div>' +
+      '<div class="verwandt"><h3>Ähnliche Fragen</h3>' + andere.map((v) => "<a>" + v + "</a>").join("") + "</div>";
+    document.getElementById("antwort").textContent = text;
+    ergebnis.querySelectorAll(".verwandt a").forEach((a) => (a.onclick = () => stelleFrage(a.textContent)));
+  }
+
+  document.getElementById("formular").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (eingabe.value.trim()) stelleFrage(eingabe.value.trim());
+  });
+  document.getElementById("suche").onclick = () => eingabe.value.trim() && stelleFrage(eingabe.value.trim());
+  document.getElementById("glueck").onclick = () => stelleFrage(VORSCHLAEGE[Math.floor(Math.random() * VORSCHLAEGE.length)]);
+  eingabe.focus();
+</script>
+</body>
+</html>
