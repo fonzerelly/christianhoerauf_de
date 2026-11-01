@@ -29,12 +29,13 @@ const anyText = fc.oneof(
       "–",
       "…",
       "+",
+      "#",
     ),
   }),
 );
 
-const drawableCharacters = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+#█");
-const unknownGraphemes = ["€", "日", "😀", "👨‍👩‍👧", "@", "ø", "_", "\u00a9"];
+const drawableCharacters = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+█");
+const unknownGraphemes = ["€", "日", "😀", "👨‍👩‍👧", "@", "ø", "_", "\u00a9", "#"];
 
 /** Zeichen, die als sichtbare Glyphe im Ergebnis stehen (also weder Leerzeichen noch Trennstelle). */
 function glyphCount(text: string): number {

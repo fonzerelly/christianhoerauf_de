@@ -10,7 +10,7 @@ läuft, um es zu schreiben. Nur die Ersatzglyphe ist doppelt so breit (7 × 5 Ze
 | `font.ts`       | `Font`: ordnet Zeichen ihre Glyphe zu. `createDefaultFont()` liefert die Schrift der Seite. |
 | `text-width.ts` | `widthInCharacters`, `glyphWidthOf`: Breiten in Zeichenbreiten bzw. Zellen.                 |
 
-Darstellbar sind `A–Z`, `ÄÖÜ`, `0–9`, `-`, `.`, `?`, `!`, `+`, `#` und die Ersatzglyphe. Das Zeichen `█`
+Darstellbar sind `A–Z`, `ÄÖÜ`, `0–9`, `-`, `.`, `?`, `!`, `+` und die Ersatzglyphe. Das Zeichen `█`
 (`REPLACEMENT_CHARACTER`) steht im aufbereiteten Text für die Ersatzglyphe: ein Kamm. Der
 Rücken steht rechts (Spalte 6), fünf Zinken zeigen nach links; jede läuft der Lichtpunkt als
 Sackgasse hin und auf demselben Weg zurück, Ein- und Ausstieg unten rechts. Der Kamm belegt
@@ -18,9 +18,8 @@ Sackgasse hin und auf demselben Weg zurück, Ein- und Ausstieg unten rechts. Der
 
 `+` ist ein Kreuz um die Mitte (senkrecht Spalte 1, Zeilen 1–3; waagrecht Zeile 2, Spalten
 0–2). Den senkrechten Strich fährt der Lichtpunkt ohne Leuchtspur an, nach dem waagrechten
-springt er ohne Leuchtspur zur Grundlinie. `#` hat zwei durchgehende senkrechte Balken (Spalten
-0 und 2) und zwei Querbalken (Zeilen 1 und 3); oben und unten stehen die senkrechten Balken
-über, damit die Raute nicht wie 8, B oder O aussieht.
+springt er ohne Leuchtspur zur Grundlinie. Eine Raute `#` hat keine Glyphe; die Aufbereitung
+schreibt sie nach einem Buchstaben als `SHARP` aus (siehe `domain/text`).
 
 ## Font
 

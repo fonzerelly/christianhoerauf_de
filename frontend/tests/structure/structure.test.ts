@@ -13,7 +13,7 @@ import { TextNormalizer } from "../../src/domain/text/text-normalizer";
 import { checkPageSequence } from "./route-checks";
 import { expectPageIsSound, SETTINGS } from "./soundness";
 
-const CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+#█");
+const CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+█");
 
 /** Ein Raster, in das ein einzelnes Zeichen gerade passt (mit Platz für An- und Ablauf). */
 const SINGLE_CHARACTER_GRID = { columns: 14, rows: 16 };

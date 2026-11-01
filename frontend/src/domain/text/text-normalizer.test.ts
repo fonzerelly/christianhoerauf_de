@@ -50,12 +50,25 @@ describe("TextNormalizer", () => {
     expect(normalizer.normalize("a-b. c? d! 0123456789")).toBe("A-B. C? D! 0123456789");
   });
 
-  it("lässt Plus und Raute stehen", () => {
-    expect(normalizer.normalize("C++, F#, C# und Disney+")).toBe("C++ F# C# UND DISNEY+");
+  it("lässt das Plus stehen", () => {
+    expect(normalizer.normalize("C++ und Disney+")).toBe("C++ UND DISNEY+");
   });
 
-  it("schreibt hochgestellte 2 und 3 als HOCH 2 und HOCH 3 aus, mit Leerzeichen davor", () => {
+  it("schreibt eine Raute direkt nach einem Buchstaben als SHARP aus", () => {
+    expect(normalizer.normalize("F#, C#.")).toBe("F SHARP C SHARP.");
+    expect(normalizer.normalize("c#")).toBe("C SHARP");
+  });
+
+  it("macht aus einer Raute ohne Buchstaben davor eine Ersatzglyphe und meldet sie", () => {
+    const { normalizer: reporting, reportedUnknown } = createNormalizer();
+
+    expect(reporting.normalize("#1 und 2#")).toBe("█1 UND 2█");
+    expect(reportedUnknown).toEqual([["#", "#"]]);
+  });
+
+  it("schreibt hochgestellte 2 und 3 als HOCH 2 und HOCH 3 aus, mit Leerzeichen davor und danach", () => {
     expect(normalizer.normalize("x² + y²")).toBe("X HOCH 2 + Y HOCH 2");
+    expect(normalizer.normalize("x²y")).toBe("X HOCH 2 Y");
     expect(normalizer.normalize("3 m³")).toBe("3 M HOCH 3");
     expect(normalizer.normalize("²")).toBe("HOCH 2");
   });
@@ -73,6 +86,14 @@ describe("TextNormalizer", () => {
     const { normalizer: reporting, reportedUnknown } = createNormalizer();
 
     reporting.normalize("C++ F# x² y³ – — …");
+
+    expect(reportedUnknown).toEqual([]);
+  });
+
+  it("meldet nichts für eine Raute nach einem Buchstaben", () => {
+    const { normalizer: reporting, reportedUnknown } = createNormalizer();
+
+    reporting.normalize("F#");
 
     expect(reportedUnknown).toEqual([]);
   });

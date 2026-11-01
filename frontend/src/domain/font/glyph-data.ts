@@ -23,9 +23,6 @@ export type WaypointTuple = readonly [number, number] | readonly [number, number
 //    ohne Leuchtspur angefahren.
 //  - "+" ist ein Kreuz um die Mitte (y = 2): Den senkrechten Strich fährt der Punkt wie beim "!"
 //    ohne Leuchtspur an, nach dem waagrechten springt er wie beim "-" zur Grundlinie.
-//  - "#" hat zwei durchgehende senkrechte Balken (x = 0 und x = 2) und zwei Querbalken (y = 1
-//    und y = 3). Für überstehende Querbalken ist das Feld zu schmal; die Balken stehen dafür
-//    oben und unten über, damit die Raute nicht wie 8, B oder O aussieht.
 //  - Die Ersatzglyphe ist ein Kamm und doppelt so breit wie ein Zeichen: ein Feld von 7 x 5
 //    Zellen (x von 0 bis 6). Der Rücken steht rechts (x = 6), fünf Zinken zeigen nach links.
 //    Jede Zinke läuft der Punkt als Sackgasse hin und auf demselben Weg zurück. Sie steht für
@@ -76,6 +73,5 @@ export const GLYPH_PATHS: Readonly<Record<string, readonly WaypointTuple[]>> = {
   "?": [[1, 4, "dot"], [1, 3], [1, 2], [2, 2], [2, 0], [0, 0], [0, 1], [0, 4, "hop"]],
   "!": [[1, 4], [1, 2, "hop"], [1, 0], [1, 4, "dot"]],
   "+": [[1, 4], [1, 3, "hop"], [1, 1], [1, 2], [0, 2], [2, 2], [2, 4, "hop"]],
-  "#": [[0, 4], [0, 0], [0, 1], [2, 1], [2, 0], [2, 4], [2, 3], [0, 3], [0, 4]],
   "█": [[6, 4], [0, 4], [6, 4], [6, 3], [0, 3], [6, 3], [6, 2], [0, 2], [6, 2], [6, 1], [0, 1], [6, 1], [6, 0], [0, 0], [6, 0], [6, 4]],
 };

@@ -1,7 +1,7 @@
 // Golden Master Text: Schrift, Aufbereitung und Zeilenumbruch liefern dasselbe wie der Prototyp.
 //
-// Der Prototyp kennt weder "!", "+" und "#" noch die Ersatzglyphe noch Akzentbuchstaben (er
-// wirft sie weg), und er ersetzt weder Hochzahlen noch Gedankenstriche noch Auslassungspunkte. Die Texte hier enthalten deshalb nur Zeichen, die beide Fassungen gleich behandeln.
+// Der Prototyp kennt weder "!" und "+" noch die Ersatzglyphe noch Akzentbuchstaben (er wirft
+// sie weg), und er ersetzt weder Hochzahlen noch Gedankenstriche, Auslassungspunkte oder Rauten. Die Texte hier enthalten deshalb nur Zeichen, die beide Fassungen gleich behandeln.
 
 import { describe, expect, it } from "vitest";
 import { createDefaultFont, REPLACEMENT_CHARACTER } from "../../src/domain/font/font";
@@ -42,13 +42,12 @@ function randomTexts(count: number): string[] {
 }
 
 describe("Golden Master Text", () => {
-  it("hat dieselben Glyphen wie der Prototyp, dazu '!', '+', '#' und die Ersatzglyphe", () => {
+  it("hat dieselben Glyphen wie der Prototyp, dazu '!', '+' und die Ersatzglyphe", () => {
     const prototypeGlyphs = prototype.evaluate<Record<string, unknown>>("GLYPHS");
 
     const {
       "!": exclamationMark,
       "+": plus,
-      "#": hash,
       [REPLACEMENT_CHARACTER]: replacement,
       ...rewriteGlyphs
     } = GLYPH_PATHS;
@@ -56,7 +55,6 @@ describe("Golden Master Text", () => {
     expect(rewriteGlyphs).toEqual(prototypeGlyphs);
     expect(exclamationMark).toBeDefined();
     expect(plus).toBeDefined();
-    expect(hash).toBeDefined();
     expect(replacement).toBeDefined();
   });
 

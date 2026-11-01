@@ -12,7 +12,7 @@ import type { Glyph } from "../../src/domain/font/glyph";
 import type { MazePage } from "../../src/domain/pages/maze-page-generator";
 import type { RouteStep } from "../../src/domain/route/route-step";
 
-const DRAWABLE_CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+#█");
+const DRAWABLE_CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+█");
 
 // Maße der Schrift und der Zeilen, hier noch einmal unabhängig vom Neubau hingeschrieben.
 const GLYPH_WIDTH = 3;
