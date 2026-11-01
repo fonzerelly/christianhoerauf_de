@@ -4,11 +4,20 @@
 # kennt nur der Bot.
 projekte: [chrisbot, extreme-ownership, teststrategien, zauberer]
 
-# Jeder Schalter lässt Abschnitte, Stationen oder Projekte weg. Aus den Schaltern entstehen alle
-# Kombinationen als Varianten, etwa `ohne_insert_effect_und_ehrenamt`: `ohne_` und die Schalter in
-# der Reihenfolge dieser Datei, verbunden mit `_und_`. Die Nummer für den persönlichen Link wird
-# aus dem Namen errechnet. Ein neuer Schalter lässt Namen und Nummern der alten Varianten gleich.
+# `schalter`: Jeder lässt Abschnitte, Stationen oder Projekte weg.
+# `mit`: Jeder nimmt Projekte dazu, die nicht unter `projekte` stehen.
+#
+# Aus den Schaltern entstehen alle Kombinationen als Varianten, etwa
+# `ohne_insert_effect_und_ehrenamt` oder `ohne_ehrenamt_mit_lehre`: `ohne_` und die weglassenden
+# Schalter, dann `_mit_` und die dazunehmenden, jeweils in der Reihenfolge dieser Datei und
+# verbunden mit `_und_`. Die Nummer für den persönlichen Link wird aus dem Namen errechnet. Ein
+# neuer Schalter lässt Namen und Nummern der alten Varianten gleich. Schalternamen dürfen `und`
+# und `mit` nicht als Wort enthalten.
 schalter:
   insert_effect: [insert-effect]
   hochschul_lehre: [hochschule-ansbach]
   ehrenamt: [informatik-kurse-grundschule]
+
+# Etwa für eine Stelle in der Lehre:
+#   lehre: [isbn-kata, autorennen]
+mit: {}

@@ -11,7 +11,13 @@ from pathlib import Path
 import yaml
 
 from bot.domain.cv import CvProject, CvStation, InvalidStationError, parse_project, parse_station
-from bot.domain.cv_variant import Variant, all_variants, parse_project_list, parse_switches
+from bot.domain.cv_variant import (
+    Variant,
+    all_variants,
+    parse_additions,
+    parse_project_list,
+    parse_switches,
+)
 
 
 def read_cv_stations(knowledge_base: Path) -> list[CvStation]:
@@ -41,14 +47,18 @@ def read_cv_project_list(path: Path, known_projects: set[str]) -> tuple[str, ...
     return parse_project_list(yaml.safe_load(path.read_text(encoding="utf-8")), known_projects)
 
 
-def read_variants(path: Path, known_names: set[str]) -> dict[str, Variant]:
+def read_variants(
+    path: Path, station_names: set[str], project_names: set[str]
+) -> dict[str, Variant]:
     """Alle Varianten aus den Schaltern der YAML-Datei `path`.
 
-    Fehlt sie oder ist sie leer: keine Varianten, nur der ganze Lebenslauf."""
+    Weglassen (`schalter:`) lassen sich Abschnitte, Stationen und Projekte, dazunehmen (`mit:`)
+    nur Projekte. Fehlt die Datei oder ist sie leer: keine Varianten, nur der ganze Lebenslauf."""
     if not path.is_file():
         return {}
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return all_variants(parse_switches(data, known_names))
+    switches = parse_switches(data, station_names | project_names)
+    return all_variants(switches, parse_additions(data, project_names))
 
 
 def _header(path: Path) -> Mapping[str, object]:

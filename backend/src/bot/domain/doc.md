@@ -107,17 +107,21 @@ Der persönliche Link in den Unterlagen einer Bewerbung. Die Beispiele in
 
 ## cv_variant.py
 
-Varianten des Lebenslaufs. In `lebenslauf/varianten.yaml` stehen nur Schalter; jede Kombination
-ist eine Variante. Eine neue Bewerbung braucht so nie ein neu ausgerolltes Backend.
+Varianten des Lebenslaufs. In `lebenslauf/varianten.yaml` stehen Schalter, die weglassen
+(`schalter:`), und Schalter, die Projekte dazunehmen (`mit:`); jede Kombination ist eine Variante. Eine neue Bewerbung braucht so nie ein neu ausgerolltes Backend.
 
 | Name | Was es konkret tut |
 |---|---|
-| `Switch` | Ein Schalter: Name (etwa `ehrenamt`) und was er weglässt (Abschnitte, Stationen, Projekte). |
-| `Variant` | Name (etwa `ohne_insert_effect_und_ehrenamt`), Nummer für den persönlichen Link, alles, was sie weglässt. |
+| `Switch` | Ein Schalter: Name (etwa `ehrenamt`) und die Namen, die er weglässt (Abschnitte, Stationen, Projekte) oder dazunimmt (nur Projekte). |
+| `Variant` | Name (etwa `ohne_insert_effect_und_ehrenamt` oder `ohne_ehrenamt_mit_lehre`), Nummer für den persönlichen Link, alles, was sie weglässt, und die Projekte, die sie dazunimmt (Standard: keine). |
 | `InvalidVariantError` | Meldung mit Schalter und Problem. |
-| `parse_switches(data, known_names)` | Liest `schalter:` aus der schon geladenen YAML-Datei in Dateireihenfolge; `None` → keine Schalter. Name nur aus Kleinbuchstaben, Ziffern, `_`, ohne `und` als Teil; Liste nicht leer; jeder Eintrag ein Abschnitt oder in `known_names`. |
+| `parse_switches(data, known_names)` | Liest `schalter:` aus der schon geladenen YAML-Datei in Dateireihenfolge; `None` → keine Schalter. Name nur aus Kleinbuchstaben, Ziffern, `_`, ohne `und` oder `mit` als Teil (`_parse_switch`); Liste nicht leer; jeder Eintrag ein Abschnitt oder in `known_names`. |
 | `parse_project_list(data, known_projects)` | Liest `projekte:` aus der schon geladenen Variantendatei: die Projekte des ganzen Lebenslaufs, in Dateireihenfolge. Fehlt die Liste (oder ist `data` `None`) → keine Projekte. Keine Liste von Namen oder ein Name nicht in `known_projects` → `InvalidVariantError`. |
+| `parse_additions(data, known_projects)` | Liest `mit:` aus der schon geladenen Variantendatei: die Schalter, die Projekte dazunehmen, in Dateireihenfolge. Fehlt `mit:` → keine. Dieselben Regeln für Namen und Listen wie bei `parse_switches`, aber jeder Eintrag muss ein Projekt sein (keine Station, kein Abschnitt). |
+| `projects_for(projects, listed, variant)` | Die Projekte im Lebenslauf einer Variante, in der Reihenfolge von `projects`: die aus `listed` plus die, die die Variante dazunimmt, ohne die, die sie weglässt. Ohne Variante nur `listed`. |
 | `variant_number(name)` | `1000 + FNV-1a(name) mod 9000`: vierstellig, steht nirgends, für denselben Namen immer gleich. |
-| `all_variants(switches)` | Alle Kombinationen: erst einzelne Schalter, dann Paare usw., Name `ohne_` + Schalter mit `_und_` in Dateireihenfolge. Ein neuer Schalter ändert Namen und Nummern der alten nicht. Doppelte Nummer → `InvalidVariantError`. |
+| `_name(omitting, adding)` | Der Variantenname: `ohne_` + weglassende Schalter mit `_und_`, dann `_mit_` + dazunehmende mit `_und_`, etwa `ohne_a_mit_c_und_d`. |
+| `_combinations(switches)` | Alle Auswahlen aus den Schaltern: erst einzelne, dann Paare usw. |
+| `all_variants(switches, additions=())` | Alle Kombinationen. Zuerst die nur weglassenden wie bisher (erst einzelne Schalter, dann Paare usw.), dann je Auswahl dazunehmender Schalter: allein und mit jeder Auswahl weglassender. Ein neuer Schalter ändert Namen und Nummern der alten Varianten nicht. Doppelte Nummer → `InvalidVariantError`. |
 | `omit(stations, names)` | Lässt jede Station weg, deren Name oder Abschnitt in `names` steht. |
 | `variant_by_number(variants, number)` | Die Variante mit dieser Nummer oder `None` (dann der ganze Lebenslauf). |

@@ -68,7 +68,7 @@ def test_reads_switches_and_returns_all_variants(tmp_path: Path) -> None:
         "varianten.yaml",
         "schalter:\n  schule: [schule]\n  baeckerei: [sonnenschein]\n",
     )
-    variants = read_variants(path, {"sonnenschein"})
+    variants = read_variants(path, {"sonnenschein"}, set())
     assert list(variants) == ["ohne_schule", "ohne_baeckerei", "ohne_schule_und_baeckerei"]
     assert variants["ohne_schule"] == Variant(
         "ohne_schule", variant_number("ohne_schule"), ("schule",)
@@ -76,9 +76,9 @@ def test_reads_switches_and_returns_all_variants(tmp_path: Path) -> None:
 
 
 def test_a_missing_or_empty_variants_file_means_no_variants(tmp_path: Path) -> None:
-    assert read_variants(tmp_path / "fehlt.yaml", set()) == {}
+    assert read_variants(tmp_path / "fehlt.yaml", set(), set()) == {}
     empty = write(tmp_path, "leer.yaml", "# noch keine Varianten\n")
-    assert read_variants(empty, set()) == {}
+    assert read_variants(empty, set(), set()) == {}
 
 
 def test_an_unknown_station_in_a_variant_stops(tmp_path: Path) -> None:
@@ -88,7 +88,28 @@ def test_an_unknown_station_in_a_variant_stops(tmp_path: Path) -> None:
         "schalter:\n  mond: [mond]\n",
     )
     with pytest.raises(InvalidVariantError, match="mond"):
-        read_variants(path, {"sonnenschein"})
+        read_variants(path, {"sonnenschein"}, set())
+
+
+def test_reads_the_switches_that_add_projects(tmp_path: Path) -> None:
+    path = write(
+        tmp_path,
+        "varianten.yaml",
+        "schalter:\n  schule: [schule]\nmit:\n  backen: [kuchen]\n",
+    )
+    variants = read_variants(path, {"sonnenschein"}, {"kuchen"})
+    assert variants["ohne_schule_mit_backen"] == Variant(
+        "ohne_schule_mit_backen",
+        variant_number("ohne_schule_mit_backen"),
+        ("schule",),
+        ("kuchen",),
+    )
+
+
+def test_a_switch_that_adds_a_station_stops(tmp_path: Path) -> None:
+    path = write(tmp_path, "varianten.yaml", "schalter: {}\nmit:\n  backen: [sonnenschein]\n")
+    with pytest.raises(InvalidVariantError, match="backen.*sonnenschein"):
+        read_variants(path, {"sonnenschein"}, {"kuchen"})
 
 
 KUCHEN = """---
