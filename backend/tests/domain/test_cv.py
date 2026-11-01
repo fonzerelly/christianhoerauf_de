@@ -14,7 +14,6 @@ from bot.domain.cv import (
     parse_project,
     parse_station,
     period_label,
-    project_period,
 )
 
 # Erfundene Stationen: Die Tests sollen nie die echte Wissensbasis lesen.
@@ -190,12 +189,6 @@ def test_parse_project_names_project_and_field_of_a_bad_value(field: str, value:
 
 def project(name: str, start: YearMonth, end: YearMonth | None) -> CvProject:
     return CvProject(name, name, start, end, "", None)
-
-
-def test_project_period_shows_years_only() -> None:
-    assert project_period(project("a", YearMonth(2019, 3), YearMonth(2025, 1))) == "2019 – 2025"
-    assert project_period(project("b", YearMonth(2026, 10), None)) == "2026 – heute"
-    assert project_period(project("c", YearMonth(2018), YearMonth(2018))) == "2018"
 
 
 def test_cv_projects_put_the_latest_year_first_and_then_go_by_name() -> None:

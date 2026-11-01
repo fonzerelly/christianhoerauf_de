@@ -89,8 +89,7 @@ Die Stationen der Wissensbasis als Einträge des Lebenslaufs (für PDF und Webse
 | `period_label(station, with_months)` | `_period` für eine Station. |
 | `CvProject` | Ein Projekt unter „Projekte und Vorträge“: Name, Titel, Beginn, Ende (`None` = läuft noch), Text (die `zusammenfassung`), Link (`None`, wenn es keinen gibt). |
 | `parse_project(name, header)` | Liest `titel`, `von`, `bis`, `zusammenfassung` (Pflicht) und `link` (darf fehlen) → `CvProject`; sonst `InvalidStationError`. Ob das Projekt im Lebenslauf steht, entscheidet `varianten.yaml`. |
-| `project_period(project)` | Der Zeitraum eines Projekts, nur mit Jahren: „2019 – 2025“, „2026 – heute“, „2018“. |
-| `cv_projects(projects)` | Sortiert: spätestes Endjahr zuerst (laufende ganz vorn), bei gleichem Jahr nach Name. |
+| `cv_projects(projects)` | Die Reihenfolge im Lebenslauf (dort ohne Zeitangabe): spätestes Endjahr zuerst (laufende ganz vorn), bei gleichem Jahr nach Name. |
 | `cv_sections(stations)` | Ordnet die Stationen nach `SECTIONS` (leere Abschnitte fallen weg), darin die neueste zuerst. Datumsregel: Die zwei neuesten Stationen der Berufserfahrung zeigen Monate, alle anderen nur Jahre. |
 
 ## personal_link.py

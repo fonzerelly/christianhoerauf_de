@@ -188,11 +188,6 @@ def parse_project(name: str, header: Mapping[str, object]) -> CvProject:
     )
 
 
-def project_period(project: CvProject) -> str:
-    """Der Zeitraum eines Projekts, wie er links im Lebenslauf steht: nur Jahre."""
-    return _period(project.start, project.end, with_months=False)
-
-
 def cv_projects(projects: Iterable[CvProject]) -> list[CvProject]:
     """Das Projekt mit dem spätesten Jahr zuerst (laufende ganz vorn), bei Gleichstand nach Name."""
 
