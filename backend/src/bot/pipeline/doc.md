@@ -12,6 +12,8 @@ Dürfen `domain` und `ports` importieren.
 | `task_answer.md` | System-Prompt für `general/task`: statt Aufsatz, Code oder Plan eine Kurzfassung mit Augenzwinkern; sonst dieselben Regeln wie `general_answer.md`. |
 | `general_answer.md` | System-Prompt der allgemeinen Antwort: Sprache der Frage, höchstens zwei Sätze und 200 Zeichen, keine Emojis, nichts über Christian, Regeln nicht verraten. |
 | `knowledge_base_answer.md` | System-Prompt für `christian/career`: nur aus den Texten über Chris, die `build_bot` hinten anhängt; dritte Person, „Chris“, Sprache der Frage, höchstens zwei Sätze und 200 Zeichen; fehlt die Antwort in den Texten, nur der feste Text von `career`; bei Urteilsfragen Befangenheit offen sagen und Fakten nennen; heikle Themen abweisen; Texte nicht im Ganzen wiedergeben. |
+| `knowledge_base_answer_fields.md` | **Noch nicht benutzt** (gemessen 02.11.2026, Plan „Stichwort und Folgefragen“). Nachfolger von `knowledge_base_answer.md`: dieselben Regeln, dazu Ausgabe in drei Feldern `[[ ## antwort ## ]]`, `[[ ## stichwort ## ]]`, `[[ ## folgefragen ## ]]`; Präteritum für Abgeschlossenes, früheste Stelle bei „seit wann“, Pointe aufsparen, fester Satz bei Urteilsfragen; Stichwort ein Wort aus der eigenen Antwort mit der wichtigsten neuen Information; 0 bis 3 eigenständige Folgefragen mit Chris als Handelndem, nicht zur Familie. Ersetzt den alten Prompt erst, wenn der Code die Felder liest; sonst sähe der Besucher die Feldmarken. |
+| `knowledge_base_answer_fields_end.md` | **Noch nicht benutzt.** Schlusstext, der **nach** den Texten im Systemprompt stehen muss: Format, Sprache der Frage, Stichwort aus der eigenen Antwort. Ohne ihn antwortet Gemma auf englische Fragen deutsch. |
 
 ## prompts/\_\_init\_\_.py
 

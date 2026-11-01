@@ -145,3 +145,16 @@ Aufruf über `scripts/zweite_sicherung.sh`, nur gegen LM Studio.
 | `summary(critical, harmless)` | Abgewiesene heikle Fragen gesamt und je Absicht, jede frei beantwortete mit Prompt und Antwort, Modellausfälle (nur wenn es welche gab), zu Unrecht abgewiesene harmlose Fragen mit Antwort. |
 | `main(argv, model_factory)` | Heikle Testfragen an beide Prompts (`ask_all`); Testfragen, die der Bot ohnehin Gemma gibt, und die Grenzfragen an ihren eigenen Prompt (`ask_own`); druckt `summary`, Exit 0. |
 
+
+## testperson/
+
+Eine **erfundene** Testperson im Format der Wissensbasis (`stationen/`, `projekte/`,
+`anekdoten/`), angelegt am 02.11.2026 für die Messung des Prompts mit Stichwort und Folgefragen
+(Plan „Stichwort und Folgefragen“). Nichts darin stammt aus der echten Wissensbasis, deshalb darf
+sie auch auf die DGX Spark und in automatische Tests.
+
+Sieben Texte mit absichtlich eingebauten Fallen: zwei Stationen mit drei bis vier Absätzen und
+Begründungen („warum Java“, „warum Rust“), eine sehr kurze Station (Segelschule, ein Absatz), ein
+Projekt, einen Vortrag, dessen Entstehungsjahr (2018) nicht das Jahr des ersten Auftritts (2019) ist,
+und zwei Anekdoten in der Ich-Form, deren `zusammenfassung` die Pointe verrät (Kaffee-Bot,
+Kranfahrer). Die Messwerkzeuge dazu und die Ergebnisse liegen in `docs/backend/antwort-prompt/`.

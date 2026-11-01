@@ -1,0 +1,1 @@
+Ende der Texte. Antworte jetzt im Format mit den drei Feldern, in der Sprache der Frage: auf eine englische Frage alles auf Englisch, auf eine deutsche alles auf Deutsch. Das Stichwort schreibst du aus deiner eigenen Antwort ab, nicht aus den Texten.
