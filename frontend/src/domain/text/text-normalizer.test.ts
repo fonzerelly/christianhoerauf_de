@@ -66,11 +66,18 @@ describe("TextNormalizer", () => {
     expect(reportedUnknown).toEqual([["#", "#"]]);
   });
 
-  it("schreibt hochgestellte 2 und 3 als HOCH 2 und HOCH 3 aus, mit Leerzeichen davor und danach", () => {
+  it("schreibt hochgestellte 2 und 3 als HOCH 2 und HOCH 3 aus, mit Leerzeichen davor", () => {
     expect(normalizer.normalize("x² + y²")).toBe("X HOCH 2 + Y HOCH 2");
-    expect(normalizer.normalize("x²y")).toBe("X HOCH 2 Y");
     expect(normalizer.normalize("3 m³")).toBe("3 M HOCH 3");
+    expect(normalizer.normalize("Fläche in m²")).toBe("FLÄCHE IN M HOCH 2");
     expect(normalizer.normalize("²")).toBe("HOCH 2");
+  });
+
+  it("setzt hinter die Hochzahl nur dann ein Leerzeichen, wenn ein Buchstabe oder eine Ziffer folgt", () => {
+    expect(normalizer.normalize("x²y")).toBe("X HOCH 2 Y");
+    expect(normalizer.normalize("x²2")).toBe("X HOCH 2 2");
+    expect(normalizer.normalize("m².")).toBe("M HOCH 2.");
+    expect(normalizer.normalize("m²?")).toBe("M HOCH 2?");
   });
 
   it("macht aus Halbgeviert- und Geviertstrich einen Bindestrich", () => {

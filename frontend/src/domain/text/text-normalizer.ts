@@ -5,21 +5,26 @@ import { BREAK_MARK } from "./break-marks";
 const INVISIBLE_ONLY = /^[\p{White_Space}\p{Cc}\p{Cf}]+$/u;
 const WHITESPACE = /\p{White_Space}/u;
 const IGNORABLE_MARKS = /[\p{M}\p{Cf}\p{Cc}]/gu;
-/**
- * Zeichen, die als Ganzes durch darstellbaren Text ersetzt werden. Die Hochzahlen bekommen ein
- * Leerzeichen davor und danach (x²y wird X HOCH 2 Y); doppelte Leerzeichen und Leerzeichen an den
- * Enden entfernt `normalize` danach.
- */
+/** Zeichen, die als Ganzes durch darstellbaren Text ersetzt werden. */
 const REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   [",", " "],
   [";", " "],
   [":", " "],
-  ["²", " HOCH 2 "],
-  ["³", " HOCH 3 "],
   ["–", "-"], // Halbgeviertstrich
   ["—", "-"], // Geviertstrich
   ["…", "..."],
 ]);
+/**
+ * Hochzahlen werden ausgeschrieben, mit Leerzeichen davor (x² wird X HOCH 2). Ein Leerzeichen
+ * dahinter kommt nur, wenn ein Buchstabe oder eine Ziffer folgt (x²y wird X HOCH 2 Y, aber m².
+ * wird M HOCH 2.). Doppelte Leerzeichen fasst `normalize` danach zusammen.
+ */
+const SUPERSCRIPTS: ReadonlyMap<string, string> = new Map([
+  ["²", " HOCH 2"],
+  ["³", " HOCH 3"],
+]);
+const STARTS_WITH_LETTER_OR_DIGIT = /^[\p{L}\p{N}]/u;
+
 /** Eine Raute direkt nach einem Buchstaben wird ausgeschrieben: F# wird F SHARP. */
 const SHARP = "#";
 const SHARP_SPELLED_OUT = " SHARP";
@@ -31,6 +36,12 @@ const STARTS_WITH_LETTER = /^\p{L}/u;
  */
 const ONE_CHARACTER_PER_GRAPHEME = /^[\u0020-\u007e\u00c0-\u00ff]*$/;
 
+/** Die Grapheme direkt vor und hinter einem Graphem; am Textanfang bzw. -ende fehlen sie. */
+interface Neighbours {
+  readonly before: string | undefined;
+  readonly after: string | undefined;
+}
+
 /**
  * Macht aus beliebigem Text einen Text, den die Schrift darstellen kann.
  *
@@ -38,8 +49,9 @@ const ONE_CHARACTER_PER_GRAPHEME = /^[\u0020-\u007e\u00c0-\u00ff]*$/;
  * - Großschreibung; ß wird SS.
  * - Akzentbuchstaben werden zum Grundbuchstaben (É wird E), Umlaute bleiben.
  * - Komma, Semikolon und Doppelpunkt werden Leerzeichen.
- * - Hochgestellte 2 und 3 werden "HOCH 2" und "HOCH 3", Halbgeviert- und Geviertstrich werden
- *   Bindestriche, Auslassungspunkte werden drei Punkte.
+ * - Hochgestellte 2 und 3 werden "HOCH 2" und "HOCH 3" (Leerzeichen dahinter nur vor Buchstabe
+ *   oder Ziffer), Halbgeviert- und Geviertstrich werden Bindestriche, Auslassungspunkte werden
+ *   drei Punkte.
  * - Eine Raute direkt nach einem Buchstaben wird " SHARP" (F# wird F SHARP).
  * - Leerraum wird ein Leerzeichen; unsichtbare Steuer- und Formatzeichen entfallen.
  * - Trennstellen-Zeichen bleiben bis zum Umbruch erhalten.
@@ -64,7 +76,11 @@ export class TextNormalizer {
     const unknownCharacters: string[] = [];
     const normalized = this.graphemesOf(text)
       .map((grapheme, index, graphemes) =>
-        this.normalizeGrapheme(grapheme, graphemes[index - 1], unknownCharacters),
+        this.normalizeGrapheme(
+          grapheme,
+          { before: graphemes[index - 1], after: graphemes[index + 1] },
+          unknownCharacters,
+        ),
       )
       .join("")
       .replace(/ +/g, " ")
@@ -83,12 +99,17 @@ export class TextNormalizer {
 
   private normalizeGrapheme(
     grapheme: string,
-    previousGrapheme: string | undefined,
+    neighbours: Neighbours,
     unknownCharacters: string[],
   ): string {
     if (INVISIBLE_ONLY.test(grapheme)) return WHITESPACE.test(grapheme) ? " " : "";
-    if (grapheme === SHARP && STARTS_WITH_LETTER.test(previousGrapheme ?? "")) {
+    if (grapheme === SHARP && STARTS_WITH_LETTER.test(neighbours.before ?? "")) {
       return SHARP_SPELLED_OUT;
+    }
+    const superscript = SUPERSCRIPTS.get(grapheme);
+    if (superscript !== undefined) {
+      const isFollowedByWord = STARTS_WITH_LETTER_OR_DIGIT.test(neighbours.after ?? "");
+      return isFollowedByWord ? `${superscript} ` : superscript;
     }
     const replacement = REPLACEMENTS.get(grapheme);
     if (replacement !== undefined) return replacement;
