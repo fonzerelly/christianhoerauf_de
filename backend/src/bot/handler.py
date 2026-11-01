@@ -23,14 +23,17 @@ from bot.adapters.bedrock_token import (
     BEDROCK_REGION,
     bedrock_token_provider,
 )
+from bot.adapters.cv_files import read_cv_data
 from bot.adapters.dynamodb_store import DynamoDbStore
 from bot.adapters.json_log import JsonLog
 from bot.adapters.knowledge_files import knowledge_texts
 from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.adapters.system_clock import SystemClock
 from bot.domain.answer import Answer
+from bot.domain.cv_variant import variant_by_number
 from bot.domain.fixed_answers import FixedAnswerKind, fixed_answer
 from bot.domain.language import guess_language
+from bot.domain.public_cv import CvData, public_cv
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, IntentClassifier
@@ -39,6 +42,11 @@ from bot.pipeline.prompts import load_intent_program, load_prompt
 MAX_QUESTION_LENGTH = 500
 # Im Lambda-Paket liegt die Wissensbasis neben `bot/` (scripts/build_package.sh).
 _PACKAGED_KNOWLEDGE_BASE = Path(__file__).resolve().parent.parent / "wissensbasis"
+# Daneben `lebenslauf/varianten.yaml` für den Lebenslauf-Endpunkt.
+_PACKAGED_CV_FOLDER = Path(__file__).resolve().parent.parent / "lebenslauf"
+CV_PATH = "/lebenslauf"
+# Der Lebenslauf ändert sich nur mit einem neuen Paket; Browser dürfen ihn kurz behalten.
+CV_CACHE_CONTROL = "public, max-age=300"
 _STORE_TTL_SECONDS = 2 * 24 * 60 * 60  # Zähler und Zwischenspeicher verfallen nach zwei Tagen
 
 
@@ -141,11 +149,59 @@ def cache_version(environ: Mapping[str, str]) -> str:
     return environ.get("BUILD_ID", "lokal")
 
 
+def _json_response(status: int, body: object, headers: Mapping[str, str]) -> dict[str, object]:
+    return {
+        "statusCode": status,
+        "headers": {"Content-Type": "application/json; charset=utf-8", **headers},
+        "body": json.dumps(body, ensure_ascii=False),
+    }
+
+
+def _is_cv_request(event: Mapping[str, Any]) -> bool:
+    method = event.get("requestContext", {}).get("http", {}).get("method")
+    return method == "GET" and event.get("rawPath") == CV_PATH
+
+
+def handle_cv(event: Mapping[str, Any], cv_data: CvData) -> dict[str, object]:
+    """Der öffentliche Lebenslauf der Variante aus `?variante=<Nummer>` als JSON
+    (schema/lebenslauf.schema.json). Ohne, mit unbekannter oder kaputter Nummer: der ganze."""
+    parameters = event.get("queryStringParameters") or {}
+    number = str(parameters.get("variante", ""))
+    variant = variant_by_number(cv_data.variants, int(number)) if number.isdigit() else None
+    body = public_cv(cv_data.stations, cv_data.projects, cv_data.listed, variant)
+    return _json_response(200, body, {"Cache-Control": CV_CACHE_CONTROL})
+
+
+def load_cv_data(environ: Mapping[str, str]) -> CvData:
+    """Liest Wissensbasis (`WISSENSBASIS_DIR`) und `varianten.yaml` (im Ordner `LEBENSLAUF_DIR`);
+    ohne die Variablen die Ordner im Lambda-Paket."""
+    knowledge_base = Path(environ.get("WISSENSBASIS_DIR", _PACKAGED_KNOWLEDGE_BASE))
+    cv_folder = Path(environ.get("LEBENSLAUF_DIR", _PACKAGED_CV_FOLDER))
+    return read_cv_data(knowledge_base, cv_folder / "varianten.yaml")
+
+
+def _serve_cv(event: Mapping[str, Any]) -> dict[str, object]:
+    """Liest die Daten beim ersten Aufruf und behält sie. Sind sie kaputt: 503, und der nächste
+    Aufruf versucht es neu (der Bot ist davon nicht betroffen)."""
+    global _cv_data  # wie _bot: Lambda behält Modulzustand zwischen Aufrufen
+    if _cv_data is None:
+        try:
+            _cv_data = load_cv_data(os.environ)
+        except Exception:  # bewusst breit: kaputte Daten dürfen nur den Lebenslauf treffen
+            logging.exception("Lebenslauf nicht lesbar")
+            return _json_response(503, {"fehler": "Lebenslauf gerade nicht verfügbar"}, {})
+    return handle_cv(event, _cv_data)
+
+
 _bot: Bot | None = None
+_cv_data: CvData | None = None
 
 
 def handler(event: dict[str, Any], context: object) -> dict[str, object]:
-    """Einstieg für AWS Lambda. Baut den Bot beim ersten Aufruf und behält ihn für weitere."""
+    """Einstieg für AWS Lambda. `GET /lebenslauf` liefert den Lebenslauf, ohne den Bot zu bauen;
+    alles andere geht an den Bot, der beim ersten Aufruf gebaut und behalten wird."""
+    if _is_cv_request(event):
+        return _serve_cv(event)
     global _bot  # Lambda behält Modulzustand zwischen Aufrufen (warmer Start)
     if _bot is None:
         _bot = build_bot(os.environ)

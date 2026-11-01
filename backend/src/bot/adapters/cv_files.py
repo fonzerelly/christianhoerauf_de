@@ -1,8 +1,7 @@
-"""Liest Stationen und Varianten für den Lebenslauf von der Platte.
+"""Liest Stationen, Projekte und Varianten für den Lebenslauf von der Platte.
 
-Braucht PyYAML. Das steht bisher nur in der Entwicklungsgruppe: Der Bot im Lambda-Paket
-importiert dieses Modul nicht. Für den Lebenslauf-Endpunkt (Schritt 13 im Plan der Bewerbung)
-muss PyYAML zu den Laufzeitabhängigkeiten.
+Für das PDF (corporate-identity/lebenslauf/) und den Lebenslauf-Endpunkt im Lambda; braucht
+PyYAML (Laufzeitabhängigkeit seit Schritt 13 im Plan der Bewerbung).
 """
 
 from collections.abc import Mapping
@@ -18,6 +17,7 @@ from bot.domain.cv_variant import (
     parse_project_list,
     parse_switches,
 )
+from bot.domain.public_cv import CvData
 
 
 def read_cv_stations(knowledge_base: Path) -> list[CvStation]:
@@ -72,3 +72,21 @@ def _header(path: Path) -> Mapping[str, object]:
         place = f"{path.parent.name}/{path.name}"
         raise InvalidStationError(f"{place}: Kopfteil ist kein gültiges YAML ({error})") from error
     return loaded if isinstance(loaded, Mapping) else {}
+
+
+def read_cv_data(knowledge_base: Path, variants_path: Path) -> CvData:
+    """Stationen und Projekte aus `knowledge_base`, dazu Projektliste und Varianten aus
+    `variants_path`: alles, woraus PDF und Webseite den Lebenslauf bauen.
+
+    Fehler wie bei den einzelnen Funktionen (InvalidStationError, InvalidVariantError)."""
+    stations = read_cv_stations(knowledge_base)
+    projects = read_cv_projects(knowledge_base)
+    project_names = {project.name for project in projects}
+    return CvData(
+        stations=stations,
+        projects=projects,
+        listed=read_cv_project_list(variants_path, project_names),
+        variants=read_variants(
+            variants_path, {station.name for station in stations}, project_names
+        ),
+    )

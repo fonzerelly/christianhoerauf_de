@@ -69,6 +69,7 @@ PyYAML zu den Laufzeitabhängigkeiten.
 |---|---|
 | `read_cv_stations(knowledge_base)` | Liest jede Datei in `knowledge_base/stationen/` (sortiert) und macht daraus mit `parse_station` eine `CvStation`; Name = Dateiname ohne `.md`. |
 | `read_cv_projects(knowledge_base)` | Liest jede Datei in `knowledge_base/projekte/` (sortiert) mit `parse_project`. Jedes Projekt muss gültige Felder haben, auch wenn es gerade in keinem Lebenslauf steht. |
+| `read_cv_data(knowledge_base, variants_path)` | Liest Stationen, Projekte, Projektliste und Varianten auf einmal und gibt sie als `CvData` zurück; für Lebenslauf-Endpunkt und PDF. |
 | `read_cv_project_list(path, known_projects)` | Die Projekte des ganzen Lebenslaufs aus `projekte:` der Variantendatei (`parse_project_list`); fehlt die Datei → keine Projekte. |
 | `read_variants(path, station_names, project_names)` | Liest die weglassenden Schalter (`parse_switches`, erlaubt: Abschnitte, Stationen, Projekte) und die dazunehmenden (`parse_additions`, erlaubt: nur Projekte) aus der YAML-Datei und gibt alle Varianten zurück (`all_variants`); fehlt sie oder ist sie leer → keine Varianten. |
 | `_header(path)` | Der Kopfteil zwischen den ersten beiden `---`-Zeilen als YAML; ist er kein gültiges YAML → `InvalidStationError` mit Ordner und Datei. |

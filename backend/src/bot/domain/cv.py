@@ -10,6 +10,17 @@ from dataclasses import dataclass
 
 # Die Abschnitte in der Reihenfolge, in der der Lebenslauf sie zeigt.
 SECTIONS = ("beruf", "lehre", "studium", "praktikum", "zivildienst", "schule")
+PROJECTS_SECTION = "projekte"
+# Die Überschriften im Lebenslauf, gleich in PDF und auf der Webseite.
+SECTION_TITLES = {
+    "beruf": "Berufserfahrung",
+    "lehre": "Lehre und Ehrenamt",
+    "studium": "Studium",
+    "praktikum": "Praktika",
+    "zivildienst": "Zivildienst",
+    "schule": "Schulbildung",
+    PROJECTS_SECTION: "Projekte und Vorträge",
+}
 ONGOING = "heute"
 # So viele der neuesten Stationen der Berufserfahrung zeigen Monate.
 JOBS_WITH_MONTHS = 2

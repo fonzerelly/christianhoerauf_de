@@ -78,6 +78,7 @@ Die Stationen der Wissensbasis als Einträge des Lebenslaufs (für PDF und Webse
 | Name | Was es konkret tut |
 |---|---|
 | `SECTIONS` | Die Abschnitte in Lebenslauf-Reihenfolge: beruf, lehre, studium, praktikum, zivildienst, schule. |
+| `PROJECTS_SECTION`, `SECTION_TITLES` | `projekte` und die Überschriften aller Abschnitte samt Projekten („Berufserfahrung“, „Lehre und Ehrenamt“, …, „Projekte und Vorträge“), gleich in PDF und auf der Webseite. |
 | `YearMonth` | Ein Zeitpunkt aus `von`/`bis`: Jahr, Monat optional. Sortiert nach Jahr, ein bloßes Jahr vor allen Monaten desselben Jahres. |
 | `YearMonth.parse(value)` | Liest `"2014-11"`, `"2014"` oder die Zahl `2014`; alles andere (`"11/2014"`, `"etwa 2017"`, Monat 13) → `ValueError`. |
 | `CvStation` | Die Lebenslauf-Felder einer Station: Name, Abschnitt, Beginn, Ende (`None` = läuft noch), Titel (fett), Organisation (grau, darf leer sein), Stichpunkte. |
@@ -91,6 +92,19 @@ Die Stationen der Wissensbasis als Einträge des Lebenslaufs (für PDF und Webse
 | `parse_project(name, header)` | Liest `titel`, `von`, `bis`, `zusammenfassung` (Pflicht) und `link` (darf fehlen) → `CvProject`; sonst `InvalidStationError`. Ob das Projekt im Lebenslauf steht, entscheidet `varianten.yaml`. |
 | `cv_projects(projects)` | Die Reihenfolge im Lebenslauf (dort ohne Zeitangabe): spätestes Endjahr zuerst (laufende ganz vorn), bei gleichem Jahr nach Name. |
 | `cv_sections(stations)` | Ordnet die Stationen nach `SECTIONS` (leere Abschnitte fallen weg), darin die neueste zuerst. Datumsregel: Die zwei neuesten Stationen der Berufserfahrung zeigen Monate, alle anderen nur Jahre. |
+
+## public_cv.py
+
+Der öffentliche Lebenslauf für die Webseite: dieselbe Auswahl wie im PDF, ohne Noten, Angaben zur
+Person und Seitenaufteilung.
+
+| Name | Was es konkret tut |
+|---|---|
+| `CvData` | Alles, woraus ein Lebenslauf entsteht: Stationen, Projekte, die Projekte des ganzen Lebenslaufs (`listed`) und alle Varianten nach Namen. |
+| `SUMMARIZED_SECTIONS` | `praktikum`: wie im PDF nur als Sammelzeile im Studium, also kein eigener Abschnitt. |
+| `_station_entry(entry)` | Ein Eintrag als `{zeit, titel, organisation, stichpunkte}`. |
+| `_project_entry(project)` | Ein Projekt als `{titel, link, text}`; `link` ist `None`, wenn es keinen gibt. |
+| `public_cv(stations, projects, listed, variant)` | Lässt weg, was die Variante weglässt, und die Praktika; ordnet die Stationen mit `cv_sections` (Datumsregel wie im PDF); hängt die Projekte aus `projects_for` (sortiert mit `cv_projects`) als letzten Abschnitt an, wenn es welche gibt. Ergebnis: `{"abschnitte": [{name, titel, eintraege}, …]}`. |
 
 ## personal_link.py
 

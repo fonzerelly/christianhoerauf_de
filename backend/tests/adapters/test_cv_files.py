@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from bot.adapters.cv_files import (
+    read_cv_data,
     read_cv_project_list,
     read_cv_projects,
     read_cv_stations,
@@ -10,6 +11,7 @@ from bot.adapters.cv_files import (
 )
 from bot.domain.cv import CvProject, CvStation, InvalidStationError, YearMonth
 from bot.domain.cv_variant import InvalidVariantError, Variant, variant_number
+from bot.domain.public_cv import CvData
 
 # Erfundene Testperson; die echte Wissensbasis kommt nie in Tests.
 SONNENSCHEIN = """---
@@ -164,3 +166,21 @@ def test_a_header_that_is_no_valid_yaml_stops_with_the_file_name(tmp_path: Path)
     write(tmp_path / "projekte", "kaputt.md", "---\nlink: (offen: a: b)\n---\nText\n")
     with pytest.raises(InvalidStationError, match=r"projekte/kaputt\.md.*YAML"):
         read_cv_projects(tmp_path)
+
+
+def test_read_cv_data_collects_stations_projects_list_and_variants(tmp_path: Path) -> None:
+    write(tmp_path / "wb" / "stationen", "sonnenschein.md", SONNENSCHEIN)
+    write(tmp_path / "wb" / "projekte", "kuchen.md", KUCHEN)
+    path = write(
+        tmp_path,
+        "varianten.yaml",
+        "projekte: [kuchen]\nschalter:\n  baeckerei: [sonnenschein]\n",
+    )
+    data = read_cv_data(tmp_path / "wb", path)
+    assert data == CvData(
+        stations=read_cv_stations(tmp_path / "wb"),
+        projects=read_cv_projects(tmp_path / "wb"),
+        listed=("kuchen",),
+        variants=read_variants(path, {"sonnenschein"}, {"kuchen"}),
+    )
+    assert list(data.variants) == ["ohne_baeckerei"]

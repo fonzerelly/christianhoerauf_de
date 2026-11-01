@@ -87,7 +87,9 @@ def test_package_holds_only_code_dependencies_and_the_three_knowledge_folders(
     stray = [
         name
         for name in names
-        if not name.startswith(("bot/", "wissensbasis/")) and name not in allowed
+        if not name.startswith(("bot/", "wissensbasis/"))
+        and name not in allowed
+        and name != "lebenslauf/varianten.yaml"
     ]
     assert stray == []
     assert [name for name in names if name.startswith("wissensbasis/")] == KNOWLEDGE_FILES
@@ -121,10 +123,12 @@ def test_package_is_well_below_the_lambda_size_limit() -> None:
     assert PACKAGE_ZIP.stat().st_size < 25 * 1024 * 1024
 
 
-def test_package_contains_the_prompts_and_boto3() -> None:
+def test_package_contains_prompts_variants_boto3_and_pyyaml() -> None:
     names = build_package()
 
     assert "bot/pipeline/prompts/intent_program.json" in names
+    assert "lebenslauf/varianten.yaml" in names  # für den Lebenslauf-Endpunkt
+    assert any(name.startswith("yaml/") for name in names)  # PyYAML liest varianten.yaml
     assert "bot/pipeline/prompts/general_answer.md" in names
     assert "bot/pipeline/prompts/task_answer.md" in names
     assert any(name.startswith("boto3/") for name in names)

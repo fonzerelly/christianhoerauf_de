@@ -57,6 +57,10 @@ for folder in stationen projekte anekdoten; do
   done
 done
 
+# Für den Lebenslauf-Endpunkt: welche Projekte im Lebenslauf stehen und welche Varianten es gibt.
+mkdir -p build/package/lebenslauf
+cp lebenslauf/varianten.yaml build/package/lebenslauf/
+
 # Feste Reihenfolge und Zeitstempel -> gleiche Eingabe ergibt dieselbe Datei.
 (cd build/package && find . -type f | sort | zip -q -X ../lambda.zip -@)
 

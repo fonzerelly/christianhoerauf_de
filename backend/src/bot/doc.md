@@ -12,7 +12,12 @@ JSON `{"question": "..."}` (`schema/request.schema.json`), Antwort `{"text", "gi
 
 | Name | Was es konkret tut |
 |---|---|
-| `handler(event, context)` | Lambda-Einstieg. Baut beim ersten Aufruf den Bot mit `build_bot(os.environ)`, behält ihn für warme Aufrufe und ruft `handle`. |
+| `handler(event, context)` | Lambda-Einstieg. `GET /lebenslauf` geht an `_serve_cv`, ohne den Bot zu bauen. Alles andere: baut beim ersten Aufruf den Bot mit `build_bot(os.environ)`, behält ihn für warme Aufrufe und ruft `handle`. |
+| `_is_cv_request(event)` | `True` bei Methode `GET` und `rawPath` gleich `CV_PATH` (`/lebenslauf`). |
+| `handle_cv(event, cv_data)` | Liest `variante` aus den Query-Parametern; nur Ziffern zählen. Sucht die Variante mit dieser Nummer (`variant_by_number`); ohne, mit unbekannter oder kaputter Nummer der ganze Lebenslauf. Antwortet `200` mit `public_cv(...)` als JSON (`schema/lebenslauf.schema.json`) und `Cache-Control: public, max-age=300`. |
+| `load_cv_data(environ)` | `read_cv_data` mit der Wissensbasis aus `WISSENSBASIS_DIR` und `varianten.yaml` aus dem Ordner `LEBENSLAUF_DIR`; ohne die Variablen `wissensbasis/` und `lebenslauf/` neben `bot/` im Paket. |
+| `_serve_cv(event)` | Liest die Daten beim ersten Aufruf (`load_cv_data`) und behält sie in `_cv_data`. Wirft das Lesen, wird es protokolliert und es kommt `503` mit `{"fehler": "Lebenslauf gerade nicht verfügbar"}`; der nächste Aufruf liest neu. |
+| `_json_response(status, body, headers)` | Lambda-Antwort mit Statuscode, `Content-Type: application/json; charset=utf-8` plus `headers` und JSON-Körper (Umlaute unverändert). |
 | `handle(event, bot)` | Liest die Frage (`_read_question`). Ungültig: `400` mit fester Antwort. Sonst `bot.ask(frage, sourceIp)` und `200` mit der Antwort als JSON. Wirft der Bot unerwartet, wird der Fehler protokolliert und es kommt trotzdem `200` mit der festen „nicht erreichbar“-Antwort. Grenzen und Modellausfall sind ebenfalls `200`. |
 | `_read_question(event)` | Nur `POST`; Körper ggf. Base64-dekodieren, als JSON lesen; `question` muss Text sein, nicht leer (nach Entfernen von Leerraum) und höchstens 500 Zeichen lang. Sonst `None`. |
 | `_response(status, answer)` | Baut die Lambda-Antwort mit Statuscode, `Content-Type: application/json; charset=utf-8` und JSON-Körper (Umlaute unverändert). |

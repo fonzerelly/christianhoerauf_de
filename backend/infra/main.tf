@@ -126,7 +126,8 @@ resource "aws_lambda_function_url" "bot" {
     allow_origins = local.cors_origins
     # Der Preflight (OPTIONS) wird von der Function URL selbst beantwortet; die API erlaubt
     # in allow_methods höchstens sechs Zeichen je Eintrag, also kein "OPTIONS".
-    allow_methods = ["POST"]
+    # POST: Fragen an den Bot; GET: der Lebenslauf (/lebenslauf?variante=<Nummer>).
+    allow_methods = ["POST", "GET"]
     allow_headers = ["content-type"]
     max_age       = 3600
   }
