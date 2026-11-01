@@ -50,6 +50,33 @@ describe("TextNormalizer", () => {
     expect(normalizer.normalize("a-b. c? d! 0123456789")).toBe("A-B. C? D! 0123456789");
   });
 
+  it("lässt Plus und Raute stehen", () => {
+    expect(normalizer.normalize("C++, F#, C# und Disney+")).toBe("C++ F# C# UND DISNEY+");
+  });
+
+  it("schreibt hochgestellte 2 und 3 als HOCH 2 und HOCH 3 aus, mit Leerzeichen davor", () => {
+    expect(normalizer.normalize("x² + y²")).toBe("X HOCH 2 + Y HOCH 2");
+    expect(normalizer.normalize("3 m³")).toBe("3 M HOCH 3");
+    expect(normalizer.normalize("²")).toBe("HOCH 2");
+  });
+
+  it("macht aus Halbgeviert- und Geviertstrich einen Bindestrich", () => {
+    expect(normalizer.normalize("A – B")).toBe("A - B");
+    expect(normalizer.normalize("A—B")).toBe("A-B");
+  });
+
+  it("macht aus Auslassungspunkten drei Punkte", () => {
+    expect(normalizer.normalize("Moment…")).toBe("MOMENT...");
+  });
+
+  it("meldet ersetzte Zeichen nicht als unbekannt", () => {
+    const { normalizer: reporting, reportedUnknown } = createNormalizer();
+
+    reporting.normalize("C++ F# x² y³ – — …");
+
+    expect(reportedUnknown).toEqual([]);
+  });
+
   it("macht aus jedem unbekannten Zeichen genau eine Ersatzglyphe", () => {
     expect(normalizer.normalize("a€b")).toBe("A█B");
     expect(normalizer.normalize("日本")).toBe("██");

@@ -5,7 +5,20 @@ import { BREAK_MARK } from "./break-marks";
 const INVISIBLE_ONLY = /^[\p{White_Space}\p{Cc}\p{Cf}]+$/u;
 const WHITESPACE = /\p{White_Space}/u;
 const IGNORABLE_MARKS = /[\p{M}\p{Cf}\p{Cc}]/gu;
-const SEPARATORS = new Set([",", ";", ":"]);
+/**
+ * Zeichen, die als Ganzes durch darstellbaren Text ersetzt werden. Die Hochzahlen bekommen ein
+ * Leerzeichen davor (x² wird X HOCH 2); doppelte Leerzeichen fasst `normalize` danach zusammen.
+ */
+const REPLACEMENTS: ReadonlyMap<string, string> = new Map([
+  [",", " "],
+  [";", " "],
+  [":", " "],
+  ["²", " HOCH 2"],
+  ["³", " HOCH 3"],
+  ["–", "-"], // Halbgeviertstrich
+  ["—", "-"], // Geviertstrich
+  ["…", "..."],
+]);
 /**
  * Text aus druckbarem ASCII und den lateinischen Buchstaben von À bis ÿ: Hier ist jedes Zeichen
  * für sich ein Graphem (nichts davon hängt sich an ein Nachbarzeichen an).
@@ -19,6 +32,8 @@ const ONE_CHARACTER_PER_GRAPHEME = /^[\u0020-\u007e\u00c0-\u00ff]*$/;
  * - Großschreibung; ß wird SS.
  * - Akzentbuchstaben werden zum Grundbuchstaben (É wird E), Umlaute bleiben.
  * - Komma, Semikolon und Doppelpunkt werden Leerzeichen.
+ * - Hochgestellte 2 und 3 werden "HOCH 2" und "HOCH 3", Halbgeviert- und Geviertstrich werden
+ *   Bindestriche, Auslassungspunkte werden drei Punkte.
  * - Leerraum wird ein Leerzeichen; unsichtbare Steuer- und Formatzeichen entfallen.
  * - Trennstellen-Zeichen bleiben bis zum Umbruch erhalten.
  * - Jedes übrige Graphem wird genau eine Ersatzglyphe, und die unbekannten Zeichen werden gemeldet.
@@ -59,7 +74,8 @@ export class TextNormalizer {
 
   private normalizeGrapheme(grapheme: string, unknownCharacters: string[]): string {
     if (INVISIBLE_ONLY.test(grapheme)) return WHITESPACE.test(grapheme) ? " " : "";
-    if (SEPARATORS.has(grapheme)) return " ";
+    const replacement = REPLACEMENTS.get(grapheme);
+    if (replacement !== undefined) return replacement;
 
     const upperCase = grapheme.normalize("NFC").toUpperCase();
     if (this.isDrawable(upperCase) || upperCase === BREAK_MARK) return upperCase;

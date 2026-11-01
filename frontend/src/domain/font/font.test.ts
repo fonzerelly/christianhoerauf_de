@@ -9,7 +9,7 @@ const font = createDefaultFont();
 const DRAWABLE_CHARACTERS = [
   ...Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ"),
   ...Array.from("0123456789"),
-  ...Array.from("-.?!"),
+  ...Array.from("-.?!+#"),
   REPLACEMENT_CHARACTER,
 ];
 
@@ -34,7 +34,7 @@ function cellsWalkedBy(glyph: Glyph): string[] {
 }
 
 describe("Font", () => {
-  it("kennt Buchstaben, Umlaute, Ziffern, Bindestrich, Punkt, Fragezeichen, Ausrufezeichen und die Ersatzglyphe", () => {
+  it("kennt Buchstaben, Umlaute, Ziffern, Bindestrich, Punkt, Fragezeichen, Ausrufezeichen, Plus, Raute und die Ersatzglyphe", () => {
     for (const character of DRAWABLE_CHARACTERS) {
       expect(font.hasGlyph(character), character).toBe(true);
     }
@@ -75,6 +75,34 @@ describe("Font", () => {
       { x: 1, y: 0 },
       { x: 1, y: 4, marker: "dot" },
     ]);
+  });
+
+  it("schreibt das Plus als Kreuz um die Mitte: senkrechter Strich ohne Leuchtspur angefahren, dann der waagrechte", () => {
+    expect(font.glyphFor("+")).toEqual([
+      { x: 1, y: 4 },
+      { x: 1, y: 3, marker: "hop" },
+      { x: 1, y: 1 },
+      { x: 1, y: 2 },
+      { x: 0, y: 2 },
+      { x: 2, y: 2 },
+      { x: 2, y: 4, marker: "hop" },
+    ]);
+  });
+
+  it("schreibt die Raute als zwei durchgehende senkrechte Balken mit zwei Querbalken", () => {
+    expect(font.glyphFor("#")).toEqual(
+      [
+        [0, 4],
+        [0, 0],
+        [0, 1],
+        [2, 1],
+        [2, 0],
+        [2, 4],
+        [2, 3],
+        [0, 3],
+        [0, 4],
+      ].map(([x, y]) => ({ x, y })),
+    );
   });
 
   it("schreibt die Ersatzglyphe als Kamm: Rücken rechts, fünf Zinken nach links, jede hin und zurück", () => {

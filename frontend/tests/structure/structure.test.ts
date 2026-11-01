@@ -13,7 +13,7 @@ import { TextNormalizer } from "../../src/domain/text/text-normalizer";
 import { checkPageSequence } from "./route-checks";
 import { expectPageIsSound, SETTINGS } from "./soundness";
 
-const CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!█");
+const CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+#█");
 
 /** Ein Raster, in das ein einzelnes Zeichen gerade passt (mit Platz für An- und Ablauf). */
 const SINGLE_CHARACTER_GRID = { columns: 14, rows: 16 };
@@ -43,6 +43,7 @@ describe("Struktur der Labyrinth-Seiten", () => {
     "Hier ent|steht die Inter|net|prä|senz von Chris|tian Hör|auf",
     "Das ist ein langer Platzhalter-Text zum Ausprobieren mehrerer Seiten",
     "A.B.C-D 0123456789 ÄÖÜ ?!",
+    "C++, F# und x² – Moment…",
     "Fünf €uro für 日本",
   ])("lässt sich für den Satz %j über alle Seiten zurücklesen", (sentence) => {
     const font = createDefaultFont();

@@ -12,10 +12,28 @@ const segmenter = new Intl.Segmenter();
 const anyText = fc.oneof(
   fc.string({ unit: "binary", maxLength: 40 }),
   fc.string({ unit: "grapheme", maxLength: 40 }),
-  fc.string({ unit: fc.constantFrom("a", "Ä", "é", "ß", "|", ",", " ", "€", "́", "‍", "😀") }),
+  fc.string({
+    unit: fc.constantFrom(
+      "a",
+      "Ä",
+      "é",
+      "ß",
+      "|",
+      ",",
+      " ",
+      "€",
+      "́",
+      "‍",
+      "😀",
+      "²",
+      "–",
+      "…",
+      "+",
+    ),
+  }),
 );
 
-const drawableCharacters = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!█");
+const drawableCharacters = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+#█");
 const unknownGraphemes = ["€", "日", "😀", "👨‍👩‍👧", "@", "ø", "_", "\u00a9"];
 
 /** Zeichen, die als sichtbare Glyphe im Ergebnis stehen (also weder Leerzeichen noch Trennstelle). */
