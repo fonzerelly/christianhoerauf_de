@@ -2,28 +2,28 @@ from pathlib import Path
 
 import pytest
 
-from bot.adapters.cv_files import read_cv_projects, read_cv_stations, read_variants
+from bot.adapters.cv_files import (
+    read_cv_project_list,
+    read_cv_projects,
+    read_cv_stations,
+    read_variants,
+)
 from bot.domain.cv import CvProject, CvStation, InvalidStationError, YearMonth
 from bot.domain.cv_variant import InvalidVariantError, Variant, variant_number
 
 # Erfundene Testperson; die echte Wissensbasis kommt nie in Tests.
 SONNENSCHEIN = """---
-art: station
-titel: Bäckerei Sonnenschein
-zeitraum: 2001 – 2005
+titel: "Bäckerin"
+organisation: "Bäckerei Sonnenschein GmbH"
 abschnitt: beruf
 von: "2001-04"
 bis: "2005"
-lebenslauf_titel: "Bäckerin"
-lebenslauf_organisation: "Bäckerei Sonnenschein GmbH"
 stichpunkte:
   - "Brezeln: täglich 500 Stück"
-freigegeben: ja
 ---
 Erika war vier Jahre Bäckerin bei der Bäckerei Sonnenschein.
 """
 
-MOND = SONNENSCHEIN.replace("freigegeben: ja", "freigegeben: nein")
 OHNE_VON = SONNENSCHEIN.replace('von: "2001-04"\n', "")
 
 
@@ -34,9 +34,8 @@ def write(folder: Path, name: str, text: str) -> Path:
     return path
 
 
-def test_reads_released_stations_as_cv_stations(tmp_path: Path) -> None:
+def test_reads_every_station_as_cv_station(tmp_path: Path) -> None:
     write(tmp_path / "stationen", "sonnenschein.md", SONNENSCHEIN)
-    write(tmp_path / "stationen", "mond.md", MOND)
 
     assert read_cv_stations(tmp_path) == [
         CvStation(
@@ -93,32 +92,51 @@ def test_an_unknown_station_in_a_variant_stops(tmp_path: Path) -> None:
 
 
 KUCHEN = """---
-art: projekt
-titel: Kuchenrechner (Vortrag)
+titel: Kuchenrechner
 link: https://example.org/kuchen
-lebenslauf_titel: "Kuchenrechner"
-lebenslauf_zeit: "2019 – 2025"
-lebenslauf_text: "Rechnet Kuchen aus."
-freigegeben: nein
+von: "2019"
+bis: "2025"
+station: "[[sonnenschein]]"
+zusammenfassung: "Vortrag über das Rechnen mit Kuchen."
 ---
 Erika rechnet Kuchen.
 """
 
-OHNE_TEXT = KUCHEN.replace('lebenslauf_text: "Rechnet Kuchen aus."\n', "")
+BROT = KUCHEN.replace("Kuchenrechner", "Brotrechner").replace(
+    "link: https://example.org/kuchen\n", ""
+)
 
 
-def test_reads_projects_with_cv_text_even_if_not_released_for_the_bot(tmp_path: Path) -> None:
+def test_reads_every_project(tmp_path: Path) -> None:
     write(tmp_path / "projekte", "kuchen.md", KUCHEN)
-    write(tmp_path / "projekte", "notiz.md", OHNE_TEXT)
+    write(tmp_path / "projekte", "brot.md", BROT)
     assert read_cv_projects(tmp_path) == [
+        CvProject(
+            "brot",
+            "Brotrechner",
+            YearMonth(2019),
+            YearMonth(2025),
+            "Vortrag über das Rechnen mit Kuchen.",
+            None,
+        ),
         CvProject(
             "kuchen",
             "Kuchenrechner",
-            "2019 – 2025",
-            "Rechnet Kuchen aus.",
+            YearMonth(2019),
+            YearMonth(2025),
+            "Vortrag über das Rechnen mit Kuchen.",
             "https://example.org/kuchen",
-        )
+        ),
     ]
+
+
+def test_reads_the_projects_of_the_whole_cv_from_the_variants_file(tmp_path: Path) -> None:
+    path = write(tmp_path, "varianten.yaml", "projekte: [kuchen]\nschalter: {}\n")
+    assert read_cv_project_list(path, {"kuchen", "brot"}) == ("kuchen",)
+
+
+def test_without_a_variants_file_the_cv_has_no_projects(tmp_path: Path) -> None:
+    assert read_cv_project_list(tmp_path / "fehlt.yaml", {"kuchen"}) == ()
 
 
 def test_a_header_that_is_no_valid_yaml_stops_with_the_file_name(tmp_path: Path) -> None:

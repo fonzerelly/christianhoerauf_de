@@ -54,7 +54,7 @@ class Bot:
             ReactionKind.GENERAL_ANSWER: answerer,
             ReactionKind.TASK_ANSWER: task_answerer,
         }
-        # Ohne freigegebene Texte gibt es keine Antwort aus der Wissensbasis; die Absicht bekommt
+        # Ohne Texte der Wissensbasis gibt es keine Antwort aus ihr; die Absicht bekommt
         # dann ihren festen Text.
         if knowledge_answerer is not None:
             self._answerers[ReactionKind.KNOWLEDGE_BASE_ANSWER] = knowledge_answerer

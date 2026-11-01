@@ -63,6 +63,22 @@ def _parse_switch(name: str, names: object, known_names: set[str]) -> Switch:
     return Switch(name, tuple(names))
 
 
+def parse_project_list(data: object, known_projects: set[str]) -> tuple[str, ...]:
+    """Die Projekte unter `projekte:` der Variantendatei: Sie stehen im ganzen Lebenslauf.
+
+    Fehlt die Liste, stehen keine Projekte darin. Ein unbekanntes Projekt (nicht in
+    `known_projects`) oder etwas anderes als eine Liste von Namen → InvalidVariantError."""
+    projects = data.get("projekte") if isinstance(data, Mapping) else None
+    if projects is None:
+        return ()
+    if not isinstance(projects, list) or not all(isinstance(name, str) for name in projects):
+        raise InvalidVariantError("projekte: erwartet eine Liste von Projektnamen")
+    unknown = [name for name in projects if name not in known_projects]
+    if unknown:
+        raise InvalidVariantError(f"projekte: unbekannt: {', '.join(unknown)}")
+    return tuple(projects)
+
+
 def variant_number(name: str) -> int:
     """Die vierstellige Nummer einer Variante, errechnet aus ihrem Namen (FNV-1a).
 

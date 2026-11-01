@@ -11,35 +11,34 @@ from pathlib import Path
 import yaml
 
 from bot.domain.cv import CvProject, CvStation, InvalidStationError, parse_project, parse_station
-from bot.domain.cv_variant import Variant, all_variants, parse_switches
-
-_RELEASED = "ja"
+from bot.domain.cv_variant import Variant, all_variants, parse_project_list, parse_switches
 
 
 def read_cv_stations(knowledge_base: Path) -> list[CvStation]:
-    """Alle freigegebenen Stationen aus `knowledge_base/stationen/`, sortiert nach Dateiname.
+    """Alle Stationen aus `knowledge_base/stationen/`, sortiert nach Dateiname.
 
     Der Name einer Station ist ihr Dateiname ohne `.md`. Ein falsches Lebenslauf-Feld bricht mit
     InvalidStationError ab (Station und Feld stehen in der Meldung)."""
-    stations = []
-    for path in sorted((knowledge_base / "stationen").glob("*.md")):
-        header = _header(path)
-        if header.get("freigegeben") == _RELEASED:
-            stations.append(parse_station(path.stem, header))
-    return stations
+    paths = sorted((knowledge_base / "stationen").glob("*.md"))
+    return [parse_station(path.stem, _header(path)) for path in paths]
 
 
 def read_cv_projects(knowledge_base: Path) -> list[CvProject]:
-    """Alle Projekte aus `knowledge_base/projekte/` mit `lebenslauf_text`, sortiert nach Dateiname.
+    """Alle Projekte aus `knowledge_base/projekte/`, sortiert nach Dateiname.
 
-    `freigegeben` zählt hier nicht: Es gilt für den Bot. Ob ein Projekt im Lebenslauf steht,
-    entscheidet allein `lebenslauf_text`."""
-    projects = []
-    for path in sorted((knowledge_base / "projekte").glob("*.md")):
-        project = parse_project(path.stem, _header(path))
-        if project is not None:
-            projects.append(project)
-    return projects
+    Welche davon im Lebenslauf stehen, sagt `varianten.yaml` (read_cv_project_list). Jedes
+    Projekt muss trotzdem gültige Felder haben, damit eine Variante es jederzeit nennen kann."""
+    paths = sorted((knowledge_base / "projekte").glob("*.md"))
+    return [parse_project(path.stem, _header(path)) for path in paths]
+
+
+def read_cv_project_list(path: Path, known_projects: set[str]) -> tuple[str, ...]:
+    """Die Projekte des ganzen Lebenslaufs aus `projekte:` der Variantendatei `path`.
+
+    Fehlt die Datei: keine Projekte."""
+    if not path.is_file():
+        return ()
+    return parse_project_list(yaml.safe_load(path.read_text(encoding="utf-8")), known_projects)
 
 
 def read_variants(path: Path, known_names: set[str]) -> dict[str, Variant]:

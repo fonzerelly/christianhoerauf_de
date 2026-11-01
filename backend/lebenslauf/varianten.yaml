@@ -1,5 +1,9 @@
-# Schalter für die Varianten des Lebenslaufs (siehe docs/bewerbung/IMPLEMENTATION_PLAN.md).
+# Was im Lebenslauf steht (siehe docs/bewerbung/DATENSTRUKTUR.md).
 #
+# `projekte`: die Projekte im ganzen Lebenslauf, beim Dateinamen genannt. Alle anderen Projekte
+# kennt nur der Bot.
+projekte: [chrisbot, extreme-ownership, teststrategien, zauberer]
+
 # Jeder Schalter lässt Abschnitte, Stationen oder Projekte weg. Aus den Schaltern entstehen alle
 # Kombinationen als Varianten, etwa `ohne_insert_effect_und_ehrenamt`: `ohne_` und die Schalter in
 # der Reihenfolge dieser Datei, verbunden mit `_und_`. Die Nummer für den persönlichen Link wird

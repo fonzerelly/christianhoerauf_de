@@ -54,7 +54,7 @@ class Setup:
         self.answer_model = FakeLanguageModel(answers or [])
         self.task_model = FakeLanguageModel(task_answers or [])
         self.knowledge_model = FakeLanguageModel(knowledge_answers or [])
-        # Ohne `knowledge_answers` ist nichts freigegeben: der Bot bekommt keine Wissensbasis.
+        # Ohne `knowledge_answers` gibt es keine Texte: der Bot bekommt keine Wissensbasis.
         knowledge_answerer = (
             None
             if knowledge_answers is None
@@ -298,7 +298,7 @@ def test_answers_cached_by_an_earlier_rollout_are_not_used() -> None:
     assert setup.store.read(cache_key("Frage?", DAY, version="neu")) == "Neu."
 
 
-def test_career_is_answered_from_the_knowledge_base_when_texts_are_released() -> None:
+def test_career_is_answered_from_the_knowledge_base_when_it_has_texts() -> None:
     setup = Setup([Intent.CAREER], knowledge_answers=["Chris war bei Navigon."])
 
     answer = setup.bot.ask("Wo war er nach dem Studium?", IP)
@@ -317,7 +317,7 @@ def test_career_answers_count_for_the_visitor() -> None:
     assert setup.visitor_count_after_one_more() == 2
 
 
-def test_without_released_texts_career_gets_its_fixed_text_and_logs_it_as_such() -> None:
+def test_without_knowledge_texts_career_gets_its_fixed_text_and_logs_it_as_such() -> None:
     setup = Setup([Intent.CAREER])
 
     answer = setup.bot.ask("Wo war er nach dem Studium?", IP)

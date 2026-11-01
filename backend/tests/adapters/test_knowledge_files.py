@@ -1,26 +1,31 @@
 from pathlib import Path
 
-from bot.adapters.knowledge_files import released_texts
+from bot.adapters.knowledge_files import knowledge_texts
 
 # Erfundene Testperson; die echte Wissensbasis kommt nie in Tests.
-RELEASED = """---
-art: station
-titel: Bäckerei Sonnenschein
-zeitraum: 2001 – 2005
-freigegeben: ja
+STATION = """---
+titel: Bäckerin
+organisation: Bäckerei Sonnenschein
+von: "2001"
+bis: "2005"
 ---
 Erika war vier Jahre Bäckerin bei der Bäckerei Sonnenschein.
 """
 
-NOT_RELEASED = """---
-art: station
-titel: Konditorei Mond
-freigegeben: nein
+PROJECT = """---
+titel: Kuchenrechner
+station: "[[sonnenschein]]"
 ---
-Erika war Konditorin. (offen: wie lange?)
+Erika rechnet Kuchen.
 """
 
-WITHOUT_HEADER = "Erika mag Brezeln.\n"
+ANECDOTE = """---
+titel: Die Brezel im Ofen
+---
+Einmal vergaß Erika eine Brezel im Ofen.
+"""
+
+NOTE = "Rohes Diktat mit Noten.\n"
 
 
 def write(folder: Path, name: str, text: str) -> None:
@@ -28,29 +33,29 @@ def write(folder: Path, name: str, text: str) -> None:
     (folder / name).write_text(text, encoding="utf-8")
 
 
-def test_only_released_texts_are_read(tmp_path: Path) -> None:
-    write(tmp_path / "stationen", "sonnenschein.md", RELEASED)
-    write(tmp_path / "stationen", "mond.md", NOT_RELEASED)
-    write(tmp_path / "roh", "notiz.md", WITHOUT_HEADER)
+def test_reads_stations_projects_and_anecdotes_and_nothing_else(tmp_path: Path) -> None:
+    write(tmp_path / "stationen", "sonnenschein.md", STATION)
+    write(tmp_path / "projekte", "kuchen.md", PROJECT)
+    write(tmp_path / "anekdoten", "brezel.md", ANECDOTE)
+    write(tmp_path / "roh", "diktat.md", NOTE)
+    write(tmp_path / "entwuerfe", "idee.md", NOTE)
+    write(tmp_path, "lose.md", NOTE)
 
-    assert released_texts(tmp_path) == f"# stationen/sonnenschein.md\n\n{RELEASED}"
+    assert knowledge_texts(tmp_path) == (
+        f"# anekdoten/brezel.md\n\n{ANECDOTE}\n"
+        f"# projekte/kuchen.md\n\n{PROJECT}\n"
+        f"# stationen/sonnenschein.md\n\n{STATION}"
+    )
 
 
-def test_released_texts_are_sorted_by_path_and_separated(tmp_path: Path) -> None:
-    write(tmp_path / "stationen", "b.md", RELEASED)
-    write(tmp_path / "stationen", "a.md", RELEASED)
+def test_texts_are_sorted_by_path(tmp_path: Path) -> None:
+    write(tmp_path / "stationen", "b.md", STATION)
+    write(tmp_path / "stationen", "a.md", STATION)
 
-    assert released_texts(tmp_path) == (
-        f"# stationen/a.md\n\n{RELEASED}\n# stationen/b.md\n\n{RELEASED}"
+    assert knowledge_texts(tmp_path) == (
+        f"# stationen/a.md\n\n{STATION}\n# stationen/b.md\n\n{STATION}"
     )
 
 
 def test_a_missing_folder_gives_no_texts(tmp_path: Path) -> None:
-    assert released_texts(tmp_path / "fehlt") == ""
-
-
-def test_released_only_counts_in_the_header(tmp_path: Path) -> None:
-    write(tmp_path, "text.md", "---\nart: station\n---\nfreigegeben: ja\n")
-    write(tmp_path, "offen.md", "---\nart: station\n")
-
-    assert released_texts(tmp_path) == ""
+    assert knowledge_texts(tmp_path / "fehlt") == ""

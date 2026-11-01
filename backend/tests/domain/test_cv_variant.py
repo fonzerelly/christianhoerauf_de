@@ -7,6 +7,7 @@ from bot.domain.cv_variant import (
     Variant,
     all_variants,
     omit,
+    parse_project_list,
     parse_switches,
     variant_by_number,
     variant_number,
@@ -100,3 +101,24 @@ def test_variant_by_number_finds_the_variant_or_none() -> None:
     wanted = variants["ohne_lehre"]
     assert variant_by_number(variants, wanted.number) == wanted
     assert variant_by_number(variants, 1) is None
+
+
+def test_parse_project_list_reads_the_projects_of_the_whole_cv() -> None:
+    data = {"projekte": ["kuchen", "brot"], "schalter": {}}
+    assert parse_project_list(data, {"brot", "kuchen", "torte"}) == ("kuchen", "brot")
+
+
+@pytest.mark.parametrize("data", [None, {"schalter": {}}])
+def test_without_a_project_list_the_cv_has_no_projects(data: object) -> None:
+    assert parse_project_list(data, {"kuchen"}) == ()
+
+
+@pytest.mark.parametrize(
+    ("projects", "message"),
+    [(["kuchen", "torte"], "torte"), ("kuchen", "Liste"), ([3], "Liste")],
+)
+def test_parse_project_list_stops_on_an_unknown_project_or_a_wrong_shape(
+    projects: object, message: str
+) -> None:
+    with pytest.raises(InvalidVariantError, match=message):
+        parse_project_list({"projekte": projects}, {"kuchen"})

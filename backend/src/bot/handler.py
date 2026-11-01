@@ -25,7 +25,7 @@ from bot.adapters.bedrock_token import (
 )
 from bot.adapters.dynamodb_store import DynamoDbStore
 from bot.adapters.json_log import JsonLog
-from bot.adapters.knowledge_files import released_texts
+from bot.adapters.knowledge_files import knowledge_texts
 from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.adapters.system_clock import SystemClock
 from bot.domain.answer import Answer
@@ -107,7 +107,7 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
             max_tokens=max_tokens,
         )
 
-    knowledge = released_texts(Path(environ.get("WISSENSBASIS_DIR", _PACKAGED_KNOWLEDGE_BASE)))
+    knowledge = knowledge_texts(Path(environ.get("WISSENSBASIS_DIR", _PACKAGED_KNOWLEDGE_BASE)))
     knowledge_answerer = (
         GeneralAnswerer(make_model(), load_prompt("knowledge_base_answer") + knowledge)
         if knowledge

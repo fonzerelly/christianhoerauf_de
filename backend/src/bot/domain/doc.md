@@ -83,11 +83,14 @@ Die Stationen der Wissensbasis als Einträge des Lebenslaufs (für PDF und Webse
 | `CvStation` | Die Lebenslauf-Felder einer Station: Name, Abschnitt, Beginn, Ende (`None` = läuft noch), Titel (fett), Organisation (grau, darf leer sein), Stichpunkte. |
 | `CvEntry` | Eine Station samt fertigem Zeitraum-Text, so wie sie im Lebenslauf steht. |
 | `InvalidStationError` | Meldung mit Station und Feld, z. B. „teambank: Feld von erwartet JJJJ-MM oder JJJJ, gefunden: '11/2014'“. |
-| `parse_station(name, header)` | Liest aus dem Kopfteil `abschnitt`, `von`, `bis` (`heute` = läuft noch), `lebenslauf_titel`, `lebenslauf_organisation`, `stichpunkte`; fehlt eines oder passt es nicht → `InvalidStationError`. |
-| `period_label(station, with_months)` | Der Zeitraum-Text: mit Monaten „11/2014 – 09/2020“ (wo kein Monat bekannt ist, nur das Jahr), sonst „2011 – 2014“; laufend „… – heute“; fallen Beginn und Ende auf dasselbe, nur einmal („2014“). |
-| `CvProject` | Ein Projekt unter „Projekte und Vorträge“: Name, Titel, Zeit (freier Text wie „2020, 2026“), Text, Link. |
-| `parse_project(name, header)` | Ohne `lebenslauf_text` → `None` (nicht im Lebenslauf). Mit Text braucht es `lebenslauf_titel`, `lebenslauf_zeit` und `link`, sonst `InvalidStationError`. |
-| `cv_projects(projects)` | Sortiert: neueste Jahreszahl in der Zeit zuerst, bei Gleichstand nach Name. |
+| `_Header(name, header)` | Hilfe zum Lesen eines Kopfteils: `field(key)` (fehlt → Fehler), `fail(key, expected)` (baut die Meldung), `text(key, may_be_empty=False)` (ein nicht leerer Text), `year_month(key)` (`YearMonth.parse`), `end()` (`bis`: Zeitpunkt oder `heute` → `None`). Jeder Fehler ist ein `InvalidStationError` mit Dateiname und Feld. |
+| `parse_station(name, header)` | Liest aus dem Kopfteil `titel`, `organisation` (darf leer sein), `abschnitt`, `von`, `bis` (`heute` = läuft noch), `stichpunkte`; fehlt eines oder passt es nicht → `InvalidStationError`. |
+| `_period(start, end, with_months)` | Der Zeitraum-Text aus Beginn und Ende: mit Monaten „11/2014 – 09/2020“ (wo kein Monat bekannt ist, nur das Jahr), sonst „2011 – 2014“; laufend „… – heute“; fallen Beginn und Ende auf dasselbe, nur einmal („2014“). |
+| `period_label(station, with_months)` | `_period` für eine Station. |
+| `CvProject` | Ein Projekt unter „Projekte und Vorträge“: Name, Titel, Beginn, Ende (`None` = läuft noch), Text (die `zusammenfassung`), Link (`None`, wenn es keinen gibt). |
+| `parse_project(name, header)` | Liest `titel`, `von`, `bis`, `zusammenfassung` (Pflicht) und `link` (darf fehlen) → `CvProject`; sonst `InvalidStationError`. Ob das Projekt im Lebenslauf steht, entscheidet `varianten.yaml`. |
+| `project_period(project)` | Der Zeitraum eines Projekts, nur mit Jahren: „2019 – 2025“, „2026 – heute“, „2018“. |
+| `cv_projects(projects)` | Sortiert: spätestes Endjahr zuerst (laufende ganz vorn), bei gleichem Jahr nach Name. |
 | `cv_sections(stations)` | Ordnet die Stationen nach `SECTIONS` (leere Abschnitte fallen weg), darin die neueste zuerst. Datumsregel: Die zwei neuesten Stationen der Berufserfahrung zeigen Monate, alle anderen nur Jahre. |
 
 ## personal_link.py
@@ -114,6 +117,7 @@ ist eine Variante. Eine neue Bewerbung braucht so nie ein neu ausgerolltes Backe
 | `Variant` | Name (etwa `ohne_insert_effect_und_ehrenamt`), Nummer für den persönlichen Link, alles, was sie weglässt. |
 | `InvalidVariantError` | Meldung mit Schalter und Problem. |
 | `parse_switches(data, known_names)` | Liest `schalter:` aus der schon geladenen YAML-Datei in Dateireihenfolge; `None` → keine Schalter. Name nur aus Kleinbuchstaben, Ziffern, `_`, ohne `und` als Teil; Liste nicht leer; jeder Eintrag ein Abschnitt oder in `known_names`. |
+| `parse_project_list(data, known_projects)` | Liest `projekte:` aus der schon geladenen Variantendatei: die Projekte des ganzen Lebenslaufs, in Dateireihenfolge. Fehlt die Liste (oder ist `data` `None`) → keine Projekte. Keine Liste von Namen oder ein Name nicht in `known_projects` → `InvalidVariantError`. |
 | `variant_number(name)` | `1000 + FNV-1a(name) mod 9000`: vierstellig, steht nirgends, für denselben Namen immer gleich. |
 | `all_variants(switches)` | Alle Kombinationen: erst einzelne Schalter, dann Paare usw., Name `ohne_` + Schalter mit `_und_` in Dateireihenfolge. Ein neuer Schalter ändert Namen und Nummern der alten nicht. Doppelte Nummer → `InvalidVariantError`. |
 | `omit(stations, names)` | Lässt jede Station weg, deren Name oder Abschnitt in `names` steht. |

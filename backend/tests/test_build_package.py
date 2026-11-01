@@ -5,6 +5,8 @@ import subprocess
 import zipfile
 from pathlib import Path
 
+import pytest
+
 BACKEND_DIR = Path(__file__).parent.parent
 PACKAGE_ZIP = BACKEND_DIR / "build" / "lambda.zip"
 
@@ -26,20 +28,31 @@ def build_package(knowledge_base: Path | None = None) -> list[str]:
 
 
 # Erfundene Testperson; die echte Wissensbasis kommt nie in Tests.
-def station(released: str, body: str = "Erika backt.") -> str:
-    return f"---\nart: station\ntitel: Bäckerei\nfreigegeben: {released}\n---\n{body}\n"
+def text(body: str = "Erika backt.") -> str:
+    return f"---\ntitel: Bäckerin\n---\n{body}\n"
 
 
-def test_package_contains_only_the_released_stations(tmp_path: Path) -> None:
-    (tmp_path / "stationen").mkdir()
-    (tmp_path / "stationen" / "frei.md").write_text(station("ja"), encoding="utf-8")
-    (tmp_path / "stationen" / "gesperrt.md").write_text(station("nein"), encoding="utf-8")
+KNOWLEDGE_FILES = [
+    "wissensbasis/anekdoten/brezel.md",
+    "wissensbasis/projekte/kuchen.md",
+    "wissensbasis/stationen/sonnenschein.md",
+]
+
+
+def write_knowledge_base(base: Path) -> None:
+    """Je ein Text in den drei Ordnern, die der Bot liest."""
+    for name in KNOWLEDGE_FILES:
+        path = base / name.removeprefix("wissensbasis/")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text(), encoding="utf-8")
+
+
+def test_package_contains_stations_projects_and_anecdotes(tmp_path: Path) -> None:
+    write_knowledge_base(tmp_path)
 
     names = build_package(tmp_path)
 
-    assert [name for name in names if name.startswith("wissensbasis/")] == [
-        "wissensbasis/stationen/frei.md"
-    ]
+    assert [name for name in names if name.startswith("wissensbasis/")] == KNOWLEDGE_FILES
 
 
 def dependency_files(names: list[str]) -> set[str]:
@@ -55,15 +68,17 @@ def dependency_files(names: list[str]) -> set[str]:
         }
 
 
-def test_package_holds_only_code_dependencies_and_released_stations(tmp_path: Path) -> None:
-    # Eine Wissensbasis mit allem, was es neben den Stationen gibt, alles als freigegeben markiert:
-    # Nichts davon darf ins Paket, ebenso wenig irgendetwas außerhalb von backend/ (Lebenslauf,
-    # private Angaben, Kontaktdaten, Bewerbungen). Darum eine Positivliste statt einer Sperrliste.
-    (tmp_path / "stationen").mkdir()
-    (tmp_path / "stationen" / "frei.md").write_text(station("ja"), encoding="utf-8")
-    for folder in ("roh", "entwuerfe", "anekdoten", "projekte", ".obsidian"):
+def test_package_holds_only_code_dependencies_and_the_three_knowledge_folders(
+    tmp_path: Path,
+) -> None:
+    # Neben den drei Ordnern liegt alles, was es in der Wissensbasis sonst gibt: Nichts davon darf
+    # ins Paket (`roh/` enthält Diktate mit Noten), ebenso wenig irgendetwas außerhalb von backend/
+    # (Lebenslauf, private Angaben, Kontaktdaten, Bewerbungen). Darum eine Positivliste.
+    write_knowledge_base(tmp_path)
+    for folder in ("roh", "entwuerfe", ".obsidian"):
         (tmp_path / folder).mkdir()
-        (tmp_path / folder / "frei.md").write_text(station("ja"), encoding="utf-8")
+        (tmp_path / folder / "notiz.md").write_text(text(), encoding="utf-8")
+    (tmp_path / "lose.md").write_text(text(), encoding="utf-8")
     (tmp_path / "varianten.yaml").write_text("schalter: {}\n", encoding="utf-8")
 
     names = build_package(tmp_path)
@@ -72,24 +87,23 @@ def test_package_holds_only_code_dependencies_and_released_stations(tmp_path: Pa
     stray = [
         name
         for name in names
-        if not name.startswith(("bot/", "wissensbasis/stationen/")) and name not in allowed
+        if not name.startswith(("bot/", "wissensbasis/")) and name not in allowed
     ]
     assert stray == []
-    assert [name for name in names if name.startswith("wissensbasis/")] == [
-        "wissensbasis/stationen/frei.md"
-    ]
+    assert [name for name in names if name.startswith("wissensbasis/")] == KNOWLEDGE_FILES
 
 
-def test_a_released_text_with_open_questions_stops_the_build(tmp_path: Path) -> None:
-    (tmp_path / "stationen").mkdir()
-    (tmp_path / "stationen" / "frei.md").write_text(
-        station("ja", "Erika backt. (offen: seit wann?)"), encoding="utf-8"
+@pytest.mark.parametrize("folder", ["stationen", "projekte", "anekdoten"])
+def test_a_text_with_open_questions_stops_the_build(tmp_path: Path, folder: str) -> None:
+    write_knowledge_base(tmp_path)
+    (tmp_path / folder / "offen.md").write_text(
+        text("Erika backt. (offen: seit wann?)"), encoding="utf-8"
     )
 
     result = run_build(tmp_path)
 
     assert result.returncode != 0
-    assert "stationen/frei.md" in result.stderr
+    assert f"{folder}/offen.md" in result.stderr
 
 
 def test_package_contains_handler_but_no_docs_or_dspy() -> None:

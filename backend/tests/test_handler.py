@@ -213,9 +213,7 @@ def test_build_bot_asks_the_gate_with_temperature_0_and_the_answer_without(
 
 CAREER = "[[ ## absicht ## ]]\nchristian/career\n\n[[ ## completed ## ]]"
 # Erfundene Testperson; die echte Wissensbasis kommt nie in Tests.
-RELEASED_STATION = (
-    "---\nart: station\ntitel: Bäckerei Sonnenschein\nfreigegeben: ja\n---\nErika backt.\n"
-)
+STATION = "---\ntitel: Bäckerin\norganisation: Bäckerei Sonnenschein\n---\nErika backt.\n"
 
 
 def career_environ(server: FakeServer) -> dict[str, str]:
@@ -228,14 +226,14 @@ def career_environ(server: FakeServer) -> dict[str, str]:
     }
 
 
-def test_build_bot_answers_career_with_the_released_texts_in_the_prompt(
+def test_build_bot_answers_career_with_the_knowledge_texts_in_the_prompt(
     monkeypatch: pytest.MonkeyPatch, server: FakeServer, tmp_path: Path
 ) -> None:
     import bot.handler as module
 
     monkeypatch.setattr(module, "DynamoDbStore", lambda *args, **kwargs: MemoryStore())
     (tmp_path / "stationen").mkdir()
-    (tmp_path / "stationen" / "sonnenschein.md").write_text(RELEASED_STATION, encoding="utf-8")
+    (tmp_path / "stationen" / "sonnenschein.md").write_text(STATION, encoding="utf-8")
     environ = {**career_environ(server), "WISSENSBASIS_DIR": str(tmp_path)}
 
     handle(event({"question": "Wo hat sie gearbeitet?"}), build_bot(environ))
@@ -244,11 +242,11 @@ def test_build_bot_answers_career_with_the_released_texts_in_the_prompt(
     _, answer = (request["body"] for request in server.requests)
     assert isinstance(answer, dict)
     assert answer["messages"][0]["content"] == (
-        load_prompt("knowledge_base_answer") + f"# stationen/sonnenschein.md\n\n{RELEASED_STATION}"
+        load_prompt("knowledge_base_answer") + f"# stationen/sonnenschein.md\n\n{STATION}"
     )
 
 
-def test_build_bot_without_released_texts_gives_career_its_fixed_text(
+def test_build_bot_without_knowledge_texts_gives_career_its_fixed_text(
     monkeypatch: pytest.MonkeyPatch, server: FakeServer, tmp_path: Path
 ) -> None:
     import bot.handler as module

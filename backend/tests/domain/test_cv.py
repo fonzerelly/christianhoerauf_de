@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from dataclasses import replace
 
 import pytest
 
@@ -13,16 +14,16 @@ from bot.domain.cv import (
     parse_project,
     parse_station,
     period_label,
+    project_period,
 )
 
 # Erfundene Stationen: Die Tests sollen nie die echte Wissensbasis lesen.
 HEADER: Mapping[str, object] = {
-    "art": "station",
+    "titel": "Entwicklerin",
+    "organisation": "Beispiel GmbH",
     "abschnitt": "beruf",
     "von": "2019-03",
     "bis": "heute",
-    "lebenslauf_titel": "Entwicklerin",
-    "lebenslauf_organisation": "Beispiel GmbH",
     "stichpunkte": ["Erster Punkt", "Zweiter Punkt"],
 }
 
@@ -64,7 +65,7 @@ def test_parse_station_reads_all_cv_fields() -> None:
 
 
 def test_parse_station_reads_an_end_date_and_an_empty_organisation() -> None:
-    header = {**HEADER, "bis": "2020-09", "lebenslauf_organisation": ""}
+    header = {**HEADER, "bis": "2020-09", "organisation": ""}
     parsed = parse_station("beispiel", header)
     assert (parsed.end, parsed.organisation) == (YearMonth(2020, 9), "")
 
@@ -75,8 +76,8 @@ def test_parse_station_reads_an_end_date_and_an_empty_organisation() -> None:
         ("abschnitt", "hobby", "abschnitt"),
         ("von", "11/2014", "von"),
         ("bis", "bald", "bis"),
-        ("lebenslauf_titel", "", "lebenslauf_titel"),
-        ("lebenslauf_organisation", None, "lebenslauf_organisation"),
+        ("titel", "", "titel"),
+        ("organisation", None, "organisation"),
         ("stichpunkte", "kein Liste", "stichpunkte"),
         ("stichpunkte", ["gut", 3], "stichpunkte"),
     ],
@@ -146,49 +147,68 @@ def test_cv_sections_shows_months_only_for_the_two_newest_jobs() -> None:
 
 
 PROJECT_HEADER: Mapping[str, object] = {
-    "art": "projekt",
-    "titel": "Kuchenrechner (Vortrag)",
+    "titel": "Kuchenrechner",
     "link": "https://example.org/kuchen",
-    "lebenslauf_titel": "Kuchenrechner",
-    "lebenslauf_zeit": "2019 – 2025",
-    "lebenslauf_text": "Rechnet Kuchen aus.",
+    "von": "2019",
+    "bis": "2025",
+    "zusammenfassung": "Vortrag über das Rechnen mit Kuchen.",
 }
 
 
-def test_parse_project_reads_the_cv_fields() -> None:
-    assert parse_project("kuchen", PROJECT_HEADER) == CvProject(
-        name="kuchen",
-        title="Kuchenrechner",
-        period="2019 – 2025",
-        text="Rechnet Kuchen aus.",
-        link="https://example.org/kuchen",
-    )
+KUCHEN = CvProject(
+    name="kuchen",
+    title="Kuchenrechner",
+    start=YearMonth(2019),
+    end=YearMonth(2025),
+    text="Vortrag über das Rechnen mit Kuchen.",
+    link="https://example.org/kuchen",
+)
 
 
-def test_a_project_without_cv_text_is_not_in_the_cv() -> None:
-    header = {key: value for key, value in PROJECT_HEADER.items() if key != "lebenslauf_text"}
-    assert parse_project("kuchen", header) is None
+def test_parse_project_reads_title_period_summary_and_link() -> None:
+    assert parse_project("kuchen", PROJECT_HEADER) == KUCHEN
 
 
-@pytest.mark.parametrize("field", ["lebenslauf_titel", "lebenslauf_zeit", "link"])
-def test_a_cv_project_needs_title_period_and_link(field: str) -> None:
+def test_a_project_without_link_has_none() -> None:
+    header = {key: value for key, value in PROJECT_HEADER.items() if key != "link"}
+    assert parse_project("kuchen", header) == replace(KUCHEN, link=None)
+
+
+def test_a_running_project_has_no_end() -> None:
+    header = {**PROJECT_HEADER, "bis": "heute"}
+    assert parse_project("kuchen", header) == replace(KUCHEN, end=None)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("titel", ""), ("zusammenfassung", None), ("von", "etwa 2017"), ("bis", "bald"), ("link", 3)],
+)
+def test_parse_project_names_project_and_field_of_a_bad_value(field: str, value: object) -> None:
     with pytest.raises(InvalidStationError, match=f"kuchen.*{field}"):
-        parse_project("kuchen", {**PROJECT_HEADER, field: ""})
+        parse_project("kuchen", {**PROJECT_HEADER, field: value})
 
 
-def project(name: str, period: str) -> CvProject:
-    return CvProject(name, name, period, "", "https://example.org")
+def project(name: str, start: YearMonth, end: YearMonth | None) -> CvProject:
+    return CvProject(name, name, start, end, "", None)
+
+
+def test_project_period_shows_years_only() -> None:
+    assert project_period(project("a", YearMonth(2019, 3), YearMonth(2025, 1))) == "2019 – 2025"
+    assert project_period(project("b", YearMonth(2026, 10), None)) == "2026 – heute"
+    assert project_period(project("c", YearMonth(2018), YearMonth(2018))) == "2018"
 
 
 def test_cv_projects_put_the_latest_year_first_and_then_go_by_name() -> None:
     projects = [
-        project("vortrag-alt", "2018"),
-        project("vortrag", "2019 – 2025"),
-        project("zauber", "2020, 2026"),
-        project("bot", "2026"),
+        project("vortrag-alt", YearMonth(2018), YearMonth(2018)),
+        project("vortrag", YearMonth(2019), YearMonth(2025)),
+        project("zauber", YearMonth(2020), YearMonth(2026)),
+        project("bot", YearMonth(2026, 10), None),
+        project("anderer-zauber", YearMonth(2024), YearMonth(2026)),
     ]
     assert [item.name for item in cv_projects(projects)] == [
         "bot",
+        "anderer-zauber",
         "zauber",
         "vortrag",
         "vortrag-alt",

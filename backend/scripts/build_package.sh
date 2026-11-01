@@ -39,24 +39,22 @@ cp -r src/bot build/package/bot
 find build/package -name __pycache__ -type d -prune -exec rm -rf {} +
 find build/package/bot -name doc.md -delete
 
-# Wissensbasis: vorerst nur die freigegebenen Stationen. `WISSENSBASIS_DIR` ersetzt den Ordner
-# (die Tests nehmen eine erfundene Testperson). Ein freigegebener Text mit „(offen:“ bricht ab.
+# Wissensbasis: alle Texte aus stationen/, projekte/ und anekdoten/, sonst nichts (`roh/` etwa
+# enthält Diktate mit Noten). `WISSENSBASIS_DIR` ersetzt den Ordner (die Tests nehmen eine
+# erfundene Testperson). Ein Text mit „(offen:“ bricht ab: Er ist noch nicht fertig.
 wissensbasis="${WISSENSBASIS_DIR:-wissensbasis}"
-released_count=0
-for text in "$wissensbasis"/stationen/*.md; do
-  [ -e "$text" ] || continue
-  # Freigegeben heißt: die Zeile `freigegeben: ja` steht im Kopfteil zwischen den ersten `---`.
-  released=$(awk 'NR == 1 { if ($0 != "---") exit; next }
-                  $0 == "---" { exit }
-                  $0 == "freigegeben: ja" { print "ja"; exit }' "$text")
-  [ "$released" = "ja" ] || continue
-  if grep -q '(offen:' "$text"; then
-    echo "FEHLER: stationen/$(basename "$text") ist freigegeben, hat aber noch (offen: …)." >&2
-    exit 1
-  fi
-  mkdir -p build/package/wissensbasis/stationen
-  cp "$text" build/package/wissensbasis/stationen/
-  released_count=$((released_count + 1))
+text_count=0
+for folder in stationen projekte anekdoten; do
+  for text in "$wissensbasis/$folder"/*.md; do
+    [ -e "$text" ] || continue
+    if grep -q '(offen:' "$text"; then
+      echo "FEHLER: $folder/$(basename "$text") hat noch (offen: …)." >&2
+      exit 1
+    fi
+    mkdir -p "build/package/wissensbasis/$folder"
+    cp "$text" "build/package/wissensbasis/$folder/"
+    text_count=$((text_count + 1))
+  done
 done
 
 # Feste Reihenfolge und Zeitstempel -> gleiche Eingabe ergibt dieselbe Datei.
@@ -67,7 +65,7 @@ unzipped_kib=$(du -sk build/package | cut -f1)
 echo "Paket:        build/lambda.zip"
 echo "ZIP:          $((zip_bytes / 1024)) KiB"
 echo "Entpackt:     ${unzipped_kib} KiB (Grenze bei Lambda: 250 MB entpackt, 50 MB als ZIP-Upload)"
-echo "Wissensbasis:  ${released_count} freigegebene Stationen"
+echo "Wissensbasis:  ${text_count} Texte (Stationen, Projekte, Anekdoten)"
 echo "Abhängigkeiten:"
 grep -v '^#' build/requirements.txt | sed 's/^/  /' || true
 

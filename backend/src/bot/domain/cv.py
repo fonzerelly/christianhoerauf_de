@@ -18,7 +18,7 @@ _YEAR_MONTH = re.compile(r"(\d{4})(?:-(0[1-9]|1[0-2]))?")
 
 
 class InvalidStationError(ValueError):
-    """Ein Lebenslauf-Feld im Kopfteil einer Station fehlt oder hat ein falsches Format."""
+    """Ein Lebenslauf-Feld im Kopfteil einer Station oder eines Projekts fehlt oder passt nicht."""
 
 
 @dataclass(frozen=True)
@@ -65,58 +65,77 @@ class CvEntry:
     period: str
 
 
+class _Header:
+    """Liest und prüft die Felder aus dem Kopfteil der Datei `name`.
+
+    Jeder Fehler wird zu InvalidStationError mit Dateiname und Feld."""
+
+    def __init__(self, name: str, header: Mapping[str, object]) -> None:
+        self.name = name
+        self.header = header
+
+    def field(self, key: str) -> object:
+        if key not in self.header:
+            raise InvalidStationError(f"{self.name}: Feld {key} fehlt")
+        return self.header[key]
+
+    def fail(self, key: str, expected: str) -> InvalidStationError:
+        found = self.header.get(key)
+        return InvalidStationError(f"{self.name}: Feld {key} {expected}, gefunden: {found!r}")
+
+    def text(self, key: str, *, may_be_empty: bool = False) -> str:
+        value = self.field(key)
+        if not isinstance(value, str) or not (value or may_be_empty):
+            expected = (
+                "muss ein Text sein (darf leer sein)" if may_be_empty else "muss ein Text sein"
+            )
+            raise self.fail(key, expected)
+        return value
+
+    def year_month(self, key: str) -> YearMonth:
+        try:
+            return YearMonth.parse(self.field(key))
+        except ValueError as error:
+            raise self.fail(key, "erwartet JJJJ-MM oder JJJJ") from error
+
+    def end(self) -> YearMonth | None:
+        """`bis`: ein Zeitpunkt oder „heute“ (dann None)."""
+        return None if self.field("bis") == ONGOING else self.year_month("bis")
+
+
 def parse_station(name: str, header: Mapping[str, object]) -> CvStation:
     """Die Lebenslauf-Felder aus dem Kopfteil der Station `name`.
 
     Wirft InvalidStationError mit Station und Feld, wenn ein Feld fehlt oder nicht passt."""
-
-    def field(key: str) -> object:
-        if key not in header:
-            raise InvalidStationError(f"{name}: Feld {key} fehlt")
-        return header[key]
-
-    def fail(key: str, expected: str) -> InvalidStationError:
-        return InvalidStationError(f"{name}: Feld {key} {expected}, gefunden: {header[key]!r}")
-
-    section = field("abschnitt")
+    fields = _Header(name, header)
+    section = fields.field("abschnitt")
     if section not in SECTIONS:
-        raise fail("abschnitt", f"muss einer von {', '.join(SECTIONS)} sein")
-
-    def year_month(key: str) -> YearMonth:
-        value = field(key)
-        try:
-            return YearMonth.parse(value)
-        except ValueError as error:
-            raise fail(key, "erwartet JJJJ-MM oder JJJJ") from error
-
-    start = year_month("von")
-    end = None if field("bis") == ONGOING else year_month("bis")
-
-    title = field("lebenslauf_titel")
-    if not isinstance(title, str) or not title:
-        raise fail("lebenslauf_titel", "muss ein Text sein")
-    organisation = field("lebenslauf_organisation")
-    if not isinstance(organisation, str):
-        raise fail("lebenslauf_organisation", "muss ein Text sein (darf leer sein)")
-    points = field("stichpunkte")
+        raise fields.fail("abschnitt", f"muss einer von {', '.join(SECTIONS)} sein")
+    start = fields.year_month("von")
+    end = fields.end()
+    title = fields.text("titel")
+    organisation = fields.text("organisation", may_be_empty=True)
+    points = fields.field("stichpunkte")
     if not isinstance(points, list) or not all(isinstance(point, str) for point in points):
-        raise fail("stichpunkte", "muss eine Liste von Texten sein")
-
+        raise fields.fail("stichpunkte", "muss eine Liste von Texten sein")
     return CvStation(name, str(section), start, end, title, organisation, tuple(points))
 
 
-def period_label(station: CvStation, *, with_months: bool) -> str:
-    """Der Zeitraum, wie er links im Lebenslauf steht."""
-
+def _period(start: YearMonth, end: YearMonth | None, *, with_months: bool) -> str:
     def show(point: YearMonth) -> str:
         if with_months and point.month is not None:
             return f"{point.month:02d}/{point.year}"
         return str(point.year)
 
-    if station.end is None:
-        return f"{show(station.start)} – {ONGOING}"
-    start, end = show(station.start), show(station.end)
-    return start if start == end else f"{start} – {end}"
+    if end is None:
+        return f"{show(start)} – {ONGOING}"
+    first, last = show(start), show(end)
+    return first if first == last else f"{first} – {last}"
+
+
+def period_label(station: CvStation, *, with_months: bool) -> str:
+    """Der Zeitraum, wie er links im Lebenslauf steht."""
+    return _period(station.start, station.end, with_months=with_months)
 
 
 def cv_sections(stations: Iterable[CvStation]) -> dict[str, list[CvEntry]]:
@@ -144,35 +163,42 @@ def cv_sections(stations: Iterable[CvStation]) -> dict[str, list[CvEntry]]:
 class CvProject:
     name: str
     title: str
-    period: str  # freier Text, etwa „2020, 2026“; keine Datumsregel
+    start: YearMonth
+    end: YearMonth | None  # None: läuft noch („heute“)
     text: str
-    link: str
+    link: str | None
 
 
-def parse_project(name: str, header: Mapping[str, object]) -> CvProject | None:
-    """Das Projekt `name` als Eintrag unter „Projekte und Vorträge“.
+def parse_project(name: str, header: Mapping[str, object]) -> CvProject:
+    """Das Projekt `name` als möglicher Eintrag unter „Projekte und Vorträge“.
 
-    Nur ein Projekt mit `lebenslauf_text` steht im Lebenslauf (sonst None); es braucht dann auch
-    `lebenslauf_titel`, `lebenslauf_zeit` und `link`, sonst InvalidStationError."""
-    text = header.get("lebenslauf_text")
-    if not text:
-        return None
-
-    def required(key: str) -> str:
-        value = header.get(key)
-        if not isinstance(value, str) or not value:
-            raise InvalidStationError(f"{name}: Feld {key} muss ein Text sein, gefunden: {value!r}")
-        return value
-
+    Ob es im Lebenslauf steht, entscheidet `varianten.yaml`. Pflicht sind `titel`,
+    `zusammenfassung`, `von` und `bis`; `link` darf fehlen. Sonst InvalidStationError."""
+    fields = _Header(name, header)
+    link = header.get("link")
+    if link is not None and not isinstance(link, str):
+        raise fields.fail("link", "muss ein Text sein oder fehlen")
     return CvProject(
-        name, required("lebenslauf_titel"), required("lebenslauf_zeit"), str(text), required("link")
+        name,
+        fields.text("titel"),
+        fields.year_month("von"),
+        fields.end(),
+        fields.text("zusammenfassung"),
+        link or None,
     )
 
 
+def project_period(project: CvProject) -> str:
+    """Der Zeitraum eines Projekts, wie er links im Lebenslauf steht: nur Jahre."""
+    return _period(project.start, project.end, with_months=False)
+
+
 def cv_projects(projects: Iterable[CvProject]) -> list[CvProject]:
-    """Die neueste Jahreszahl in `period` zuerst, bei Gleichstand nach Name."""
+    """Das Projekt mit dem spätesten Jahr zuerst (laufende ganz vorn), bei Gleichstand nach Name."""
 
-    def latest_year(project: CvProject) -> int:
-        return max((int(year) for year in re.findall(r"\d{4}", project.period)), default=0)
+    def latest_year(project: CvProject) -> float:
+        return float("inf") if project.end is None else project.end.year
 
-    return sorted(projects, key=lambda project: (-latest_year(project), project.name))
+    by_name = sorted(projects, key=lambda project: project.name)
+    # sorted ist stabil, auch rückwärts: Bei gleichem Jahr bleibt die Reihenfolge nach Name.
+    return sorted(by_name, key=latest_year, reverse=True)

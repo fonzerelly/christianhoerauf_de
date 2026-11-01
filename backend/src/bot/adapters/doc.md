@@ -56,8 +56,8 @@ Anschlüsse der Schnittstellen aus `ports/` an AWS, LM Studio und Dateien. Dürf
 
 | Name | Was es konkret tut |
 |---|---|
-| `released_texts(folder)` | Liest alle `*.md` unter `folder` (auch in Unterordnern, sortiert nach Pfad) und gibt die freigegebenen als einen Text zurück: je Datei eine Überschrift `# <pfad relativ zu folder>`, eine Leerzeile und der ganze Text samt Kopfteil; zwischen zwei Texten eine Leerzeile. Fehlt der Ordner oder ist nichts freigegeben: leerer Text. |
-| `_is_released(text)` | `True`, wenn der Text mit `---` beginnt und vor dem nächsten `---` eine Zeile `freigegeben: ja` steht. `freigegeben: ja` im Fließtext zählt nicht, ein nie geschlossener Kopfteil ohne die Zeile auch nicht. |
+| `KNOWLEDGE_FOLDERS` | Die Ordner, die der Bot liest: `stationen`, `projekte`, `anekdoten`. Alles andere (`roh/` mit Diktaten und Noten, `entwuerfe/`, lose Dateien) bleibt draußen. |
+| `knowledge_texts(folder)` | Liest alle `*.md` direkt in den Ordnern `KNOWLEDGE_FOLDERS` unter `folder`, sortiert nach Pfad, und gibt sie als einen Text zurück: je Datei eine Überschrift `# <pfad relativ zu folder>`, eine Leerzeile und der ganze Text samt Kopfteil; zwischen zwei Texten eine Leerzeile. Fehlt der Ordner oder ist er leer: leerer Text. |
 
 ## cv_files.py
 
@@ -67,7 +67,8 @@ PyYAML zu den Laufzeitabhängigkeiten.
 
 | Name | Was es konkret tut |
 |---|---|
-| `read_cv_stations(knowledge_base)` | Liest jede Datei in `knowledge_base/stationen/` (sortiert), nimmt nur freigegebene (`freigegeben: ja`) und macht daraus mit `parse_station` eine `CvStation`; Name = Dateiname ohne `.md`. |
-| `read_cv_projects(knowledge_base)` | Liest jede Datei in `knowledge_base/projekte/` (sortiert) und behält die mit `lebenslauf_text` (`parse_project`). `freigegeben` zählt hier nicht, das gilt für den Bot. |
+| `read_cv_stations(knowledge_base)` | Liest jede Datei in `knowledge_base/stationen/` (sortiert) und macht daraus mit `parse_station` eine `CvStation`; Name = Dateiname ohne `.md`. |
+| `read_cv_projects(knowledge_base)` | Liest jede Datei in `knowledge_base/projekte/` (sortiert) mit `parse_project`. Jedes Projekt muss gültige Felder haben, auch wenn es gerade in keinem Lebenslauf steht. |
+| `read_cv_project_list(path, known_projects)` | Die Projekte des ganzen Lebenslaufs aus `projekte:` der Variantendatei (`parse_project_list`); fehlt die Datei → keine Projekte. |
 | `read_variants(path, known_names)` | Liest die Schalter aus der YAML-Datei und gibt alle Varianten zurück (`parse_switches`, `all_variants`); fehlt sie oder ist sie leer → keine Varianten. |
 | `_header(path)` | Der Kopfteil zwischen den ersten beiden `---`-Zeilen als YAML; ist er kein gültiges YAML → `InvalidStationError` mit Ordner und Datei. |
