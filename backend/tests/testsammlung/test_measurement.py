@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from bot.domain.intent import Intent
-from bot.pipeline.prompts import load_intent_program
+from bot.pipeline.prompts import INTENT_PROGRAM_FILE, load_intent_program
 from bot.ports.language_model import LanguageModel, LanguageModelError
 from tests.conftest import FakeServer, reply_body
 from tests.fakes import FakeLanguageModel
@@ -339,3 +339,33 @@ def test_measure_prints_the_progress_every_20_questions(
     measure([CAPITAL] * 40, model, load_intent_program())
 
     assert capsys.readouterr().out == "  20/40\n  40/40\n"
+
+
+def test_main_measures_another_tuersteher_file_and_keeps_the_official_record(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    questions = tmp_path / "fragen_test.yaml"
+    questions.write_text('- {frage: "Hauptstadt?", absicht: general/knowledge}\n', "utf-8")
+    official_record = tmp_path / "kompilat" / "messung.json"
+    variant = tmp_path / "versuch" / "mit_gruss.json"
+    variant.parent.mkdir()
+    program = json.loads(INTENT_PROGRAM_FILE.read_text("utf-8"))
+    program["messages"][0]["content"] = "Variante mit Gruß"
+    variant.write_text(json.dumps(program, ensure_ascii=False), "utf-8")
+    model = FakeLanguageModel([gate("general/knowledge")])
+
+    main(
+        ["--tuersteher", str(variant)],
+        model_factory=lambda target: model,
+        test_file=questions,
+        record_file=official_record,
+        today=date(2026, 11, 2),
+    )
+
+    assert model.calls[0][0]["content"] == "Variante mit Gruß"
+    assert not official_record.exists()
+    saved = json.loads((variant.parent / "mit_gruss.messung.json").read_text("utf-8"))
+    assert saved["fingerabdruck"] == measurement_fingerprint(
+        program_file=variant, test_file=questions
+    )
+    assert "Türsteher aus" in capsys.readouterr().out

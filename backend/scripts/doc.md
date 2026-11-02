@@ -79,11 +79,13 @@ erreichbar ist. Optionen:
 
 Ein altes Kompilat muss nicht gelöscht werden.
 
-## messe.sh [--ziel macmini|dgx|bedrock]
+## messe.sh [--ziel macmini|dgx|bedrock] [--tuersteher DATEI]
 
 Startet `python -m testsammlung.measurement` und reicht alle Argumente durch: stellt alle
 Testfragen dem Türsteher des Bots (etwa 5 min), druckt Quoten und Fehlgriffe und schreibt
 `testsammlung/kompilat/messung.json` mit Modell und Ziel. Exit 0 bestanden, 1 nicht bestanden.
+Mit `--tuersteher DATEI` misst es eine Variante des Türstehers und legt den Bericht als
+`<name>.messung.json` neben die Datei; die eingecheckte Messung bleibt dann unberührt.
 Ziel ohne Angabe der Mac mini; `--ziel dgx` die DGX Spark; `--ziel bedrock` Bedrock wie im
 Betrieb (AWS-Zugangsdaten, Kosten). Das Ziel ändert den Fingerabdruck nicht, eine bestandene
 Messung auf jedem Ziel macht `tuersteher_stand.sh` zufrieden.

@@ -4,6 +4,8 @@
 # Aufruf:  scripts/messe.sh                   LM Studio auf dem Mac mini
 #          scripts/messe.sh --ziel dgx        LM Studio auf der DGX Spark
 #          scripts/messe.sh --ziel bedrock    Bedrock wie im Betrieb (AWS-Zugangsdaten, Kosten)
+#          scripts/messe.sh --tuersteher DATEI  eine Variante des Türstehers messen; Bericht
+#                                               landet als DATEI-Name.messung.json daneben
 # Die Rechner stehen in testsammlung/targets.py.
 set -euo pipefail
 cd "$(dirname "$0")/.."

@@ -3,7 +3,8 @@
 Gemessen wird mit dem Code des Bots (`IntentClassifier` und exportierter Türsteher), nicht mit
 DSPy: DSPy fragt bei unlesbarer Antwort ein zweites Mal nach, der Bot nicht. Die Zahl soll zeigen,
 was der Bot im Betrieb tut. Aufruf über `scripts/messe.sh [--ziel macmini|dgx|bedrock]`
-(Standard: Mac mini; die Ziele stehen in `targets.py`).
+(Standard: Mac mini; die Ziele stehen in `targets.py`). Mit `--tuersteher DATEI` misst man eine
+Variante des Türstehers, ohne die eingecheckte Messung zu überschreiben.
 
 Bestanden (docs/backend/ABSICHTEN.md, „Messung“): Stufe 1 mindestens 98 %, Stufe 2 mindestens
 90 %, nichts kritisch durchgerutscht, kein Modellausfall.
@@ -24,7 +25,7 @@ from bot.pipeline.intent_classifier import (
     IntentClassifier,
     IntentProgram,
 )
-from bot.pipeline.prompts import load_intent_program
+from bot.pipeline.prompts import INTENT_PROGRAM_FILE
 from bot.ports.language_model import LanguageModel, LanguageModelError, Message
 from testsammlung.fingerprint import MEASUREMENT_RECORD, measurement_fingerprint
 from testsammlung.questions import TEST_FILE, Question, critical_miss, load_questions
@@ -236,19 +237,29 @@ def main(
     today: date | None = None,
 ) -> int:
     """Misst alle Testfragen auf dem Ziel aus `--ziel`, druckt den Bericht und schreibt
-    `messung.json` samt Fingerabdruck und Ziel. Exit 0, wenn bestanden, sonst 1."""
+    `messung.json` samt Fingerabdruck und Ziel. Mit `--tuersteher DATEI` wird statt des
+    eingecheckten Türstehers diese Datei gemessen und der Bericht neben ihr abgelegt
+    (`<name>.messung.json`). Exit 0, wenn bestanden, sonst 1."""
     parser = argparse.ArgumentParser(description="Messung des Türstehers mit allen Testfragen")
     parser.add_argument("--ziel", choices=MEASUREMENT_TARGETS, default=DEFAULT_TARGET)
-    target = parser.parse_args(argv).ziel
+    parser.add_argument("--tuersteher", type=Path, default=None)
+    arguments = parser.parse_args(argv)
+    target = arguments.ziel
+    program_file = arguments.tuersteher or INTENT_PROGRAM_FILE
+    if arguments.tuersteher:
+        # Eine Variante darf die Messung der eingecheckten Fassung nicht überschreiben.
+        record_file = program_file.with_suffix(".messung.json")
+        print(f"Türsteher aus {program_file}", flush=True)
     questions = load_questions(test_file)
     print(
         f"Messe {len(questions)} Testfragen gegen {model_name(target)} auf {target} …", flush=True
     )
-    report = Report(measure(questions, model_factory(target), load_intent_program()))
+    program = IntentProgram.from_json(program_file.read_text(encoding="utf-8"))
+    report = Report(measure(questions, model_factory(target), program))
     print(summary(report))
     record = measurement_record(
         report,
-        measurement_fingerprint(test_file=test_file),
+        measurement_fingerprint(program_file=program_file, test_file=test_file),
         model_name(target),
         target,
         today or date.today(),

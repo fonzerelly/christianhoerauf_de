@@ -23,7 +23,12 @@ scripts/messe.sh --ziel bedrock         # gegen Bedrock wie im Betrieb (kostet, 
 scripts/trainiere.sh --ziel dgx         # Training auf der DGX Spark (nur macmini oder dgx)
 scripts/run_testsammlung.sh --ziel dgx  # kleine Testsammlung
 scripts/zweite_sicherung.sh --ziel dgx  # zweite Sicherung
+scripts/messe.sh --ziel bedrock --tuersteher /pfad/variante.json  # eine Variante messen
 ```
+
+`--tuersteher DATEI` gibt es nur bei der Messung. Es misst eine Variante des exportierten
+Türstehers (etwa mit einem anderen Beispiel), ohne `prompts/intent_program.json` oder
+`kompilat/messung.json` anzufassen; der Bericht landet neben der Variante als `<name>.messung.json`.
 
 | Ziel | Was es ist | Erlaubt für |
 |---|---|---|
@@ -138,7 +143,7 @@ Misst mit dem Code des Bots (`IntentClassifier`, exportierter Türsteher), nicht
 | `summary(report)` | Text: Zahl der Fragen, beide Quoten mit Schwelle, Zähler, jeder Fehlgriff mit erlaubten Absichten (kritische markiert, bei `gibberish` mit Rohantwort), darunter getrennt die Verwechslungen innerhalb von `christian` (nur wenn es welche gibt), Ergebnis. |
 | `measurement_record(report, fingerprint, model_name, target, day)` | Inhalt von `messung.json`, mit `modell` und `ziel`. |
 | `build_gate_model(target)` | Gemma auf dem Ziel (`build_target_model`) mit `GATE_TEMPERATURE` und `GATE_MAX_TOKENS` wie der Türsteher im Betrieb, Zeitlimit 120 s. |
-| `main(argv, model_factory, ...)` | Liest `--ziel` (`macmini`, `dgx`, `bedrock`; Standard `macmini`; anderes → Exit 2 von argparse), baut das Modell mit `model_factory(ziel)`, misst alle Testfragen, druckt den Bericht, schreibt `messung.json` mit Fingerabdruck, Modell und Ziel. Exit 0 bestanden, sonst 1. |
+| `main(argv, model_factory, ...)` | Liest `--ziel` (`macmini`, `dgx`, `bedrock`; Standard `macmini`; anderes → Exit 2 von argparse), baut das Modell mit `model_factory(ziel)`, misst alle Testfragen, druckt den Bericht, schreibt `messung.json` mit Fingerabdruck, Modell und Ziel. Mit `--tuersteher DATEI` misst es statt `prompts/intent_program.json` diese Datei (gleiches Format), bildet den Fingerabdruck über sie und schreibt den Bericht neben sie als `<name>.messung.json`; `kompilat/messung.json` bleibt unberührt. Exit 0 bestanden, sonst 1. |
 
 ## training.py
 
