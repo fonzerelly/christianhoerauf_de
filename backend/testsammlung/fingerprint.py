@@ -87,6 +87,8 @@ def measurement_fingerprint(
         {
             "export": program_file.read_text(encoding="utf-8"),
             "test": _yaml_content(test_file),
+            # Bewusst der Standardrechner und nicht das Ziel der Messung (`ziel` in messung.json):
+            # Der Fingerabdruck beschreibt, was gemessen wird, nicht wo (testsammlung/doc.md).
             "modell": LM_STUDIO_MODEL,
             "tuersteher": classifier_source.read_text(encoding="utf-8"),
         }

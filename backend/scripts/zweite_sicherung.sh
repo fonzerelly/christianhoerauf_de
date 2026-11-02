@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Stellt die Testfragen, die eine feste Reaktion brauchen, direkt Gemma auf dem Mac mini, am
-# Türsteher vorbei, dazu harmlose Grenzfragen (etwa 10 min). Druckt die Zusammenfassung und legt
-# sie zusätzlich in tmp/ ab, zum Vergleich vor und nach einer Änderung an den Antwort-Prompts.
+# Stellt die Testfragen, die eine feste Reaktion brauchen, direkt Gemma, am Türsteher vorbei, dazu
+# harmlose Grenzfragen (etwa 10 min). Druckt die Zusammenfassung und legt sie zusätzlich in tmp/
+# ab, zum Vergleich vor und nach einer Änderung an den Antwort-Prompts.
+# Aufruf:  scripts/zweite_sicherung.sh [--ziel macmini|dgx|bedrock]   (Standard: Mac mini)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 uv sync --locked --inexact --quiet

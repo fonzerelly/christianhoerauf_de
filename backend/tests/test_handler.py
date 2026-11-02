@@ -1,5 +1,6 @@
 import base64
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -7,7 +8,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from bot.adapters.memory_store import MemoryStore
-from bot.handler import build_bot, cache_version, handle
+from bot.handler import build_bot, cache_version, handle, language_model
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
@@ -165,6 +166,47 @@ def test_build_bot_assembles_a_bot_from_the_environment(monkeypatch: pytest.Monk
 
     assert isinstance(build_bot(environ), Bot)
     assert isinstance(build_bot({**environ, "LLM_AUTH": "none"}), Bot)
+
+
+def test_language_model_talks_to_the_model_server_from_the_environment(server: FakeServer) -> None:
+    server.body = reply_body("Hallo.")
+    environ = {"LLM_BASE_URL": server.base_url, "LLM_MODEL": "gemma", "LLM_AUTH": "none"}
+
+    reply = language_model(environ, temperature=0.0, max_tokens=7).complete(
+        [{"role": "user", "content": "Hi"}]
+    )
+
+    (request,) = server.requests
+    body = request["body"]
+    assert isinstance(body, dict)
+    assert reply == "Hallo."
+    assert (body["model"], body.get("temperature"), body.get("max_tokens")) == ("gemma", 0.0, 7)
+    assert request["authorization"] is None
+
+
+def test_language_model_signs_with_a_bedrock_token_unless_llm_auth_is_none(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer
+) -> None:
+    import bot.handler as module
+
+    regions: list[str] = []
+
+    def fake_token_provider(region: str) -> Callable[[], str]:
+        regions.append(region)
+        return lambda: "erfunden"
+
+    monkeypatch.setattr(module, "bedrock_token_provider", fake_token_provider)
+    server.body = reply_body("Hallo.")
+
+    language_model({"LLM_BASE_URL": server.base_url}).complete([{"role": "user", "content": "Hi"}])
+
+    (request,) = server.requests
+    body = request["body"]
+    assert isinstance(body, dict)
+    assert request["authorization"] == "Bearer erfunden"
+    assert body["model"] == "google.gemma-4-26b-a4b"
+    assert "temperature" not in body
+    assert regions == ["eu-central-1"]
 
 
 def test_handler_builds_the_bot_once_and_reuses_it(monkeypatch: pytest.MonkeyPatch) -> None:

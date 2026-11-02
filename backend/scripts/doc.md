@@ -40,41 +40,53 @@ Ohne genau einen nicht leeren Parameter: Aufrufhinweis, Exit 2. Kein eigener Tes
 Wunsch); geprüft per Aufruf. Jede Frage zählt zur Tagesgrenze, gleiche Fragen kommen am selben Tag
 aus dem Zwischenspeicher.
 
-## zweite_sicherung.sh
+## Ziel wählen: `--ziel`
+
+`messe.sh`, `trainiere.sh`, `run_testsammlung.sh` und `zweite_sicherung.sh` laufen ohne Angabe
+gegen LM Studio auf dem Mac mini. `--ziel dgx` nimmt LM Studio auf der DGX Spark, `--ziel bedrock`
+Bedrock in Frankfurt wie im Betrieb (nur Messungen, nicht `trainiere.sh`; braucht
+AWS-Zugangsdaten und kostet). Die Liste der Rechner und alles Weitere steht in
+`testsammlung/targets.py` und `testsammlung/doc.md`, Abschnitt „Auf welchem Rechner“.
+
+## zweite_sicherung.sh [--ziel macmini|dgx|bedrock]
 
 Startet `python -m testsammlung.backstop`: stellt alle Testfragen, die eine feste Reaktion
-brauchen (138 Stück), direkt beiden Antwort-Prompts von Gemma auf dem Mac mini, am Türsteher
-vorbei, dazu harmlose Fragen. Etwa 10 Minuten. Druckt, wie viele Gemma selbst abweist, jede frei
+brauchen (138 Stück), direkt beiden Antwort-Prompts von Gemma auf dem Ziel (Standard Mac mini),
+am Türsteher vorbei, dazu harmlose Fragen. Etwa 10 Minuten. Druckt, wie viele Gemma selbst abweist, jede frei
 beantwortete Frage und harmlose Fragen, die zu Unrecht abgewiesen wurden. Legt die Ausgabe
 zusätzlich als `tmp/zweite_sicherung_<Datum>_<Uhrzeit>.txt` ab, zum Vergleich vor und nach einer
 Änderung an `general_answer.md` oder `task_answer.md`. Synchronisiert mit `--inexact`, damit ein
 laufendes Training DSPy behält.
 
-## run_testsammlung.sh
+## run_testsammlung.sh [--ziel macmini|dgx|bedrock]
 
 Synchronisiert die Umgebung und startet `python -m testsammlung.runner` mit den übergebenen
-Argumenten. Ohne Argument gegen LM Studio, mit `--target bedrock` gegen Bedrock (AWS-Aufruf, Kosten
-im Cent-Bereich, nur von Hand).
+Argumenten. Ohne Argument gegen LM Studio auf dem Mac mini, mit `--ziel dgx` auf der DGX Spark, mit
+`--ziel bedrock` gegen Bedrock (AWS-Aufruf, Kosten im Cent-Bereich, nur von Hand).
 
-## trainiere.sh
+## trainiere.sh [--ziel macmini|dgx]
 
 Holt die Gruppe `dspy` dazu und startet `python -m testsammlung.training`: trainiert den
-Türsteher mit DSPy gegen LM Studio auf dem Mac mini (etwa 35 min), überschreibt das Kompilat in
+Türsteher mit DSPy gegen LM Studio auf dem Mac mini oder mit `--ziel dgx` auf der DGX Spark (etwa
+35 min; `bedrock` ist nicht erlaubt), überschreibt das Kompilat in
 `testsammlung/kompilat/` und exportiert es nach `src/bot/pipeline/prompts/intent_program.json`.
 Druckt vorher die Bewertungsfragen je Absicht. Bricht ab, wenn `absichten.yaml` nicht zu `Intent`
-passt, die Bewertungsfragen nicht ausgewogen sind (`balance_problems`) oder der Mac mini nicht
+passt, die Bewertungsfragen nicht ausgewogen sind (`balance_problems`) oder der Rechner nicht
 erreichbar ist. Optionen:
 - `--nur-export`: kein Training, nur der Export aus dem vorhandenen Kompilat.
-- `--nur-pruefen`: nur die Tabelle und die Prüfung, ohne Mac mini; Exit 0 ausgewogen, 2 nicht.
+- `--nur-pruefen`: nur die Tabelle und die Prüfung, ohne LM Studio; Exit 0 ausgewogen, 2 nicht.
 - `--trotzdem`: trainieren, auch wenn die Prüfung etwas findet.
 
 Ein altes Kompilat muss nicht gelöscht werden.
 
-## messe.sh
+## messe.sh [--ziel macmini|dgx|bedrock]
 
-Startet `python -m testsammlung.measurement`: stellt alle Testfragen dem Türsteher des Bots
-(LM Studio, etwa 5 min), druckt Quoten und Fehlgriffe und schreibt
-`testsammlung/kompilat/messung.json`. Exit 0 bestanden, 1 nicht bestanden.
+Startet `python -m testsammlung.measurement` und reicht alle Argumente durch: stellt alle
+Testfragen dem Türsteher des Bots (etwa 5 min), druckt Quoten und Fehlgriffe und schreibt
+`testsammlung/kompilat/messung.json` mit Modell und Ziel. Exit 0 bestanden, 1 nicht bestanden.
+Ziel ohne Angabe der Mac mini; `--ziel dgx` die DGX Spark; `--ziel bedrock` Bedrock wie im
+Betrieb (AWS-Zugangsdaten, Kosten). Das Ziel ändert den Fingerabdruck nicht, eine bestandene
+Messung auf jedem Ziel macht `tuersteher_stand.sh` zufrieden.
 
 ## tuersteher_stand.sh
 

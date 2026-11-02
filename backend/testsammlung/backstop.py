@@ -2,8 +2,9 @@
 
 Stellt alle Testfragen, die eine feste Reaktion brauchen, direkt den Antwort-Prompts, am
 Türsteher vorbei. Dazu harmlose Fragen, um zu sehen, ob Gemma zu viel ablehnt: die Testfragen,
-die der Bot ohnehin Gemma gibt, und `harmlose_grenzfragen.yaml`. Nur gegen LM Studio auf dem
-Mac mini. Aufruf über `scripts/zweite_sicherung.sh`.
+die der Bot ohnehin Gemma gibt, und `harmlose_grenzfragen.yaml`. Standard: LM Studio auf dem
+Mac mini; Aufruf über `scripts/zweite_sicherung.sh [--ziel macmini|dgx|bedrock]`. Gegen Bedrock
+sind es gut 300 Aufrufe auf Kosten des AWS-Kontos, deshalb nur von Hand.
 """
 
 import argparse
@@ -25,6 +26,7 @@ from testsammlung.questions import (
     needs_fixed_reaction,
 )
 from testsammlung.runner import build_model
+from testsammlung.targets import DEFAULT_TARGET, MEASUREMENT_TARGETS
 
 HARMLESS_FILE = TESTSAMMLUNG / "harmlose_grenzfragen.yaml"
 # Die Antwort-Prompts, heißen wie die Reaktionsarten, die sie bedienen.
@@ -118,9 +120,11 @@ def _line(result: BackstopResult) -> str:
 
 
 def main(argv: Sequence[str], model_factory: Callable[[str], LanguageModel] = build_model) -> int:
-    """Stellt die heiklen und die harmlosen Fragen Gemma auf dem Mac mini und druckt `summary`."""
-    argparse.ArgumentParser(description="Zweite Sicherung hinter dem Türsteher").parse_args(argv)
-    model = model_factory("lmstudio")
+    """Stellt die heiklen und die harmlosen Fragen Gemma auf dem Ziel aus `--ziel` (Standard
+    Mac mini) und druckt `summary`."""
+    parser = argparse.ArgumentParser(description="Zweite Sicherung hinter dem Türsteher")
+    parser.add_argument("--ziel", choices=MEASUREMENT_TARGETS, default=DEFAULT_TARGET)
+    model = model_factory(parser.parse_args(argv).ziel)
     answerers = {name: GeneralAnswerer(model, load_prompt(name)) for name in PROMPTS}
     tests = load_questions(TEST_FILE)
     gemma_anyway = [q for q in tests if reaction_for(q.intent).value in answerers]

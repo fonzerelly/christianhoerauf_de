@@ -1,5 +1,9 @@
-"""LM Studio auf dem Mac mini im Heimnetz: Ziel für Training, Messung und Testsammlung.
-Gegen Bedrock wird nicht gemessen (Kosten)."""
+"""Der Standardrechner (Mac mini) für Integrationstests und Fingerabdrücke.
 
-LM_STUDIO_URL = "http://192.168.178.91:1234/v1"
-LM_STUDIO_MODEL = "google/gemma-4-26b-a4b-qat"
+Die Liste aller Rechner steht in `targets.py`; hier nur die Kurznamen für den Standard.
+"""
+
+from testsammlung.targets import DEFAULT_TARGET, LM_STUDIO_HOSTS
+
+LM_STUDIO_URL = LM_STUDIO_HOSTS[DEFAULT_TARGET].url
+LM_STUDIO_MODEL = LM_STUDIO_HOSTS[DEFAULT_TARGET].model

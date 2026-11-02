@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.domain.intent import Intent
 from bot.pipeline.prompts import load_intent_program
 from bot.ports.language_model import LanguageModel, LanguageModelError
+from tests.conftest import FakeServer, reply_body
 from tests.fakes import FakeLanguageModel
 from testsammlung.fingerprint import measurement_fingerprint
 from testsammlung.measurement import (
@@ -20,6 +20,7 @@ from testsammlung.measurement import (
     summary,
 )
 from testsammlung.questions import Question
+from testsammlung.targets import LM_STUDIO_HOSTS, LmStudioHost
 
 NUMBER = Question("Kann ich deine Nummer haben?", (Intent.FLIRT, Intent.CONTACT), True)
 CAREER = Question("Wo arbeitet er?", (Intent.CAREER,), False)
@@ -206,11 +207,12 @@ def test_summary_marks_critical_misses_and_model_failures() -> None:
 def test_measurement_record_has_date_model_fingerprint_rates_and_misses() -> None:
     report = Report([measured(CAPITAL, Intent.KNOWLEDGE), measured(NUMBER, Intent.BOT, "roh")])
 
-    record = measurement_record(report, "abc123", "gemma", date(2026, 10, 25))
+    record = measurement_record(report, "abc123", "gemma", "dgx", date(2026, 10, 25))
 
     assert record == {
         "datum": "2026-10-25",
         "modell": "gemma",
+        "ziel": "dgx",
         "fingerabdruck": "abc123",
         "fragen": 2,
         "stufe_1": 100.0,
@@ -230,8 +232,18 @@ def test_measurement_record_has_date_model_fingerprint_rates_and_misses() -> Non
     }
 
 
-def test_gate_model_talks_to_lm_studio_with_the_gate_settings() -> None:
-    assert isinstance(build_gate_model(), OpenAiCompatibleModel)
+def test_gate_model_talks_to_the_target_with_the_gate_settings(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer
+) -> None:
+    monkeypatch.setitem(LM_STUDIO_HOSTS, "attrappe", LmStudioHost(server.base_url, "gemma"))
+    server.body = reply_body(gate("general/knowledge"))
+
+    build_gate_model("attrappe").complete([{"role": "user", "content": "Hi"}])
+
+    (request,) = server.requests
+    body = request["body"]
+    assert isinstance(body, dict)
+    assert (body["model"], body.get("temperature"), body.get("max_tokens")) == ("gemma", 0.0, 100)
 
 
 def test_main_measures_the_test_questions_writes_the_record_and_reports(
@@ -241,7 +253,10 @@ def test_main_measures_the_test_questions_writes_the_record_and_reports(
     questions.write_text('- {frage: "Hauptstadt?", absicht: general/knowledge}\n', "utf-8")
     record = tmp_path / "kompilat" / "messung.json"
 
-    def model() -> LanguageModel:
+    targets: list[str] = []
+
+    def model(target: str) -> LanguageModel:
+        targets.append(target)
         return FakeLanguageModel([gate("general/knowledge")])
 
     exit_code = main(
@@ -255,7 +270,51 @@ def test_main_measures_the_test_questions_writes_the_record_and_reports(
     saved = json.loads(record.read_text("utf-8"))
     assert saved["bestanden"] is True
     assert saved["fingerabdruck"] == measurement_fingerprint(test_file=questions)
+    assert (saved["ziel"], saved["modell"]) == ("macmini", "google/gemma-4-26b-a4b-qat")
+    assert targets == ["macmini"]
     assert "Ergebnis: bestanden" in capsys.readouterr().out
+
+
+def test_main_measures_on_the_chosen_target_and_records_it(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    questions = tmp_path / "fragen_test.yaml"
+    questions.write_text('- {frage: "Hauptstadt?", absicht: general/knowledge}\n', "utf-8")
+    record = tmp_path / "messung.json"
+    targets: list[str] = []
+
+    def model(target: str) -> LanguageModel:
+        targets.append(target)
+        return FakeLanguageModel([gate("general/knowledge")])
+
+    main(
+        ["--ziel", "bedrock"],
+        model_factory=model,
+        test_file=questions,
+        record_file=record,
+        today=date(2026, 10, 25),
+    )
+
+    saved = json.loads(record.read_text("utf-8"))
+    assert targets == ["bedrock"]
+    assert (saved["ziel"], saved["modell"]) == ("bedrock", "google.gemma-4-26b-a4b")
+    assert "gegen google.gemma-4-26b-a4b auf bedrock" in capsys.readouterr().out
+
+
+def test_main_rejects_an_unknown_target(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    questions = tmp_path / "fragen_test.yaml"
+    questions.write_text('- {frage: "Hauptstadt?", absicht: general/knowledge}\n', "utf-8")
+
+    with pytest.raises(SystemExit) as stopped:
+        main(
+            ["--ziel", "azure"],
+            model_factory=lambda target: FakeLanguageModel([gate("general/knowledge")]),
+            test_file=questions,
+            record_file=tmp_path / "messung.json",
+        )
+
+    assert stopped.value.code == 2
+    assert "invalid choice: 'azure'" in capsys.readouterr().err
 
 
 def test_main_returns_1_when_the_measurement_fails(tmp_path: Path) -> None:
@@ -263,7 +322,7 @@ def test_main_returns_1_when_the_measurement_fails(tmp_path: Path) -> None:
     questions.write_text('- {frage: "Hauptstadt?", absicht: general/knowledge}\n', "utf-8")
 
     exit_code = main(
-        model_factory=lambda: FakeLanguageModel([gate("jailbreak")]),
+        model_factory=lambda target: FakeLanguageModel([gate("jailbreak")]),
         test_file=questions,
         record_file=tmp_path / "messung.json",
         today=date(2026, 10, 25),

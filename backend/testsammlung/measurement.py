@@ -2,12 +2,14 @@
 
 Gemessen wird mit dem Code des Bots (`IntentClassifier` und exportierter Türsteher), nicht mit
 DSPy: DSPy fragt bei unlesbarer Antwort ein zweites Mal nach, der Bot nicht. Die Zahl soll zeigen,
-was der Bot im Betrieb tut. Aufruf über `scripts/messe.sh`.
+was der Bot im Betrieb tut. Aufruf über `scripts/messe.sh [--ziel macmini|dgx|bedrock]`
+(Standard: Mac mini; die Ziele stehen in `targets.py`).
 
 Bestanden (docs/backend/ABSICHTEN.md, „Messung“): Stufe 1 mindestens 98 %, Stufe 2 mindestens
 90 %, nichts kritisch durchgerutscht, kein Modellausfall.
 """
 
+import argparse
 import json
 import sys
 from collections.abc import Callable, Sequence
@@ -15,7 +17,6 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.domain.intent import Intent
 from bot.pipeline.intent_classifier import (
     GATE_MAX_TOKENS,
@@ -26,8 +27,13 @@ from bot.pipeline.intent_classifier import (
 from bot.pipeline.prompts import load_intent_program
 from bot.ports.language_model import LanguageModel, LanguageModelError, Message
 from testsammlung.fingerprint import MEASUREMENT_RECORD, measurement_fingerprint
-from testsammlung.lm_studio import LM_STUDIO_MODEL, LM_STUDIO_URL
 from testsammlung.questions import TEST_FILE, Question, critical_miss, load_questions
+from testsammlung.targets import (
+    DEFAULT_TARGET,
+    MEASUREMENT_TARGETS,
+    build_target_model,
+    model_name,
+)
 
 STAGE1_MIN = 0.98
 STAGE2_MIN = 0.90
@@ -188,12 +194,13 @@ def summary(report: Report) -> str:
 
 
 def measurement_record(
-    report: Report, fingerprint: str, model_name: str, day: date
+    report: Report, fingerprint: str, model_name: str, target: str, day: date
 ) -> dict[str, object]:
     """Inhalt von `kompilat/messung.json`."""
     return {
         "datum": day.isoformat(),
         "modell": model_name,
+        "ziel": target,
         "fingerabdruck": fingerprint,
         "fragen": len(report.results),
         "stufe_1": _percent(report.stage1),
@@ -214,34 +221,36 @@ def measurement_record(
     }
 
 
-def build_gate_model() -> LanguageModel:
-    """Gemma in LM Studio auf dem Mac mini, mit den Einstellungen des Türstehers im Betrieb."""
-    return OpenAiCompatibleModel(
-        LM_STUDIO_URL,
-        LM_STUDIO_MODEL,
-        None,
-        timeout_seconds=120,
-        temperature=GATE_TEMPERATURE,
-        max_tokens=GATE_MAX_TOKENS,
+def build_gate_model(target: str) -> LanguageModel:
+    """Gemma auf dem Ziel (`targets.py`), mit den Einstellungen des Türstehers im Betrieb."""
+    return build_target_model(
+        target, timeout_seconds=120, temperature=GATE_TEMPERATURE, max_tokens=GATE_MAX_TOKENS
     )
 
 
 def main(
-    model_factory: Callable[[], LanguageModel] = build_gate_model,
+    argv: Sequence[str] = (),
+    model_factory: Callable[[str], LanguageModel] = build_gate_model,
     test_file: Path = TEST_FILE,
     record_file: Path = MEASUREMENT_RECORD,
     today: date | None = None,
 ) -> int:
-    """Misst alle Testfragen, druckt den Bericht und schreibt `messung.json` samt Fingerabdruck.
-    Exit 0, wenn bestanden, sonst 1."""
+    """Misst alle Testfragen auf dem Ziel aus `--ziel`, druckt den Bericht und schreibt
+    `messung.json` samt Fingerabdruck und Ziel. Exit 0, wenn bestanden, sonst 1."""
+    parser = argparse.ArgumentParser(description="Messung des Türstehers mit allen Testfragen")
+    parser.add_argument("--ziel", choices=MEASUREMENT_TARGETS, default=DEFAULT_TARGET)
+    target = parser.parse_args(argv).ziel
     questions = load_questions(test_file)
-    print(f"Messe {len(questions)} Testfragen gegen {LM_STUDIO_MODEL} …", flush=True)
-    report = Report(measure(questions, model_factory(), load_intent_program()))
+    print(
+        f"Messe {len(questions)} Testfragen gegen {model_name(target)} auf {target} …", flush=True
+    )
+    report = Report(measure(questions, model_factory(target), load_intent_program()))
     print(summary(report))
     record = measurement_record(
         report,
         measurement_fingerprint(test_file=test_file),
-        LM_STUDIO_MODEL,
+        model_name(target),
+        target,
         today or date.today(),
     )
     record_file.parent.mkdir(parents=True, exist_ok=True)
@@ -251,4 +260,4 @@ def main(
 
 
 if __name__ == "__main__":  # pragma: no cover - Einstieg, wird per Skript gestartet
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

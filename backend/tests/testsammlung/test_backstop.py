@@ -137,3 +137,16 @@ def test_main_asks_gemma_directly_and_prints_the_summary(
     assert code == 0
     assert "Heikle Fragen direkt an Gemma, mit festem Satz abgewiesen: 0 von " in printed
     assert "Harmlose Fragen, zu Unrecht abgewiesen: 0 von " in printed
+
+
+def test_main_asks_the_chosen_target_and_the_mac_mini_by_default() -> None:
+    seen: list[str] = []
+
+    def model_factory(target: str) -> SameReplyModel:
+        seen.append(target)
+        return SameReplyModel()
+
+    main([], model_factory=model_factory)
+    main(["--ziel", "dgx"], model_factory=model_factory)
+
+    assert seen == ["macmini", "dgx"]

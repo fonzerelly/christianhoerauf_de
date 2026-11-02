@@ -17,7 +17,7 @@ def test_main_runs_all_cases_and_prints_the_summary(
     model = FakeLanguageModel(["general/knowledge"])
 
     def build_model(target: str) -> LanguageModel:
-        assert target == "lmstudio"
+        assert target == "macmini"
         return model
 
     exit_code = main(["--cases", str(cases)], build_model)
@@ -35,6 +35,7 @@ def test_main_passes_the_target_to_the_model_builder(tmp_path: Path) -> None:
         seen.append(target)
         return FakeLanguageModel(["general/knowledge"])
 
-    main(["--target", "bedrock", "--cases", str(cases)], build_model)
+    main(["--ziel", "dgx", "--cases", str(cases)], build_model)
+    main(["--ziel", "bedrock", "--cases", str(cases)], build_model)
 
-    assert seen == ["bedrock"]
+    assert seen == ["dgx", "bedrock"]

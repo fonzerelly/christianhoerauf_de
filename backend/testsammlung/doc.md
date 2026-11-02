@@ -6,10 +6,41 @@ Gehört nicht ins Lambda-Paket. Zwei Teile:
   `export.py`, `fingerprint.py`, `measurement.py`, `training.py`, Ergebnisse in `kompilat/`.
   Start mit `scripts/trainiere.sh` und `scripts/messe.sh`, Stand mit `scripts/tuersteher_stand.sh`.
 - **Kleine Sammlung von Fällen** (Q42) mit Wortprüfung der Antworten: `cases.yaml`, `cases.py`,
-  `runner.py`. Start mit `scripts/run_testsammlung.sh [--target bedrock]`.
+  `runner.py`. Start mit `scripts/run_testsammlung.sh [--ziel macmini|dgx|bedrock]`.
 
 Die Absichten und Fragen für Training und Messung liegen hier: `absichten.yaml`,
 `fragen_training.yaml` und `fragen_test.yaml`.
+
+## Auf welchem Rechner: `--ziel`
+
+Messung, Training, Testsammlung und zweite Sicherung laufen ohne Angabe gegen LM Studio auf dem
+Mac mini. Mit `--ziel` wählt man ein anderes Ziel (Befehle im Ordner `backend/`):
+
+```bash
+scripts/messe.sh                        # Türsteher-Messung auf dem Mac mini (wie bisher)
+scripts/messe.sh --ziel dgx             # dieselbe Messung auf der DGX Spark
+scripts/messe.sh --ziel bedrock         # gegen Bedrock wie im Betrieb (kostet, nur von Hand)
+scripts/trainiere.sh --ziel dgx         # Training auf der DGX Spark (nur macmini oder dgx)
+scripts/run_testsammlung.sh --ziel dgx  # kleine Testsammlung
+scripts/zweite_sicherung.sh --ziel dgx  # zweite Sicherung
+```
+
+| Ziel | Was es ist | Erlaubt für |
+|---|---|---|
+| `macmini` (Standard) | LM Studio auf dem Mac mini, `http://192.168.178.91:1234/v1`, `google/gemma-4-26b-a4b-qat` | alles |
+| `dgx` | LM Studio auf der DGX Spark, `http://192.168.178.60:1235/v1`, dasselbe Modell | alles |
+| `bedrock` | Bedrock in Frankfurt, `google.gemma-4-26b-a4b`, genau so gebaut wie im Bot | nur Messungen, nie Training |
+
+Bedrock braucht AWS-Zugangsdaten in der Umgebung (die übliche Kette von botocore: `AWS_PROFILE`
+bzw. Standardprofil, oder `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_SESSION_TOKEN`) mit
+den Rechten `bedrock-mantle:CreateInference` und `bedrock-mantle:CallWithBearerToken` in
+`eu-central-1`, wie die Lambda-Rolle. Die Region ist fest, `AWS_REGION` ist nicht nötig. Jeder
+Aufruf kostet Geld; das Training lässt `bedrock` deshalb gar nicht zu.
+
+Einen weiteren Rechner ergänzt man in `targets.py` in `LM_STUDIO_HOSTS` (Name → Adresse und
+Modell); danach steht er überall bei `--ziel` zur Wahl, auch im Prototyp
+`docs/backend/antwort-prompt/messe_antworten.py`. Fürs Training muss sein Modell das aus
+`TRAINING_SETTINGS` sein, sonst bricht `trainiere.sh` ab.
 
 ## kompilat/
 
@@ -17,16 +48,30 @@ Die Absichten und Fragen für Training und Messung liegen hier: `absichten.yaml`
 |---|---|---|
 | `dspy_programm.json` | Das Kompilat im Format von DSPy: Anweisung und Beispiele. | `trainiere.sh` |
 | `prompt.txt` | Dieselben Nachrichten zum Lesen. | `trainiere.sh` |
-| `training.json` | Fingerabdruck des Trainings, Datum, Minuten, Zahl der Fragen, Bewertungsfragen je Absicht und Anteil der heiklen (`balance_record`), Einstellungen. | `trainiere.sh` (nicht bei `--nur-export`) |
-| `messung.json` | Fingerabdruck der Messung, Datum, Modell, Quoten, Zähler, bestanden, alle Fehlgriffe mit Rohantwort. | `messe.sh` |
+| `training.json` | Fingerabdruck des Trainings, Datum, Ziel (`macmini`/`dgx`), Minuten, Zahl der Fragen, Bewertungsfragen je Absicht und Anteil der heiklen (`balance_record`), Einstellungen. | `trainiere.sh` (nicht bei `--nur-export`) |
+| `messung.json` | Fingerabdruck der Messung, Datum, Modell und Ziel (`macmini`, `dgx` oder `bedrock`), Quoten, Zähler, bestanden, alle Fehlgriffe mit Rohantwort. | `messe.sh` |
 
 Der Export für das Lambda liegt in `src/bot/pipeline/prompts/intent_program.json`, weil er ins
 Paket muss.
 
+## targets.py
+
+Die einzige Stelle mit der Liste der Rechner.
+
+| Name | Was es konkret tut |
+|---|---|
+| `LmStudioHost` | Ein Rechner mit LM Studio: `url` der OpenAI-kompatiblen Schnittstelle und `model`. |
+| `LM_STUDIO_HOSTS` | Name → `LmStudioHost`: `macmini` und `dgx`. Hier ergänzt man einen weiteren Rechner. |
+| `BEDROCK`, `DEFAULT_TARGET` | `"bedrock"` und `"macmini"`. |
+| `MEASUREMENT_TARGETS` | Alle Rechner und `bedrock`: die Auswahl bei `--ziel` von Messung, Testsammlung, zweiter Sicherung und Prototyp. |
+| `TRAINING_TARGETS` | Nur die Rechner: die Auswahl bei `--ziel` des Trainings. |
+| `model_name(target)` | Der Modellname des Ziels; bei `bedrock` `BEDROCK_MODEL` aus dem Bot. Unbekanntes Ziel → `ValueError`. |
+| `build_target_model(target, *, timeout_seconds, temperature, max_tokens)` | Baut das Modell mit `language_model` aus `bot/handler.py`, also mit genau dem Code, mit dem der Bot seine Modelle baut. Dafür stellt es eine Umgebung zusammen wie die des Lambdas: bei `bedrock` nur `LLM_TIMEOUT_SECONDS`, sonst alles wie im Betrieb (Adresse, Modell, Bearer-Token aus den AWS-Zugangsdaten, Region Frankfurt); bei einem Rechner dazu `LLM_BASE_URL`, `LLM_MODEL` und `LLM_AUTH=none` (kein Schlüssel). Ruft das Modell nicht auf; das Token entsteht erst beim ersten Aufruf. Unbekanntes Ziel → `ValueError` „Unbekanntes Ziel: …“. |
+
 ## lm_studio.py
 
-`LM_STUDIO_URL` und `LM_STUDIO_MODEL`: der Mac mini, Ziel für Training, Messung, Testsammlung
-und Integrationstests.
+`LM_STUDIO_URL` und `LM_STUDIO_MODEL`: Adresse und Modell des Standardrechners (`macmini`),
+gelesen aus `targets.py`. Für die Integrationstests und den Fingerabdruck.
 
 ## questions.py
 
@@ -66,6 +111,15 @@ und Integrationstests.
 | `problems(training_record, measurement_record, current_training, current_measurement)` | Je ein Satz für: Training fehlt oder veraltet; Messung fehlt, veraltet oder nicht bestanden. Jeder nennt das Skript, das weiterhilft. Leer, wenn alles stimmt. |
 | `main(...)` | Druckt den Stand; Exit 0, wenn alles aktuell und bestanden, sonst 1. Aufgerufen von den Git-Hooks und `tuersteher_stand.sh`. |
 
+**Das Ziel gehört nicht in den Fingerabdruck** (Entscheidung vom 02.11.2026). Der Fingerabdruck
+beschreibt, *was* gemessen wird: Programm, Testfragen, Code des Türstehers und das Modell, für das
+trainiert wurde. *Wo* gemessen wurde, steht daneben in `messung.json` unter `ziel` und `modell`.
+Auf `macmini` und `dgx` läuft dasselbe Modell; `bedrock` ist das Modell im Betrieb, eine dort
+bestandene Messung sagt also mindestens so viel. Ginge das Ziel in den Fingerabdruck ein, müsste
+`tuersteher_stand.sh` wissen, auf welchem Ziel gemessen werden soll, und eine Messung auf der DGX
+machte den Stand „veraltet“, obwohl sich am Türsteher nichts geändert hat. Deshalb bleibt im
+Fingerabdruck der Modellname des Standardrechners, und `problems` liest `ziel` nicht.
+
 ## measurement.py
 
 Misst mit dem Code des Bots (`IntentClassifier`, exportierter Türsteher), nicht mit DSPy.
@@ -82,25 +136,28 @@ Misst mit dem Code des Bots (`IntentClassifier`, exportierter Türsteher), nicht
 | `_RecordingModel` | Reicht Aufrufe ans Modell durch und merkt sich die letzte Rohantwort. |
 | `measure(questions, model, program)` | Stellt jede Frage dem `IntentClassifier`; Modellausfall wird vermerkt, nicht wiederholt. Druckt alle 20 Fragen den Fortschritt. |
 | `summary(report)` | Text: Zahl der Fragen, beide Quoten mit Schwelle, Zähler, jeder Fehlgriff mit erlaubten Absichten (kritische markiert, bei `gibberish` mit Rohantwort), darunter getrennt die Verwechslungen innerhalb von `christian` (nur wenn es welche gibt), Ergebnis. |
-| `measurement_record(report, fingerprint, model_name, day)` | Inhalt von `messung.json`. |
-| `build_gate_model()` | Gemma in LM Studio mit `GATE_TEMPERATURE` und `GATE_MAX_TOKENS`, Zeitlimit 120 s. |
-| `main(...)` | Misst alle Testfragen, druckt den Bericht, schreibt `messung.json` mit Fingerabdruck. Exit 0 bestanden, sonst 1. |
+| `measurement_record(report, fingerprint, model_name, target, day)` | Inhalt von `messung.json`, mit `modell` und `ziel`. |
+| `build_gate_model(target)` | Gemma auf dem Ziel (`build_target_model`) mit `GATE_TEMPERATURE` und `GATE_MAX_TOKENS` wie der Türsteher im Betrieb, Zeitlimit 120 s. |
+| `main(argv, model_factory, ...)` | Liest `--ziel` (`macmini`, `dgx`, `bedrock`; Standard `macmini`; anderes → Exit 2 von argparse), baut das Modell mit `model_factory(ziel)`, misst alle Testfragen, druckt den Bericht, schreibt `messung.json` mit Fingerabdruck, Modell und Ziel. Exit 0 bestanden, sonst 1. |
 
 ## training.py
 
-Braucht die Gruppe `dspy` und den Mac mini, deshalb ohne Unit-Tests und aus der Abdeckung
-ausgenommen. Geprüft wurde es, indem der Export aus dem Kompilat der Nacht vom 23./24.10. neu
+Braucht die Gruppe `dspy` und einen Rechner mit LM Studio, deshalb ohne Unit-Tests und aus der
+Abdeckung ausgenommen. Die Auswahl des Rechners wurde am 02.11.2026 von Hand geprüft: `--help`,
+`--ziel bedrock` (Exit 2), `--nur-export --trotzdem` (Exit 2), `--nur-pruefen --ziel dgx`. Geprüft wurde es, indem der Export aus dem Kompilat der Nacht vom 23./24.10. neu
 geschrieben wurde: `intent_program.json`, Golden Master und `prompt.txt` blieben unverändert.
 
 | Name | Was es konkret tut |
 |---|---|
 | `_program(dspy, catalog)` | `dspy.Predict` mit Eingabe `frage` und Ausgabe `absicht` (eine der Absichten), Startanweisung aus `start_instruction`. |
-| `_models(dspy)` | Gemma als ausführendes Modell (temperature 0, ohne Cache) und als Ideengeber (temperature 1), beide ohne Nachdenken. |
+| `_models(dspy, host)` | Gemma auf dem Rechner `host` als ausführendes Modell (temperature 0, ohne Cache) und als Ideengeber (temperature 1), beide ohne Nachdenken. Beide zeigen auf denselben Rechner; andere Modelle braucht das Training nicht. |
 | `_metric(...)` | `training_score` für DSPy. |
-| `train(dspy, catalog)` | Teilt die Trainingsfragen, stellt den ChatAdapter **ohne JSON-Nachfragen** ein (wie der Bot), trainiert mit MIPROv2 (`max_errors` so groß wie alle Fragen, sonst bricht DSPy nach 10 unlesbaren Antworten ab), speichert `dspy_programm.json` und `training.json`. Kandidatenprotokoll in `tmp/dspy_log/`. |
+| `_lm_studio_reachable(host)` | Ob `GET <url>/models` des Rechners in 3 s antwortet. |
+| `train(dspy, catalog, target)` | Teilt die Trainingsfragen, stellt den ChatAdapter **ohne JSON-Nachfragen** ein (wie der Bot), trainiert mit MIPROv2 (`max_errors` so groß wie alle Fragen, sonst bricht DSPy nach 10 unlesbaren Antworten ab), speichert `dspy_programm.json` und `training.json` (mit `ziel`). Kandidatenprotokoll in `tmp/dspy_log/`. |
 | `export(dspy, program, catalog)` | Schreibt `intent_program.json`, den Golden Master (3 Fragen) und `prompt.txt`. Prüft danach, dass `IntentProgram` aus dem Export für die Golden-Fragen genau die Nachrichten von DSPy baut, sonst Abbruch. |
 | `_print_balance(questions)` | Druckt die Bewertungsfragen je Absicht und darunter jedes Ergebnis von `balance_problems`; gibt diese Liste zurück. |
-| `main(argv)` | Unbekanntes Argument: Aufruf drucken, Exit 2. `--nur-pruefen`: nur `_print_balance`, ohne DSPy; Exit 0 ausgewogen, sonst 2. Sonst liest und prüft es `absichten.yaml`. Ohne Argument: druckt die Ausgewogenheit und bricht ab, wenn sie nicht reicht oder der Mac mini nicht erreichbar ist (Exit 2), sonst Training und Export. `--trotzdem`: wie ohne Argument, trainiert aber trotz Befund der Prüfung. `--nur-export`: lädt das vorhandene Kompilat und exportiert nur. |
+| `_arguments(argv)` | argparse: höchstens eine von `--nur-export`, `--nur-pruefen`, `--trotzdem`, dazu `--ziel` (`macmini` oder `dgx`, Standard `macmini`). Unbekanntes Argument, zwei Betriebsarten oder `--ziel bedrock` → Aufruf drucken, Exit 2. |
+| `main(argv)` | `--nur-pruefen`: nur `_print_balance`, ohne DSPy; Exit 0 ausgewogen, sonst 2. Sonst liest und prüft es `absichten.yaml`. Ohne Betriebsart: bricht ab (Exit 2), wenn das Modell des Rechners nicht das aus `TRAINING_SETTINGS` ist (der Fingerabdruck nennt dieses Modell), wenn die Ausgewogenheit nicht reicht oder der Rechner nicht erreichbar ist; sonst Training auf dem Rechner und Export. `--trotzdem`: wie ohne Betriebsart, trainiert aber trotz Befund der Prüfung. `--nur-export`: lädt das vorhandene Kompilat und exportiert nur (braucht keinen Rechner). |
 
 ## cases.yaml
 
@@ -124,13 +181,14 @@ durch Leerzeichen getrennt, die alle als richtig gelten), optional `group: arith
 | `CaseResult` | Ergebnis eines Falls: tatsächliche Absicht (`None` bei Modellausfall), Antwort, ob die Wortprüfung stimmt. `intent_ok` ist wahr, wenn die Absicht eine der erlaubten ist. |
 | `run_case(case, classifier, answerer)` | Bestimmt die Absicht. Bei Rechenfragen oder Wortprüfung holt sie auch die Antwort und prüft Pflicht- und verbotene Wörter. Modellausfall zählt als Fehlschlag. |
 | `summarize(results)` | Text mit Trefferquote je Hauptabsicht, jedem Fehlgriff (mit allen erlaubten Absichten) und dem Ergebnis der Rechenfragen samt falschen Antworten. |
-| `build_model(target)` | `lmstudio`: Mac mini (`192.168.178.91:1234`, ohne Schlüssel). `bedrock`: Bedrock Frankfurt mit den AWS-Zugangsdaten des Aufrufers. Anderes Ziel: `ValueError`. |
-| `main(argv, model_factory)` | Liest `--target` und `--cases`, lässt alle Fälle mit dem exportierten Türsteher (`intent_program.json`) und dem allgemeinen Antwort-Prompt laufen, druckt die Zusammenfassung, gibt 0 zurück. Ein Modell für beide Schritte, ohne eigene `temperature`. |
+| `build_model(target)` | Das Modell auf dem Ziel (`build_target_model`, Zeitlimit 120 s, ohne eigene `temperature`): `macmini`, `dgx` oder `bedrock` (Bedrock Frankfurt wie im Bot, mit den AWS-Zugangsdaten des Aufrufers). Anderes Ziel: `ValueError`. Auch von `backstop.py` benutzt. |
+| `main(argv, model_factory)` | Liest `--ziel` (Standard `macmini`) und `--cases`, lässt alle Fälle mit dem exportierten Türsteher (`intent_program.json`) und dem allgemeinen Antwort-Prompt laufen, druckt die Zusammenfassung, gibt 0 zurück. Ein Modell für beide Schritte, ohne eigene `temperature`. |
 
 ## backstop.py
 
 Die zweite Sicherung: Wie antwortet Gemma, wenn der Türsteher eine heikle Frage durchlässt?
-Aufruf über `scripts/zweite_sicherung.sh`, nur gegen LM Studio.
+Aufruf über `scripts/zweite_sicherung.sh [--ziel macmini|dgx|bedrock]`, Standard Mac mini. Gegen
+Bedrock sind es gut 300 Aufrufe auf Kosten des AWS-Kontos.
 
 | Name | Was es konkret tut |
 |---|---|
@@ -143,7 +201,7 @@ Aufruf über `scripts/zweite_sicherung.sh`, nur gegen LM Studio.
 | `ask_own(questions, answerers)` | Stellt jede Frage nur dem Prompt, den der Bot für ihre Absicht nimmt (Name der Reaktionsart). |
 | `_ask(question, name, answerer)` | Ein Aufruf; `LanguageModelError` ergibt Antwort `None`. |
 | `summary(critical, harmless)` | Abgewiesene heikle Fragen gesamt und je Absicht, jede frei beantwortete mit Prompt und Antwort, Modellausfälle (nur wenn es welche gab), zu Unrecht abgewiesene harmlose Fragen mit Antwort. |
-| `main(argv, model_factory)` | Heikle Testfragen an beide Prompts (`ask_all`); Testfragen, die der Bot ohnehin Gemma gibt, und die Grenzfragen an ihren eigenen Prompt (`ask_own`); druckt `summary`, Exit 0. |
+| `main(argv, model_factory)` | Liest `--ziel` (Standard `macmini`) und holt das Modell mit `model_factory(ziel)`. Heikle Testfragen an beide Prompts (`ask_all`); Testfragen, die der Bot ohnehin Gemma gibt, und die Grenzfragen an ihren eigenen Prompt (`ask_own`); druckt `summary`, Exit 0. |
 
 
 ## testperson/
@@ -151,7 +209,8 @@ Aufruf über `scripts/zweite_sicherung.sh`, nur gegen LM Studio.
 Eine **erfundene** Testperson im Format der Wissensbasis (`stationen/`, `projekte/`,
 `anekdoten/`), angelegt am 02.11.2026 für die Messung des Prompts mit Stichwort und Folgefragen
 (Plan „Stichwort und Folgefragen“). Nichts darin stammt aus der echten Wissensbasis, deshalb darf
-sie auch auf die DGX Spark und in automatische Tests.
+sie auch in automatische Tests. (Auf die DGX Spark darf seit dem 02.11. auch die echte
+Wissensbasis.)
 
 Sieben Texte mit absichtlich eingebauten Fallen: zwei Stationen mit drei bis vier Absätzen und
 Begründungen („warum Java“, „warum Rust“), eine sehr kurze Station (Segelschule, ein Absatz), ein

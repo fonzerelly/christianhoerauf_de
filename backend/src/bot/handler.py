@@ -92,6 +92,25 @@ def handle(event: Mapping[str, Any], bot: Bot) -> dict[str, object]:
         return _response(200, unavailable)
 
 
+def language_model(
+    environ: Mapping[str, str], temperature: float | None = None, max_tokens: int | None = None
+) -> OpenAiCompatibleModel:
+    """Ein Sprachmodell, wie der Bot es anspricht: ohne Variablen Gemma bei Bedrock in Frankfurt,
+    signiert mit den AWS-Zugangsdaten der Umgebung. `LLM_BASE_URL`, `LLM_MODEL`,
+    `LLM_TIMEOUT_SECONDS` (10) und `LLM_AUTH=none` (kein Schlüssel, etwa für LM Studio) ändern
+    das. Auch die Messungen in `testsammlung/` bauen ihre Modelle hiermit."""
+    region = environ.get("AWS_REGION", BEDROCK_REGION)
+    token_provider = None if environ.get("LLM_AUTH") == "none" else bedrock_token_provider(region)
+    return OpenAiCompatibleModel(
+        base_url=environ.get("LLM_BASE_URL", BEDROCK_BASE_URL),
+        model=environ.get("LLM_MODEL", BEDROCK_MODEL),
+        token_provider=token_provider,
+        timeout_seconds=float(environ.get("LLM_TIMEOUT_SECONDS", "10")),
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+
+
 def build_bot(environ: Mapping[str, str]) -> Bot:
     """Steckt den Bot aus der Umgebung des Lambdas zusammen. Fehlt `TABLE_NAME` oder
     `VISITOR_SECRET`, bricht das mit `KeyError` ab. Optional: `LLM_BASE_URL`, `LLM_MODEL`,
@@ -100,20 +119,12 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
     table = environ["TABLE_NAME"]
     secret = environ["VISITOR_SECRET"]
     region = environ.get("AWS_REGION", BEDROCK_REGION)
-    token_provider = None if environ.get("LLM_AUTH") == "none" else bedrock_token_provider(region)
 
     def make_model(
         temperature: float | None = None, max_tokens: int | None = None
     ) -> OpenAiCompatibleModel:
         # Eine Instanz je Schritt, damit sich Denkphase und Einstellungen je Schritt setzen lassen.
-        return OpenAiCompatibleModel(
-            base_url=environ.get("LLM_BASE_URL", BEDROCK_BASE_URL),
-            model=environ.get("LLM_MODEL", BEDROCK_MODEL),
-            token_provider=token_provider,
-            timeout_seconds=float(environ.get("LLM_TIMEOUT_SECONDS", "10")),
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        return language_model(environ, temperature, max_tokens)
 
     knowledge = knowledge_texts(Path(environ.get("WISSENSBASIS_DIR", _PACKAGED_KNOWLEDGE_BASE)))
     knowledge_answerer = (

@@ -5,20 +5,13 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from bot.adapters.bedrock_token import (
-    BEDROCK_BASE_URL,
-    BEDROCK_MODEL,
-    BEDROCK_REGION,
-    bedrock_token_provider,
-)
-from bot.adapters.openai_compatible import OpenAiCompatibleModel
 from bot.domain.intent import Intent
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
 from bot.pipeline.prompts import load_intent_program, load_prompt
 from bot.ports.language_model import LanguageModel, LanguageModelError
 from testsammlung.cases import CASES_FILE, Case, load_cases
-from testsammlung.lm_studio import LM_STUDIO_MODEL, LM_STUDIO_URL
+from testsammlung.targets import DEFAULT_TARGET, MEASUREMENT_TARGETS, build_target_model
 
 
 @dataclass(frozen=True)
@@ -77,27 +70,18 @@ def summarize(results: Sequence[CaseResult]) -> str:
 
 
 def build_model(target: str) -> LanguageModel:
-    """`lmstudio`: Mac mini im Heimnetz. `bedrock`: Bedrock Frankfurt mit den eigenen
-    AWS-Zugangsdaten des Aufrufers (nur dann ein Aufruf bei AWS, wenn Christian ihn startet)."""
-    if target == "lmstudio":
-        return OpenAiCompatibleModel(LM_STUDIO_URL, LM_STUDIO_MODEL, None, timeout_seconds=120)
-    if target == "bedrock":
-        return OpenAiCompatibleModel(
-            BEDROCK_BASE_URL,
-            BEDROCK_MODEL,
-            bedrock_token_provider(BEDROCK_REGION),
-            timeout_seconds=60,
-        )
-    raise ValueError(f"Unbekanntes Ziel: {target}")
+    """Das Modell auf dem Ziel (`targets.py`), ohne eigene `temperature`. Bei `bedrock` ruft es
+    Bedrock in Frankfurt mit den AWS-Zugangsdaten der Umgebung auf, wie der Bot im Betrieb."""
+    return build_target_model(target, timeout_seconds=120)
 
 
 def main(argv: Sequence[str], model_factory: Callable[[str], LanguageModel] = build_model) -> int:
     """Lässt die Testsammlung gegen das gewählte Ziel laufen und druckt die Zusammenfassung."""
     parser = argparse.ArgumentParser(description="Testsammlung des Bots")
-    parser.add_argument("--target", choices=["lmstudio", "bedrock"], default="lmstudio")
+    parser.add_argument("--ziel", choices=MEASUREMENT_TARGETS, default=DEFAULT_TARGET)
     parser.add_argument("--cases", type=Path, default=CASES_FILE)
     arguments = parser.parse_args(argv)
-    model = model_factory(arguments.target)
+    model = model_factory(arguments.ziel)
     classifier = IntentClassifier(model, load_intent_program())
     answerer = GeneralAnswerer(model, load_prompt("general_answer"))
     results = [run_case(case, classifier, answerer) for case in load_cases(arguments.cases)]

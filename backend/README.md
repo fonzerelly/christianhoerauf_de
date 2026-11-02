@@ -30,7 +30,7 @@ uv sync --locked --group dspy   # zusätzlich DSPy (zum Optimieren)
 | `PYTHONPATH=src uv run lint-imports`    | Architekturtest: Abhängigkeitsrichtung der Schichten (import-linter).                                          |
 | `scripts/build_package.sh`              | Baut das Lambda-Paket `build/lambda.zip` (Linux arm64, nur Laufzeitabhängigkeiten) und gibt die Größe aus.     |
 | `scripts/measure_cold_start.sh`         | Misst den Kaltstart des Pakets lokal im offiziellen Lambda-Image (siehe Skript).                               |
-| `scripts/run_testsammlung.sh [--target bedrock]` | Testsammlung gegen LM Studio (Standard) oder Bedrock (AWS-Aufruf, nur von Hand). |
+| `scripts/run_testsammlung.sh [--ziel macmini\|dgx\|bedrock]` | Testsammlung gegen LM Studio auf dem Mac mini (Standard), der DGX Spark oder gegen Bedrock (AWS-Aufruf, nur von Hand). Die Rechner stehen in `testsammlung/targets.py`. |
 | `uv run pytest -m integration --no-cov` | Integrationstests gegen LM Studio (Mac mini). |
 
 ## Aufbau
