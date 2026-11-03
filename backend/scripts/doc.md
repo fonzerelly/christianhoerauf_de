@@ -90,6 +90,13 @@ Ziel ohne Angabe der Mac mini; `--ziel dgx` die DGX Spark; `--ziel bedrock` Bedr
 Betrieb (AWS-Zugangsdaten, Kosten). Das Ziel ändert den Fingerabdruck nicht, eine bestandene
 Messung auf jedem Ziel macht `tuersteher_stand.sh` zufrieden.
 
+
+## wuerfle.sh [--ziel macmini|dgx|bedrock] [--anzahl N] [--tuersteher DATEI]
+
+Startet `python -m testsammlung.sampling` und reicht alle Argumente durch: stellt jede Frage aus
+`testsammlung/wuerfelfragen.yaml` N-mal (Standard 20) mit Temperatur 1 dem Türsteher und druckt je
+Frage, welche Absicht wie oft kam. Schreibt nichts. Auf Bedrock kostet jeder Aufruf; 11 Fragen × 20
+sind unter 10 Cent.
 ## tuersteher_stand.sh
 
 Startet `python -m testsammlung.fingerprint`: zeigt in einer Sekunde und ohne Netz, ob Training

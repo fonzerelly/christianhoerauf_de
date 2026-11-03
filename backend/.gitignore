@@ -11,3 +11,6 @@ dist/
 reports/
 tmp/
 *.egg-info/
+
+# Versuche mit Varianten des Türstehers (scripts/messe.sh --tuersteher, scripts/wuerfle.sh)
+versuche/

@@ -26,9 +26,11 @@ scripts/zweite_sicherung.sh --ziel dgx  # zweite Sicherung
 scripts/messe.sh --ziel bedrock --tuersteher /pfad/variante.json  # eine Variante messen
 ```
 
-`--tuersteher DATEI` gibt es nur bei der Messung. Es misst eine Variante des exportierten
-Türstehers (etwa mit einem anderen Beispiel), ohne `prompts/intent_program.json` oder
-`kompilat/messung.json` anzufassen; der Bericht landet neben der Variante als `<name>.messung.json`.
+`--tuersteher DATEI` gibt es bei der Messung und beim Würfeltest (`scripts/wuerfle.sh`). Es misst
+eine Variante des exportierten Türstehers (etwa mit einem anderen Beispiel), ohne
+`prompts/intent_program.json` oder `kompilat/messung.json` anzufassen; der Bericht der Messung
+landet neben der Variante als `<name>.messung.json`. Varianten gehören nach `backend/versuche/`
+(von Git ignoriert); relative Pfade gelten ab `backend/`.
 
 | Ziel | Was es ist | Erlaubt für |
 |---|---|---|
@@ -163,6 +165,22 @@ geschrieben wurde: `intent_program.json`, Golden Master und `prompt.txt` blieben
 | `_print_balance(questions)` | Druckt die Bewertungsfragen je Absicht und darunter jedes Ergebnis von `balance_problems`; gibt diese Liste zurück. |
 | `_arguments(argv)` | argparse: höchstens eine von `--nur-export`, `--nur-pruefen`, `--trotzdem`, dazu `--ziel` (`macmini` oder `dgx`, Standard `macmini`). Unbekanntes Argument, zwei Betriebsarten oder `--ziel bedrock` → Aufruf drucken, Exit 2. |
 | `main(argv)` | `--nur-pruefen`: nur `_print_balance`, ohne DSPy; Exit 0 ausgewogen, sonst 2. Sonst liest und prüft es `absichten.yaml`. Ohne Betriebsart: bricht ab (Exit 2), wenn das Modell des Rechners nicht das aus `TRAINING_SETTINGS` ist (der Fingerabdruck nennt dieses Modell), wenn die Ausgewogenheit nicht reicht oder der Rechner nicht erreichbar ist; sonst Training auf dem Rechner und Export. `--trotzdem`: wie ohne Betriebsart, trainiert aber trotz Befund der Prüfung. `--nur-export`: lädt das vorhandene Kompilat und exportiert nur (braucht keinen Rechner). |
+
+## sampling.py und wuerfelfragen.yaml
+
+Würfeltest: jede Frage aus `wuerfelfragen.yaml` mehrmals mit Temperatur 1. Bei Temperatur 1 würfelt
+das Modell; wie oft welche Absicht kommt, zeigt, wie sicher es ist (20 von 20 eindeutig, 11 zu 9
+knapp). Aufruf `scripts/wuerfle.sh [--ziel …] [--anzahl N] [--tuersteher DATEI]`.
+
+| Name | Was es konkret tut |
+|---|---|
+| `SAMPLING_TEMPERATURE` | 1,0. |
+| `SAMPLE_QUESTIONS` | Pfad von `wuerfelfragen.yaml`: eine YAML-Liste von Texten, derzeit Grüße, die auf Bedrock als `jailbreak` landeten, und ähnliche. |
+| `load_sample_questions(path)` | Liest die YAML-Liste als Liste von Texten. |
+| `sample(questions, model, program, rounds)` | Stellt jede Frage `rounds`-mal dem `IntentClassifier` und gibt je Frage einen `Counter` der Absichten zurück. |
+| `sample_line(target, question, counts)` | Eine Zeile: Ziel, Frage, Absichten mit Anzahl, häufigste zuerst. |
+| `build_sampling_model(target)` | Gemma auf dem Ziel mit `GATE_MAX_TOKENS` wie im Betrieb, aber Temperatur 1, Zeitlimit 120 s. |
+| `main(argv, model_factory, questions_file)` | Liest `--ziel` (Standard `macmini`), `--anzahl` (Standard 20) und `--tuersteher` (Standard der eingecheckte Türsteher), würfelt Frage für Frage und druckt nach jeder eine Zeile. Exit 0. |
 
 ## cases.yaml
 
