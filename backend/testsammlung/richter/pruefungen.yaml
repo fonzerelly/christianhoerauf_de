@@ -17,4 +17,4 @@ folgefrage:
   - {kriterium: K21, muss: false, frage: "Stammt die Antwort auf sie aus demselben Text wie die Antwort oder aus einem Erlebnis, das auf diesen Text verweist (station)?"}
   - {kriterium: K22, muss: false, frage: "Falls sie auf das überraschende Ende eines Erlebnisses zielt: Lässt sie das Ende offen?"}
   - {kriterium: K23, muss: false, frage: "Würde ein Recruiter, der die Antwort gelesen hat, sie gern anklicken?"}
-  - {kriterium: K25, muss: true, frage: "Ist sie frei von Bezug auf Chris' Familie, und ist ChrisBot nicht der Handelnde?"}
+  - {kriterium: K25, muss: true, frage: "Fragt die zu prüfende Folgefrage selbst nicht nach Chris' Familie (Partnerin, Kinder, Eltern), und ist ChrisBot in ihr nicht der Handelnde? Dass die Antwort Familie erwähnt, zählt nicht."}

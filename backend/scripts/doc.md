@@ -107,6 +107,14 @@ Prompt samt Texten der Wissensbasis und Schlusstext; Qwen auf der DGX bewertet n
 verletzte muss-Kriterien, K32, Folgefragen je Antwort und die Fehler je Kriterium; Einzelheiten in
 `versuche/antworten.<ziel>.json`. Mit `--ziel bedrock` kostet es (nur Gemma und Türsteher laufen
 dort, der Richter bleibt auf der DGX).
+
+## trainiere_antworten.sh [--ziel macmini|dgx] [--budget N] [--probe] [--prompt DATEI] [--fragen DATEI] [--aus ORDNER]
+
+Startet `python -m testsammlung.answer_training` mit der Gruppe `dspy`: GEPA trainiert den Prompt
+für Antworten aus der Wissensbasis. Gemma auf dem Ziel (Standard DGX) antwortet auf die Lernfragen,
+die Bewertung von `messe_antworten.sh` gibt Note und Rückmeldung, Qwen auf der DGX schreibt die
+Anweisung um. Ergebnis in `versuche/gepa/prompt.md` und `verlauf.json`; übernommen wird nichts
+automatisch. Budget 400 Bewertungen sind etwa 4 Stunden. Kein Bedrock.
 ## tuersteher_stand.sh
 
 Startet `python -m testsammlung.fingerprint`: zeigt in einer Sekunde und ohne Netz, ob Training

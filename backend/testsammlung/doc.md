@@ -243,6 +243,30 @@ Folgefrage); `richter/pruefungen.yaml` die übrigen Prüffragen; `richter/aufgab
 | `build_judge()` | Qwen auf der DGX, 600 Tokens, 600 s. |
 | `main(argv, …)` | Optionen `--ziel`, `--prompt`, `--schluss`, `--fragen`, `--teil` (Standard `pruefen`), `--runden`, `--wissensbasis`, `--aus` (Standard `versuche/antworten.<ziel>.json`); misst, druckt, schreibt. Exit 0. |
 
+### answer_prompt.py
+
+| Name | Was es konkret tut |
+|---|---|
+| `KNOWLEDGE_HEADING` | „Texte über Chris:“, die Überschrift, unter der der Bot die Texte anhängt. |
+| `GEPA_REMINDER` | Hängt an jeder Rückmeldung für GEPA: auf Deutsch bleiben, Format behalten, keine Fakten aus den Texten in die Anweisung. |
+| `instructions_of(prompt)` | Der Prompt ohne die Überschrift am Ende (das, was GEPA verändert); fehlt sie, `ValueError`. |
+| `prompt_from(instructions)` | Umgekehrt: Anweisung + Leerzeile + Überschrift + Leerzeile, wie `knowledge_base_answer_fields.md`. |
+| `AssessmentCache(judge, gate)` | Bewertet jede Kombination aus Frage und Ausgabe nur einmal (`assess`); GEPA fragt je Ausgabe zweimal. |
+| `gepa_feedback(assessment)` | Nicht bestandene Kriterien plus `GEPA_REMINDER`. |
+
+### answer_training.py
+
+Training des Antwort-Prompts mit GEPA, Aufruf `scripts/trainiere_antworten.sh`. Braucht die Gruppe
+`dspy` und LM Studio, deshalb ohne Unit-Tests und aus der Abdeckung ausgenommen; geprüft mit dem
+Probelauf `--probe`.
+
+| Name | Was es konkret tut |
+|---|---|
+| `OUTPUT_DIR`, `DEFAULT_BUDGET` | `versuche/gepa/`; 400 Bewertungen (rund 4 Stunden bei etwa 35 s je Bewertung). |
+| `_bot_adapter(dspy, knowledge, closing)` | DSPy-Adapter, der die Nachrichten wie der Bot baut (System = `prompt_from(Anweisung)` + Texte + Schlusstext, dann die Frage) und die ganze Ausgabe als `ausgabe` zurückgibt. |
+| `_models(dspy, target)` | Gemma auf dem Ziel wie im Betrieb (ohne Nachdenken, ohne Zwischenspeicher) und Qwen auf der DGX zum Umschreiben (wenig Nachdenken, Temperatur 1, 8000 Tokens). |
+| `main(argv)` | Optionen `--ziel` (nur LM Studio, Standard `dgx`), `--budget`, `--prompt`, `--schluss`, `--fragen`, `--aus`, `--probe` (2+2 Fragen, Budget 12). Lernfragen = Teil `lernen`, Prüffragen = `pruefen`. Bewertung wie die Messung über `AssessmentCache`, Note und Rückmeldung an GEPA. Schreibt `prompt.md` (bester Prompt) und `verlauf.json` (Minuten, Bewertungen, Note je Kandidat, Eltern, bester, alle Anweisungen). |
+
 ## sampling.py und wuerfelfragen.yaml
 
 Würfeltest: jede Frage aus `wuerfelfragen.yaml` mehrmals mit Temperatur 1. Bei Temperatur 1 würfelt

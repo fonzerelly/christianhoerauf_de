@@ -50,7 +50,7 @@ addopts = "-m 'not integration' --cov=bot --cov=testsammlung --cov-branch --cov-
 [tool.coverage.run]
 source = ["bot", "testsammlung"]
 # Braucht DSPy und den Mac mini; die prüfbare Logik liegt in getesteten Modulen (siehe Kopf der Datei).
-omit = ["testsammlung/training.py"]
+omit = ["testsammlung/training.py", "testsammlung/answer_training.py"]
 
 [tool.coverage.report]
 fail_under = 100
