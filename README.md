@@ -10,7 +10,7 @@ erst durch seine Leuchtspur lesbar.
 |---|---|
 | `frontend/` | Neubau der Seite in TypeScript (in Arbeit) |
 | `backend/` | Dienste für die Antworten (in Arbeit) |
-| `prototyp/` | Prototypen 1–9 (8 = Galerie mit 50 Chatbot-Alternativen zum Labyrinth, 9 = Schlüsselwort statt ganzer Antwort); `prototyp/live/` ist die heute ausgelieferte Seite |
+| `prototyp/` | Prototypen 1–10 (8 = Galerie mit 50 Chatbot-Alternativen zum Labyrinth, 9 = Schlüsselwort statt ganzer Antwort, 10 = Redesign mit wechselnden Aufteilungen und Lebenslauf); `prototyp/live/` ist die heute ausgelieferte Seite |
 | `corporate-identity/` | Visitenkarte und Co. (verschlüsselt) |
 | `docs/` | Glossare, Entscheidungen, Pläne (verschlüsselt) |
 | `scripts/` | Hilfsskripte, z. B. `entsperren.sh` |
