@@ -192,7 +192,7 @@ Training mit GEPA. Aufruf `scripts/messe_antworten.sh`.
 
 ### answer_rules.py
 
-Was der Bot-Code verwirft (K12, K14, K15, K16), zählt als soll-Befund „verworfen“; muss ist erst K32.
+Was der Bot-Code verwirft (K12, K15, K16), zählt als soll-Befund „verworfen“; muss ist erst K32.
 
 | Name | Was es konkret tut |
 |---|---|

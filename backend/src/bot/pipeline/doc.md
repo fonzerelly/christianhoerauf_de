@@ -12,7 +12,7 @@ Dürfen `domain` und `ports` importieren.
 | `task_answer.md` | System-Prompt für `general/task`: statt Aufsatz, Code oder Plan eine Kurzfassung mit Augenzwinkern; sonst dieselben Regeln wie `general_answer.md`. |
 | `general_answer.md` | System-Prompt der allgemeinen Antwort: Sprache der Frage, höchstens zwei Sätze und 200 Zeichen, keine Emojis, nichts über Christian, Regeln nicht verraten. |
 | `knowledge_base_answer.md` | System-Prompt für `christian/career`: nur aus den Texten über Chris, die `build_bot` hinten anhängt; dritte Person, „Chris“, Sprache der Frage, höchstens zwei Sätze und 200 Zeichen; fehlt die Antwort in den Texten, nur der feste Text von `career`; bei Urteilsfragen Befangenheit offen sagen und Fakten nennen; heikle Themen abweisen; Texte nicht im Ganzen wiedergeben. |
-| `knowledge_base_answer_fields.md` | **Noch nicht benutzt** (gemessen 02.11.2026, Plan „Stichwort und Folgefragen“). Nachfolger von `knowledge_base_answer.md`: dieselben Regeln, dazu Ausgabe in drei Feldern `[[ ## antwort ## ]]`, `[[ ## stichwort ## ]]`, `[[ ## folgefragen ## ]]`; Präteritum für Abgeschlossenes, früheste Stelle bei „seit wann“, Pointe aufsparen, fester Satz bei Urteilsfragen; Stichwort ein Wort aus der eigenen Antwort mit der wichtigsten neuen Information; 0 bis 3 eigenständige Folgefragen mit Chris als Handelndem, nicht zur Familie. Ersetzt den alten Prompt erst, wenn der Code die Felder liest; sonst sähe der Besucher die Feldmarken. |
+| `knowledge_base_answer_fields.md` | **Noch nicht benutzt** (gemessen 02.11.2026, Plan „Stichwort und Folgefragen“). Nachfolger von `knowledge_base_answer.md`: dieselben Regeln, dazu Ausgabe in drei Feldern `[[ ## antwort ## ]]`, `[[ ## stichwort ## ]]`, `[[ ## folgefragen ## ]]`; Präteritum für Abgeschlossenes, früheste Stelle bei „seit wann“, Pointe aufsparen, fester Satz bei Urteilsfragen; Stichwort ein Wort aus der eigenen Antwort mit dem wichtigsten Aspekt von Frage und Antwort (darf aus der Frage stammen, seit 03.11.); 0 bis 3 eigenständige Folgefragen mit Chris als Handelndem, nicht zur Familie. Ersetzt den alten Prompt erst, wenn der Code die Felder liest; sonst sähe der Besucher die Feldmarken. |
 | `knowledge_base_answer_fields_end.md` | **Noch nicht benutzt.** Schlusstext, der **nach** den Texten im Systemprompt stehen muss: Format, Sprache der Frage, Stichwort aus der eigenen Antwort. Ohne ihn antwortet Gemma auf englische Fragen deutsch. |
 
 ## prompts/\_\_init\_\_.py
@@ -56,7 +56,7 @@ Dürfen `domain` und `ports` importieren.
 
 ## answer_fields.py
 
-Liest und prüft Antwort, Stichwort und Folgefragen (Regeln K12, K14, K15, K16, K28 aus
+Liest und prüft Antwort, Stichwort und Folgefragen (Regeln K12, K15, K16, K28 aus
 `docs/backend/antwort-prompt/KRITERIEN.md`). **Noch nicht im Bot**, nur in der Messung und im
 Training der Antworten; der Code-Schritt des Plans „Stichwort und Folgefragen“ baut es ein.
 
@@ -68,8 +68,8 @@ Training der Antworten; der Code-Schritt des Plans „Stichwort und Folgefragen�
 | `read_answer_fields(reply)` | Liest die Felder `antwort`, `stichwort`, `folgefragen` (eine je Zeile, Listenzeichen entfernt). Ohne Feldmarken ist alles die Antwort; fehlt ein Feld, entfällt nur dieses; fehlt `antwort`, gilt der Text vor der ersten Marke. |
 | `_split_fields(reply)` | Text je Feldname bis zur nächsten Marke, unter `""` der Text davor; ohne Marke leer. |
 | `is_fixed_text(answer)` | Ob die Antwort einer der vier festen Texte ist. |
-| `keyword_problem(keyword, answer, question)` | Grund, warum das Stichwort nicht taugt, sonst `None`: mehr als ein Wort, über 20 Zeichen, „Chris“, nicht darstellbar, steht nicht als eigenes Wort in der Antwort, steht schon in der Frage. |
+| `keyword_problem(keyword, answer)` | Grund, warum das Stichwort nicht taugt, sonst `None`: mehr als ein Wort, über 20 Zeichen, „Chris“, nicht darstellbar, steht nicht als eigenes Wort in der Antwort. Ein Wort aus der Frage ist erlaubt (K14 am 03.11. gestrichen). |
 | `suggestion_problem(suggestion, earlier)` | Grund, warum die Folgefrage nicht taugt, sonst `None`: endet nicht mit „?“, nennt „Chris“ nicht als eigenes Wort (also auch nicht „ChrisBot“), über 300 Zeichen, doppelt zu `earlier`. |
-| `checked_answer_fields(fields, question)` | Behält nur, was besteht, höchstens drei Folgefragen in Reihenfolge. Bei festem Text nur die Antwort. |
+| `checked_answer_fields(fields)` | Behält nur, was besteht, höchstens drei Folgefragen in Reihenfolge. Bei festem Text nur die Antwort. |
 | `contains_word(text, word)` | Ob `word` als eigenes Wort in `text` steht (Groß/klein egal, Bindestrich zählt zum Wort). |
 

@@ -1,6 +1,6 @@
 """Antwort, Stichwort und Folgefragen aus der Ausgabe des Modells lesen und prüfen.
 
-Die Regeln stehen in docs/backend/antwort-prompt/KRITERIEN.md (K12, K14, K15, K16, K28) und im
+Die Regeln stehen in docs/backend/antwort-prompt/KRITERIEN.md (K12, K15, K16, K28) und im
 Plan „Stichwort und Folgefragen“ (Format, Q21). Was eine Prüfung nicht besteht, entfällt; die
 Antwort selbst bleibt immer stehen. Der Bot benutzt das noch nicht, die Messung der Antworten schon.
 """
@@ -73,8 +73,9 @@ def is_fixed_text(answer: str) -> bool:
     return answer.strip() in NOT_YET_TEXTS + CANNOT_HELP_TEXTS
 
 
-def keyword_problem(keyword: str, answer: str, question: str) -> str | None:
-    """Warum das Stichwort nicht taugt (K12, K14), oder `None`, wenn es taugt."""
+def keyword_problem(keyword: str, answer: str) -> str | None:
+    """Warum das Stichwort nicht taugt (K12), oder `None`, wenn es taugt. Ein Wort aus der Frage ist
+    erlaubt (K14 gestrichen, 03.11.2026)."""
     if " " in keyword.strip():
         return "mehr als ein Wort"
     if len(keyword) > MAX_KEYWORD_LENGTH:
@@ -85,8 +86,6 @@ def keyword_problem(keyword: str, answer: str, question: str) -> str | None:
         return "nicht darstellbar"
     if not contains_word(answer, keyword):
         return "steht nicht in der Antwort"
-    if contains_word(question, keyword):
-        return "steht schon in der Frage"
     return None
 
 
@@ -104,13 +103,13 @@ def suggestion_problem(suggestion: str, earlier: Sequence[str]) -> str | None:
     return None
 
 
-def checked_answer_fields(fields: AnswerFields, question: str) -> AnswerFields:
+def checked_answer_fields(fields: AnswerFields) -> AnswerFields:
     """Behält vom Stichwort und von den Folgefragen nur, was die Prüfungen besteht, höchstens drei
     Folgefragen. Bei einem festen Text bleibt nur die Antwort (K28)."""
     if is_fixed_text(fields.answer):
         return AnswerFields(fields.answer)
     keyword = fields.keyword
-    if keyword is not None and keyword_problem(keyword, fields.answer, question):
+    if keyword is not None and keyword_problem(keyword, fields.answer):
         keyword = None
     kept: list[str] = []
     for suggestion in fields.suggestions:

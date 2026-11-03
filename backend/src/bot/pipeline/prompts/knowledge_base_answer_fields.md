@@ -49,9 +49,10 @@ Regeln für das Stichwort:
 - Genau ein Wort mit höchstens 20 Buchstaben, Buchstabe für Buchstabe aus deiner Antwort abgeschrieben.
   Bilde kein neues Wort: Steht in der Antwort „Raspberry Pi“, ist das Stichwort „Raspberry“, nicht
   „Raspberry-Pi“; steht dort „leitete ein Team“, ist es nicht „Teamleiter“.
-- Es trägt die wichtigste neue Information der Antwort. Ein Wort, das schon in der Frage steht, ist
-  nie das Stichwort, „Chris“ auch nicht. Meist ist es eine Technologie, eine Tätigkeit, ein Ding oder
-  ein Jahr.
+- Es trägt den wichtigsten Aspekt von Frage und Antwort, nie „Chris“. Ein Wort aus der Frage ist gut,
+  wenn die Antwort genau darüber etwas sagt (Frage nach einer Technologie: diese Technologie). Nennt
+  die Antwort etwas Konkreteres als die Frage, nimm das Konkrete. Meist ist es eine Technologie, eine
+  Tätigkeit, ein Ding oder ein Jahr.
 
 Regeln für die Folgefragen:
 - Höchstens drei. Lieber eine gute Frage als drei mittelmäßige, und keine, wenn der Text nichts mehr

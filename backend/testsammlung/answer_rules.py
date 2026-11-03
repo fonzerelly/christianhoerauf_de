@@ -1,6 +1,6 @@
 """Die festen Regeln für Antworten aus der Wissensbasis (Prüfart „Regel“ in KRITERIEN.md).
 
-Was der Bot-Code verwirft (Stichwort K12/K14, Folgefragen K15/K16), zählt hier als soll-Befund
+Was der Bot-Code verwirft (Stichwort K12, Folgefragen K15/K16), zählt hier als soll-Befund
 „verworfen“; muss ist erst, dass danach nichts übrig bleibt (K32).
 """
 
@@ -39,7 +39,6 @@ _GERMAN_WORDS = re.compile(r"\b(und|der|die|das|ist|bei|er|hat|Warum|Was|Wie|Wan
 _ENGLISH_WORDS = re.compile(r"\b(the|and|is)\b")
 _MARKDOWN_OR_EMOJI = re.compile(r"\*|^#|^\s*[-•]\s|[\U0001F300-\U0001FAFF☀-➿]", re.M)
 _SENTENCE_END = re.compile(r"[.!?](?:\s|$)")
-_KEYWORD_CRITERION = {"steht schon in der Frage": "K14"}
 _SUGGESTION_CRITERION = {"nennt „Chris“ nicht": "K16"}
 
 
@@ -53,9 +52,9 @@ def rule_findings(question: AnswerQuestion, raw: str) -> list[Finding]:
         return findings
     findings.append(_format(raw))
     findings += _form(question, fields.answer, fields.suggestions)
-    findings += _dropped(question, fields.answer, fields.keyword, fields.suggestions)
+    findings += _dropped(fields.answer, fields.keyword, fields.suggestions)
     if question.kind in ANSWERED_KINDS:
-        findings.append(_complete(question.text, fields))
+        findings.append(_complete(fields))
     return findings
 
 
@@ -112,17 +111,12 @@ def _language(language: str, answer: str, suggestions: tuple[str, ...]) -> list[
     return findings
 
 
-def _dropped(
-    question: AnswerQuestion, answer: str, keyword: str | None, suggestions: tuple[str, ...]
-) -> list[Finding]:
+def _dropped(answer: str, keyword: str | None, suggestions: tuple[str, ...]) -> list[Finding]:
     """Was der Bot-Code verwerfen würde, als soll-Befund mit Grund."""
     findings = []
-    problem = keyword_problem(keyword, answer, question.text) if keyword else None
+    problem = keyword_problem(keyword, answer) if keyword else None
     if keyword and problem:
-        criterion = _KEYWORD_CRITERION.get(problem, "K12")
-        findings.append(
-            Finding(criterion, False, False, f"Stichwort „{keyword}“ verworfen: {problem}")
-        )
+        findings.append(Finding("K12", False, False, f"Stichwort „{keyword}“ verworfen: {problem}"))
     kept: list[str] = []
     for suggestion in suggestions:
         problem = suggestion_problem(suggestion, kept)
@@ -138,9 +132,9 @@ def _dropped(
     return findings
 
 
-def _complete(question: str, fields: AnswerFields) -> Finding:
+def _complete(fields: AnswerFields) -> Finding:
     """K32: Nach den Prüfungen bleiben ein Stichwort und mindestens eine Folgefrage."""
-    checked = checked_answer_fields(fields, question)
+    checked = checked_answer_fields(fields)
     missing = []
     if checked.keyword is None:
         missing.append("kein gültiges Stichwort")

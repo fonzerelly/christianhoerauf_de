@@ -46,7 +46,7 @@ def assess(
     Texten. Der Türsteher stuft jede dieser Folgefragen ein (K18). Ohne `judge` oder `gate` entfällt
     der jeweilige Teil. Fällt ein Modell aus, wird das ein Befund, kein Absturz."""
     findings = rule_findings(question, raw)
-    fields = checked_answer_fields(read_answer_fields(raw), question.text)
+    fields = checked_answer_fields(read_answer_fields(raw))
     if not is_fixed_text(fields.answer):
         if judge is not None:
             findings += _judged(judge, question.text, fields)

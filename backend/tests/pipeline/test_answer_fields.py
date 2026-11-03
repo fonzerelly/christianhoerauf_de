@@ -72,7 +72,7 @@ def test_fixed_texts_in_both_languages() -> None:
         ("Musterbau-GmbH-Lagerverwaltungen", "länger als 20 Zeichen"),
         ("Chris", "ist „Chris“"),
         ("Java™", "nicht darstellbar"),
-        ("GmbH", "steht schon in der Frage"),
+        ("Musterbau", None),  # Ein Wort aus der Frage ist erlaubt (K14 gestrichen, 03.11.).
     ],
 )
 def test_keyword_problem(keyword: str, problem: str | None) -> None:
@@ -80,7 +80,7 @@ def test_keyword_problem(keyword: str, problem: str | None) -> None:
         "Chris entwickelte bei der Musterbau GmbH eine Lagerverwaltung in Java™ mit Lager-Software."
     )
 
-    assert keyword_problem(keyword, answer, "Was machte Chris bei der Musterbau GmbH?") == problem
+    assert keyword_problem(keyword, answer) == problem
 
 
 EARLIER = ["Warum wählte Chris Java?"]
@@ -104,7 +104,7 @@ def test_suggestion_problem(suggestion: str, problem: str | None) -> None:
 def test_checked_answer_fields_drops_what_fails_and_keeps_at_most_three() -> None:
     fields = AnswerFields(
         ANSWER,
-        "Musterbau",
+        "Gabelstapler",
         (
             "Warum wählte er Java?",
             "Warum setzte Chris auf Java?",
@@ -114,7 +114,7 @@ def test_checked_answer_fields_drops_what_fails_and_keeps_at_most_three() -> Non
         ),
     )
 
-    checked = checked_answer_fields(fields, "Was machte Chris bei der Musterbau GmbH?")
+    checked = checked_answer_fields(fields)
 
     assert checked == AnswerFields(
         ANSWER,
@@ -130,6 +130,4 @@ def test_checked_answer_fields_drops_what_fails_and_keeps_at_most_three() -> Non
 def test_checked_answer_fields_drops_keyword_and_suggestions_of_a_fixed_text() -> None:
     fields = AnswerFields("Darüber lerne ich gerade noch.", "Rust", ("Kann Chris Rust?",))
 
-    assert checked_answer_fields(fields, "Kann Chris Rust?") == AnswerFields(
-        "Darüber lerne ich gerade noch."
-    )
+    assert checked_answer_fields(fields) == AnswerFields("Darüber lerne ich gerade noch.")
