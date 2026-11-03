@@ -53,3 +53,23 @@ Dürfen `domain` und `ports` importieren.
 | `_decide(question, tag, day)` | 1. Tageszähler hochzählen; über 2.000: feste Antwort. 2. Zwischenspeicher: gleiche Frage heute schon beantwortet, dann diese Antwort. 3. Absicht bestimmen; fällt das Modell aus: „nicht erreichbar“. 4. Reaktion nach `reaction_for`: fester Text oder Gimmick → `intent_answer` in der Sprache der Frage, ohne weiteren Modellaufruf (Ergebnis `fixed_text` bzw. `gimmick`); dazu `gimmick_for(intent)` als `gimmick` der Antwort (bei Flirt, Bild und sexuell ein Objekt, sonst keins); Wissen/Smalltalk/Auftrag, mit Wissensbasis auch Laufbahn → `_answer_with_model` (zählt für die Besuchergrenze von 10). Hat die Reaktion keinen Antwortgeber, heißt das Ergebnis `fixed_text`. |
 | `_answer_with_model(...)` | Besucherzähler hochzählen; über 10: feste Antwort. Den Antwortgeber der Reaktion fragen (allgemein oder Auftrag), mit `check_reply` prüfen; Modellausfall oder leere Antwort: „nicht erreichbar“ (Absicht bleibt im Protokoll). Sonst im Zwischenspeicher ablegen. |
 | `_fixed(kind, language, name, intent)` | Verpackt eine feste Antwort samt Ergebnisname für das Protokoll. |
+
+## answer_fields.py
+
+Liest und prüft Antwort, Stichwort und Folgefragen (Regeln K12, K14, K15, K16, K28 aus
+`docs/backend/antwort-prompt/KRITERIEN.md`). **Noch nicht im Bot**, nur in der Messung und im
+Training der Antworten; der Code-Schritt des Plans „Stichwort und Folgefragen“ baut es ein.
+
+| Name | Was es konkret tut |
+|---|---|
+| `NOT_YET_TEXTS`, `CANNOT_HELP_TEXTS` | Die festen Texte „Darüber lerne ich gerade noch.“ / „I can answer that soon.“ und „Dabei kann ich leider nicht helfen.“ / „I'm afraid I can't help you with that.“. |
+| `MAX_KEYWORD_LENGTH`, `MAX_SUGGESTIONS`, `MAX_SUGGESTION_LENGTH` | 20 Zeichen, 3 Folgefragen, 300 Zeichen. |
+| `AnswerFields(answer, keyword, suggestions)` | Was der Besucher bekommt; `keyword` kann `None`, `suggestions` leer sein. |
+| `read_answer_fields(reply)` | Liest die Felder `antwort`, `stichwort`, `folgefragen` (eine je Zeile, Listenzeichen entfernt). Ohne Feldmarken ist alles die Antwort; fehlt ein Feld, entfällt nur dieses; fehlt `antwort`, gilt der Text vor der ersten Marke. |
+| `_split_fields(reply)` | Text je Feldname bis zur nächsten Marke, unter `""` der Text davor; ohne Marke leer. |
+| `is_fixed_text(answer)` | Ob die Antwort einer der vier festen Texte ist. |
+| `keyword_problem(keyword, answer, question)` | Grund, warum das Stichwort nicht taugt, sonst `None`: mehr als ein Wort, über 20 Zeichen, „Chris“, nicht darstellbar, steht nicht als eigenes Wort in der Antwort, steht schon in der Frage. |
+| `suggestion_problem(suggestion, earlier)` | Grund, warum die Folgefrage nicht taugt, sonst `None`: endet nicht mit „?“, nennt „Chris“ nicht als eigenes Wort (also auch nicht „ChrisBot“), über 300 Zeichen, doppelt zu `earlier`. |
+| `checked_answer_fields(fields, question)` | Behält nur, was besteht, höchstens drei Folgefragen in Reihenfolge. Bei festem Text nur die Antwort. |
+| `contains_word(text, word)` | Ob `word` als eigenes Wort in `text` steht (Groß/klein egal, Bindestrich zählt zum Wort). |
+

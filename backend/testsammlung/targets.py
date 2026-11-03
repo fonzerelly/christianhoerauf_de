@@ -25,6 +25,8 @@ LM_STUDIO_HOSTS: dict[str, LmStudioHost] = {
     "macmini": LmStudioHost("http://192.168.178.91:1234/v1", "google/gemma-4-26b-a4b-qat"),
     "dgx": LmStudioHost("http://192.168.178.60:1235/v1", "google/gemma-4-26b-a4b-qat"),
 }
+# Der Richter, der Antworten und Folgefragen bewertet (Messung und Training der Antworten).
+JUDGE_HOST = LmStudioHost("http://192.168.178.60:1235/v1", "qwen/qwen3.8-27b")
 BEDROCK = "bedrock"
 DEFAULT_TARGET = "macmini"
 MEASUREMENT_TARGETS = (*LM_STUDIO_HOSTS, BEDROCK)
@@ -55,6 +57,19 @@ def build_target_model(
         host = _host(target)
         environ |= {"LLM_BASE_URL": host.url, "LLM_MODEL": host.model, "LLM_AUTH": "none"}
     return language_model(environ, temperature, max_tokens)
+
+
+def build_judge_model(*, timeout_seconds: float, max_tokens: int) -> OpenAiCompatibleModel:
+    """Qwen auf `JUDGE_HOST`: Temperatur 0, ohne Nachdenken (`reasoning_effort` „none“), kein
+    Schlüssel. Ohne Nachdenken urteilt Qwen in etwa 3 s statt 15 s, mit denselben Urteilen."""
+    return OpenAiCompatibleModel(
+        JUDGE_HOST.url,
+        JUDGE_HOST.model,
+        token_provider=None,
+        timeout_seconds=timeout_seconds,
+        temperature=0.0,
+        max_tokens=max_tokens,
+    )
 
 
 def _host(target: str) -> LmStudioHost:

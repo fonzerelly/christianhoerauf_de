@@ -97,6 +97,16 @@ Startet `python -m testsammlung.sampling` und reicht alle Argumente durch: stell
 `testsammlung/wuerfelfragen.yaml` N-mal (Standard 20) mit Temperatur 1 dem Türsteher und druckt je
 Frage, welche Absicht wie oft kam. Schreibt nichts. Auf Bedrock kostet jeder Aufruf; 11 Fragen × 20
 sind unter 10 Cent.
+
+## messe_antworten.sh [--ziel …] [--prompt DATEI] [--schluss DATEI] [--teil lernen|pruefen|alle] [--runden N] [--fragen DATEI] [--aus DATEI]
+
+Startet `python -m testsammlung.answer_measurement`: Gemma auf dem Ziel beantwortet die Fragen
+(Standard: Prüffragen aus `docs/backend/antwort-prompt/fragen_antworten.yaml`, eine Runde) mit dem
+Prompt samt Texten der Wissensbasis und Schlusstext; Qwen auf der DGX bewertet nach
+`KRITERIEN.md`, der Türsteher auf dem Ziel stuft die Folgefragen ein. Druckt mittlere Note,
+verletzte muss-Kriterien, K32, Folgefragen je Antwort und die Fehler je Kriterium; Einzelheiten in
+`versuche/antworten.<ziel>.json`. Mit `--ziel bedrock` kostet es (nur Gemma und Türsteher laufen
+dort, der Richter bleibt auf der DGX).
 ## tuersteher_stand.sh
 
 Startet `python -m testsammlung.fingerprint`: zeigt in einer Sekunde und ohne Netz, ob Training

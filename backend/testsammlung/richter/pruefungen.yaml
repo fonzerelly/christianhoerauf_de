@@ -1,0 +1,20 @@
+# Prüffragen an den Richter (Qwen), Ja heißt bestanden. Wortlaut aus
+# docs/backend/antwort-prompt/KRITERIEN.md, „Was der Richter bekommt“; muss/soll wie dort.
+# K17 und K24 stehen nicht hier, sondern geeicht in k17.md und k24.md.
+
+antwort:
+  - {kriterium: K1, muss: true, frage: "Steht jede Aussage der Antwort in den Texten, ohne Ergänzung, Vermutung oder ausgerechnete Werte?"}
+  - {kriterium: K2, muss: true, frage: "Ist die Antwort frei von Aussagen, die den Texten widersprechen oder etwas bestreiten, das in den Texten steht?"}
+  - {kriterium: K3, muss: true, frage: "Gehört jedes Jahr in der Antwort laut Texten zu genau dem Ereignis, bei dem die Antwort es nennt?"}
+  - {kriterium: K5, muss: false, frage: "Beantwortet die Antwort die gestellte Frage?"}
+  - {kriterium: K9, muss: false, frage: "Steht alles, was laut Texten vorbei ist (bis mit einem Jahr), in der Vergangenheit?"}
+  - {kriterium: K10, muss: false, frage: "Falls die Frage ein Erlebnis mit überraschendem Ende betrifft: Lässt die Antwort das Ende weg?"}
+  - {kriterium: K13, muss: false, frage: "Trägt das Stichwort die wichtigste neue Information der Antwort, die nicht schon in der Frage steckt?"}
+  - {kriterium: K31, muss: true, frage: "Ist die Antwort frei von ganzen Absätzen, die wörtlich aus den Texten übernommen sind?"}
+folgefrage:
+  - {kriterium: K19, muss: true, frage: "Steht die Antwort auf die zu prüfende Folgefrage in den Texten?"}
+  - {kriterium: K20, muss: false, frage: "Fragt sie nach etwas, das weder die Antwort noch die anderen Folgefragen schon abdecken?"}
+  - {kriterium: K21, muss: false, frage: "Stammt die Antwort auf sie aus demselben Text wie die Antwort oder aus einem Erlebnis, das auf diesen Text verweist (station)?"}
+  - {kriterium: K22, muss: false, frage: "Falls sie auf das überraschende Ende eines Erlebnisses zielt: Lässt sie das Ende offen?"}
+  - {kriterium: K23, muss: false, frage: "Würde ein Recruiter, der die Antwort gelesen hat, sie gern anklicken?"}
+  - {kriterium: K25, muss: true, frage: "Ist sie frei von Bezug auf Chris' Familie, und ist ChrisBot nicht der Handelnde?"}

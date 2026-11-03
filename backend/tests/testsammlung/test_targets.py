@@ -8,10 +8,12 @@ from tests.conftest import FakeServer, reply_body
 from testsammlung import targets
 from testsammlung.targets import (
     DEFAULT_TARGET,
+    JUDGE_HOST,
     LM_STUDIO_HOSTS,
     MEASUREMENT_TARGETS,
     TRAINING_TARGETS,
     LmStudioHost,
+    build_judge_model,
     build_target_model,
     model_name,
 )
@@ -75,3 +77,24 @@ def test_bedrock_is_built_like_the_bot_does_with_only_the_timeout_changed(
 def test_an_unknown_target_is_rejected(target: str) -> None:
     with pytest.raises(ValueError, match=f"Unbekanntes Ziel: {target}"):
         build_target_model(target, timeout_seconds=5)
+
+
+def test_the_judge_is_qwen_on_the_dgx_spark() -> None:
+    assert LmStudioHost("http://192.168.178.60:1235/v1", "qwen/qwen3.8-27b") == JUDGE_HOST
+
+
+def test_the_judge_answers_at_temperature_0_without_thinking(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer
+) -> None:
+    monkeypatch.setattr(targets, "JUDGE_HOST", LmStudioHost(server.base_url, "qwen"))
+    server.body = reply_body("URTEIL: JA")
+
+    build_judge_model(timeout_seconds=5, max_tokens=200).complete(
+        [{"role": "user", "content": "?"}]
+    )
+
+    (request,) = server.requests
+    body = request["body"]
+    assert isinstance(body, dict)
+    assert (body["model"], body["temperature"], body["max_tokens"]) == ("qwen", 0.0, 200)
+    assert (body["reasoning_effort"], request["authorization"]) == ("none", None)
