@@ -41,8 +41,9 @@ Dürfen `domain` und `ports` importieren.
 
 | Name | Was es konkret tut |
 |---|---|
-| `GeneralAnswerer(model, system_prompt)` | Beantwortet eine Frage mit einem Modellaufruf; der Bot hat zwei: allgemeine Antwort und Auftrag (`task_answer.md`). |
-| `answer(question)` | Schickt System-Prompt und Frage und gibt den rohen Antworttext zurück (Kürzen übernimmt `check_reply`). `LanguageModelError` geht nach oben. |
+| `date_sentence(day)` | Der Satz mit dem Datum für den Prompt, etwa „Heute ist Donnerstag, der 5. November 2026.“ Wochentag und Monat aus eigenen deutschen Listen (`WEEKDAYS`, `MONTHS`), nicht von der Locale. |
+| `GeneralAnswerer(model, system_prompt, clock=None)` | Beantwortet eine Frage mit einem Modellaufruf; der Bot hat drei: allgemeine Antwort (mit `clock`), Auftrag (`task_answer.md`) und Antwort aus der Wissensbasis. |
+| `answer(question)` | Schickt System-Prompt und Frage und gibt den rohen Antworttext zurück (Kürzen übernimmt `check_reply`). Mit `clock` steht hinter dem Prompt eine Leerzeile und `date_sentence` von heute, damit das Modell etwa ein Alter ausrechnen kann (seit 05.11.2026; vorher verweigerte es „Wie alt ist Linus Torvalds?“). `LanguageModelError` geht nach oben. |
 
 ## bot.py
 

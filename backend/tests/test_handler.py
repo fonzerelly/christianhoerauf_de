@@ -8,9 +8,10 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from bot.adapters.memory_store import MemoryStore
+from bot.adapters.system_clock import SystemClock
 from bot.handler import build_bot, cache_version, handle, language_model
 from bot.pipeline.bot import Bot
-from bot.pipeline.general_answerer import GeneralAnswerer
+from bot.pipeline.general_answerer import GeneralAnswerer, date_sentence
 from bot.pipeline.intent_classifier import IntentClassifier
 from bot.pipeline.prompts import load_intent_program, load_prompt
 from bot.ports.language_model import LanguageModelError
@@ -249,7 +250,10 @@ def test_build_bot_asks_the_gate_with_temperature_0_and_the_answer_without(
     assert isinstance(answer, dict)
     assert gate["messages"][:-1] == list(load_intent_program().messages)
     assert (gate.get("temperature"), gate.get("max_tokens")) == (0.0, 100)
-    assert answer["messages"][0]["content"] == load_prompt("general_answer")
+    today = date_sentence(SystemClock().today())  # die Antwort auf Allgemeines kennt das Datum
+    assert (
+        answer["messages"][0]["content"] == f"{load_prompt('general_answer').rstrip()}\n\n{today}"
+    )
     assert "temperature" not in answer
 
 

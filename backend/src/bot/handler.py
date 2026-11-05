@@ -127,18 +127,18 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
         return language_model(environ, temperature, max_tokens)
 
     knowledge = knowledge_texts(Path(environ.get("WISSENSBASIS_DIR", _PACKAGED_KNOWLEDGE_BASE)))
+    clock = SystemClock()
     knowledge_answerer = (
         GeneralAnswerer(make_model(), load_prompt("knowledge_base_answer") + knowledge)
         if knowledge
         else None
     )
-    clock = SystemClock()
     return Bot(
         IntentClassifier(
             make_model(temperature=GATE_TEMPERATURE, max_tokens=GATE_MAX_TOKENS),
             load_intent_program(),
         ),
-        GeneralAnswerer(make_model(), load_prompt("general_answer")),
+        GeneralAnswerer(make_model(), load_prompt("general_answer"), clock=clock),
         GeneralAnswerer(make_model(), load_prompt("task_answer")),
         DynamoDbStore(
             boto3.client("dynamodb", region_name=region),
