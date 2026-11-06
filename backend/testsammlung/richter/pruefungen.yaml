@@ -9,7 +9,8 @@ antwort:
   - {kriterium: K5, muss: false, frage: "Beantwortet die Antwort die gestellte Frage?"}
   - {kriterium: K9, muss: false, frage: "Steht alles, was laut Texten vorbei ist (bis mit einem Jahr), in der Vergangenheit?"}
   - {kriterium: K10, muss: false, frage: "Falls die Frage ein Erlebnis mit überraschendem Ende betrifft: Lässt die Antwort das Ende weg?"}
-  - {kriterium: K13, muss: false, frage: "Trägt das Stichwort den wichtigsten Aspekt von Frage und Antwort? Ein Wort aus der Frage ist gut, wenn die Antwort genau darüber etwas sagt (Frage nach Kafka, Stichwort „Kafka“). Ein Oberbegriff aus der Frage ist schlecht, wenn die Antwort etwas Konkreteres nennt (Frage nach Vorträgen, Stichwort „Vorträge“ statt eines Vortragstitels)."}
+  - {kriterium: K13, muss: false, frage: "Trägt das Stichwort den wichtigsten Aspekt von Frage und Antwort? Hat die Antwort ein klares Thema, ist es dieses, oft ein Wort aus Frage oder Antwort (Frage nach Kafka, Stichwort „Kafka“). Zählt die Antwort mehrere gleichrangige Dinge auf, etwa die Tätigkeiten bei einer Firma oder mehrere Vorträge, ist ein Oberbegriff gut (bei einer Firma „Navigon Highlights“, bei Vorträgen „Vorträge“); ein einzelnes Wort aus der Aufzählung ist dann schlecht."}
+  - {kriterium: K33, muss: true, frage: "Behauptet das Stichwort nichts, was die Antwort nicht sagt, und fällt es kein Urteil über Chris (etwa „Good Fit“ oder „Top-Entwickler“)?"}
   - {kriterium: K31, muss: true, frage: "Ist die Antwort frei von ganzen Absätzen, die wörtlich aus den Texten übernommen sind?"}
 folgefrage:
   - {kriterium: K19, muss: true, frage: "Steht die Antwort auf die zu prüfende Folgefrage in den Texten?"}

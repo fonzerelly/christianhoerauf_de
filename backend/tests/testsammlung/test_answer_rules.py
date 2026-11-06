@@ -29,11 +29,11 @@ def test_a_good_answer_passes_every_rule() -> None:
 
 def test_dropped_keyword_and_suggestions_are_should_findings_and_k32_needs_what_remains() -> None:
     findings = rule_findings(
-        QUESTION, reply(ANSWER, "Gabelstapler", ("Warum wählte er Java?", "Was tat Chris"))
+        QUESTION, reply(ANSWER, "Chris Highlights", ("Warum wählte er Java?", "Was tat Chris"))
     )
 
     assert failed(findings) == [
-        ("K12", False, "Stichwort „Gabelstapler“ verworfen: steht nicht in der Antwort"),
+        ("K12", False, "Stichwort „Chris Highlights“ verworfen: enthält „Chris“"),
         ("K16", False, "Folgefrage „Warum wählte er Java?“ verworfen: nennt „Chris“ nicht"),
         ("K15", False, "Folgefrage „Was tat Chris“ verworfen: endet nicht mit „?“"),
         ("K32", True, "kein gültiges Stichwort, keine gültige Folgefrage"),

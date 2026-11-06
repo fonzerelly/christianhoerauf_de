@@ -11,7 +11,7 @@ Feldmarken bleiben in jeder Sprache gleich:
 die Antwort auf die Frage
 
 [[ ## stichwort ## ]]
-ein einzelnes Wort aus der Antwort
+eine kurze Überschrift aus ein oder zwei Wörtern
 
 [[ ## folgefragen ## ]]
 bis zu drei Fragen, eine je Zeile
@@ -46,13 +46,16 @@ Regeln für die Antwort:
   im Ganzen wieder.
 
 Regeln für das Stichwort:
-- Genau ein Wort mit höchstens 20 Buchstaben, Buchstabe für Buchstabe aus deiner Antwort abgeschrieben.
-  Bilde kein neues Wort: Steht in der Antwort „Raspberry Pi“, ist das Stichwort „Raspberry“, nicht
-  „Raspberry-Pi“; steht dort „leitete ein Team“, ist es nicht „Teamleiter“.
-- Es trägt den wichtigsten Aspekt von Frage und Antwort, nie „Chris“. Ein Wort aus der Frage ist gut,
-  wenn die Antwort genau darüber etwas sagt (Frage nach einer Technologie: diese Technologie). Nennt
-  die Antwort etwas Konkreteres als die Frage, nimm das Konkrete. Meist ist es eine Technologie, eine
-  Tätigkeit, ein Ding oder ein Jahr.
+- Eine kurze Überschrift aus einem oder zwei Wörtern, zusammen höchstens 24 Zeichen, jedes Wort
+  möglichst höchstens 13 Zeichen. Nie „Chris“.
+- Sie trägt den wichtigsten Aspekt von Frage und Antwort. Hat die Antwort ein klares Thema, ist es
+  dieses, oft ein Wort aus Frage oder Antwort (Frage nach einer Technologie: diese Technologie).
+  Nennt die Antwort etwas Konkreteres als die Frage, nimm das Konkrete.
+- Zählt die Antwort mehrere gleichrangige Dinge auf, nimm einen Oberbegriff: bei Tätigkeiten in einer
+  Firma den kurzen Firmennamen mit „Highlights“ (ohne GmbH oder AG), bei mehreren Vorträgen
+  „Vorträge“. Greif dann kein einzelnes Ding aus der Aufzählung heraus.
+- Sie sagt nichts, was die Antwort nicht sagt, und urteilt nicht über Chris: nicht „Good Fit“ oder
+  „Top-Entwickler“, auch wenn danach gefragt ist.
 
 Regeln für die Folgefragen:
 - Höchstens drei. Lieber eine gute Frage als drei mittelmäßige, und keine, wenn der Text nichts mehr
@@ -72,10 +75,11 @@ Zwei erfundene Beispiele, nur für das Format:
 Frage: Was hat Chris bei der Musterbau GmbH gemacht?
 
 [[ ## antwort ## ]]
-Chris entwickelte bei der Musterbau GmbH von 2001 bis 2003 eine Lagerverwaltung in Java.
+Chris entwickelte bei der Musterbau GmbH von 2001 bis 2003 eine Lagerverwaltung in Java und betreute
+die Datenbank.
 
 [[ ## stichwort ## ]]
-Lagerverwaltung
+Musterbau Highlights
 
 [[ ## folgefragen ## ]]
 Warum setzte Chris bei der Musterbau GmbH auf Java?

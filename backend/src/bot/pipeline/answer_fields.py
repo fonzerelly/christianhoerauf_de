@@ -14,7 +14,10 @@ CANNOT_HELP_TEXTS = (
     "Dabei kann ich leider nicht helfen.",
     "I'm afraid I can't help you with that.",
 )
-MAX_KEYWORD_LENGTH = 20
+# Das Stichwort ist eine kurze Überschrift (06.11.2026): bis zu zwei Wörter; was im Labyrinth nicht
+# in eine Zeile passt, kürzt das Frontend.
+MAX_KEYWORD_WORDS = 2
+MAX_KEYWORD_LENGTH = 24
 MAX_SUGGESTIONS = 3
 MAX_SUGGESTION_LENGTH = 300
 
@@ -73,19 +76,19 @@ def is_fixed_text(answer: str) -> bool:
     return answer.strip() in NOT_YET_TEXTS + CANNOT_HELP_TEXTS
 
 
-def keyword_problem(keyword: str, answer: str) -> str | None:
-    """Warum das Stichwort nicht taugt (K12), oder `None`, wenn es taugt. Ein Wort aus der Frage ist
-    erlaubt (K14 gestrichen, 03.11.2026)."""
-    if " " in keyword.strip():
-        return "mehr als ein Wort"
+def keyword_problem(keyword: str) -> str | None:
+    """Warum das Stichwort nicht taugt (K12), oder `None`, wenn es taugt. Seit 06.11.2026 eine kurze
+    Überschrift, die nicht wörtlich in der Antwort stehen muss; ob sie zur Antwort passt, prüft der
+    Richter (K13, K33)."""
+    words = keyword.split()
+    if len(words) > MAX_KEYWORD_WORDS:
+        return "mehr als zwei Wörter"
     if len(keyword) > MAX_KEYWORD_LENGTH:
         return f"länger als {MAX_KEYWORD_LENGTH} Zeichen"
-    if keyword.lower() == "chris":
-        return "ist „Chris“"
-    if not _DISPLAYABLE.fullmatch(keyword):
+    if contains_word(keyword, "Chris"):
+        return "enthält „Chris“"
+    if not all(_DISPLAYABLE.fullmatch(word) for word in words):
         return "nicht darstellbar"
-    if not contains_word(answer, keyword):
-        return "steht nicht in der Antwort"
     return None
 
 
@@ -109,7 +112,7 @@ def checked_answer_fields(fields: AnswerFields) -> AnswerFields:
     if is_fixed_text(fields.answer):
         return AnswerFields(fields.answer)
     keyword = fields.keyword
-    if keyword is not None and keyword_problem(keyword, fields.answer):
+    if keyword is not None and keyword_problem(keyword):
         keyword = None
     kept: list[str] = []
     for suggestion in fields.suggestions:

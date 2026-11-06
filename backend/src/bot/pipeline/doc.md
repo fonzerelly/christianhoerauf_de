@@ -64,12 +64,12 @@ Training der Antworten; der Code-Schritt des Plans „Stichwort und Folgefragen�
 | Name | Was es konkret tut |
 |---|---|
 | `NOT_YET_TEXTS`, `CANNOT_HELP_TEXTS` | Die festen Texte „Darüber lerne ich gerade noch.“ / „I can answer that soon.“ und „Dabei kann ich leider nicht helfen.“ / „I'm afraid I can't help you with that.“. |
-| `MAX_KEYWORD_LENGTH`, `MAX_SUGGESTIONS`, `MAX_SUGGESTION_LENGTH` | 20 Zeichen, 3 Folgefragen, 300 Zeichen. |
+| `MAX_KEYWORD_WORDS`, `MAX_KEYWORD_LENGTH`, `MAX_SUGGESTIONS`, `MAX_SUGGESTION_LENGTH` | 2 Wörter und 24 Zeichen für das Stichwort (seit 06.11.2026; vorher 1 Wort, 20 Zeichen), 3 Folgefragen, 300 Zeichen. |
 | `AnswerFields(answer, keyword, suggestions)` | Was der Besucher bekommt; `keyword` kann `None`, `suggestions` leer sein. |
 | `read_answer_fields(reply)` | Liest die Felder `antwort`, `stichwort`, `folgefragen` (eine je Zeile, Listenzeichen entfernt). Ohne Feldmarken ist alles die Antwort; fehlt ein Feld, entfällt nur dieses; fehlt `antwort`, gilt der Text vor der ersten Marke. |
 | `_split_fields(reply)` | Text je Feldname bis zur nächsten Marke, unter `""` der Text davor; ohne Marke leer. |
 | `is_fixed_text(answer)` | Ob die Antwort einer der vier festen Texte ist. |
-| `keyword_problem(keyword, answer)` | Grund, warum das Stichwort nicht taugt, sonst `None`: mehr als ein Wort, über 20 Zeichen, „Chris“, nicht darstellbar, steht nicht als eigenes Wort in der Antwort. Ein Wort aus der Frage ist erlaubt (K14 am 03.11. gestrichen). |
+| `keyword_problem(keyword)` | Grund, warum das Stichwort nicht taugt, sonst `None`: mehr als zwei Wörter, über 24 Zeichen, enthält „Chris“ als eigenes Wort („ChrisBot“ ist erlaubt), ein Wort nicht darstellbar. Seit 06.11.2026 eine kurze Überschrift, die nicht in der Antwort stehen muss; ob sie passt, prüft der Richter (K13, K33). |
 | `suggestion_problem(suggestion, earlier)` | Grund, warum die Folgefrage nicht taugt, sonst `None`: endet nicht mit „?“, nennt „Chris“ nicht als eigenes Wort (also auch nicht „ChrisBot“), über 300 Zeichen, doppelt zu `earlier`. |
 | `checked_answer_fields(fields)` | Behält nur, was besteht, höchstens drei Folgefragen in Reihenfolge. Bei festem Text nur die Antwort. |
 | `contains_word(text, word)` | Ob `word` als eigenes Wort in `text` steht (Groß/klein egal, Bindestrich zählt zum Wort). |

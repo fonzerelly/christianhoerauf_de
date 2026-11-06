@@ -65,22 +65,19 @@ def test_fixed_texts_in_both_languages() -> None:
     ("keyword", "problem"),
     [
         ("Lagerverwaltung", None),
-        ("Java", None),
-        ("Lager verwaltung", "mehr als ein Wort"),
-        ("Gabelstapler", "steht nicht in der Antwort"),
-        ("Lager", "steht nicht in der Antwort"),
-        ("Musterbau-GmbH-Lagerverwaltungen", "länger als 20 Zeichen"),
-        ("Chris", "ist „Chris“"),
+        ("Musterbau Highlights", None),  # Überschrift aus zwei Wörtern (06.11.)
+        ("Gabelstapler", None),  # Muss nicht in der Antwort stehen (06.11.).
+        ("ChrisBot", None),
+        ("Lager Java Highlights", "mehr als zwei Wörter"),
+        ("Lagerverwaltungen Highlight", "länger als 24 Zeichen"),
+        ("Chris", "enthält „Chris“"),
+        ("Chris Highlights", "enthält „Chris“"),
         ("Java™", "nicht darstellbar"),
-        ("Musterbau", None),  # Ein Wort aus der Frage ist erlaubt (K14 gestrichen, 03.11.).
+        ("Java™ Highlights", "nicht darstellbar"),
     ],
 )
 def test_keyword_problem(keyword: str, problem: str | None) -> None:
-    answer = (
-        "Chris entwickelte bei der Musterbau GmbH eine Lagerverwaltung in Java™ mit Lager-Software."
-    )
-
-    assert keyword_problem(keyword, answer) == problem
+    assert keyword_problem(keyword) == problem
 
 
 EARLIER = ["Warum wählte Chris Java?"]
@@ -104,7 +101,7 @@ def test_suggestion_problem(suggestion: str, problem: str | None) -> None:
 def test_checked_answer_fields_drops_what_fails_and_keeps_at_most_three() -> None:
     fields = AnswerFields(
         ANSWER,
-        "Gabelstapler",
+        "Chris Highlights",
         (
             "Warum wählte er Java?",
             "Warum setzte Chris auf Java?",

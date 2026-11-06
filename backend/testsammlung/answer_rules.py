@@ -52,7 +52,7 @@ def rule_findings(question: AnswerQuestion, raw: str) -> list[Finding]:
         return findings
     findings.append(_format(raw))
     findings += _form(question, fields.answer, fields.suggestions)
-    findings += _dropped(fields.answer, fields.keyword, fields.suggestions)
+    findings += _dropped(fields.keyword, fields.suggestions)
     if question.kind in ANSWERED_KINDS:
         findings.append(_complete(fields))
     return findings
@@ -111,10 +111,10 @@ def _language(language: str, answer: str, suggestions: tuple[str, ...]) -> list[
     return findings
 
 
-def _dropped(answer: str, keyword: str | None, suggestions: tuple[str, ...]) -> list[Finding]:
+def _dropped(keyword: str | None, suggestions: tuple[str, ...]) -> list[Finding]:
     """Was der Bot-Code verwerfen würde, als soll-Befund mit Grund."""
     findings = []
-    problem = keyword_problem(keyword, answer) if keyword else None
+    problem = keyword_problem(keyword) if keyword else None
     if keyword and problem:
         findings.append(Finding("K12", False, False, f"Stichwort „{keyword}“ verworfen: {problem}"))
     kept: list[str] = []
