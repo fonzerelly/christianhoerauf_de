@@ -2,10 +2,10 @@ from bot.domain.intent import Intent
 from bot.domain.reaction import ReactionKind, reaction_for
 
 
-def test_the_model_answers_freely_only_knowledge_and_smalltalk() -> None:
+def test_the_model_answers_freely_only_knowledge_smalltalk_and_live_data() -> None:
     free = [intent for intent in Intent if reaction_for(intent) is ReactionKind.GENERAL_ANSWER]
 
-    assert free == [Intent.KNOWLEDGE, Intent.SMALLTALK]
+    assert free == [Intent.KNOWLEDGE, Intent.SMALLTALK, Intent.LIVE_DATA]
 
 
 def test_a_task_gets_its_own_model_prompt() -> None:
@@ -30,7 +30,6 @@ def test_every_other_intent_gets_a_fixed_text() -> None:
     assert fixed == {
         Intent.BOT,
         Intent.ADVICE,
-        Intent.LIVE_DATA,
         Intent.POLITICS,
         Intent.PRIVATE,
         Intent.CONTACT,

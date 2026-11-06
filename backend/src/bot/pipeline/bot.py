@@ -126,7 +126,9 @@ class Bot:
             reply = ""
         if not reply:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable", intent)
-        self._store.write(cache_key(question, day, self._cache_version), reply)
+        # Die allgemeine Antwort kennt die Uhrzeit und veraltet deshalb; sie ist kurz und billig.
+        if reaction is not ReactionKind.GENERAL_ANSWER:
+            self._store.write(cache_key(question, day, self._cache_version), reply)
         return _Outcome(Answer(text=reply), "answered", intent)
 
     @staticmethod

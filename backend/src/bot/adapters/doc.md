@@ -43,6 +43,7 @@ Anschlüsse der Schnittstellen aus `ports/` an AWS, LM Studio und Dateien. Dürf
 | Name | Was es konkret tut |
 |---|---|
 | `SystemClock.today()` | Heutiges Datum in UTC. |
+| `SystemClock.now()` | Datum und Uhrzeit jetzt in deutscher Zeit (`GERMAN_TIME`, Europe/Berlin, mit Sommer- und Winterzeit aus dem Paket `tzdata`). Nur für den Prompt der allgemeinen Antwort; Zähler und Zwischenspeicher bleiben bei `today()` in UTC. |
 | `SystemClock.seconds()` | `time.monotonic()`. |
 
 ## json_log.py

@@ -78,8 +78,8 @@ class Setup:
         return self.store.increment(visitor_counter_key(visitor_tag(IP, SECRET, DAY), DAY))
 
 
-@pytest.mark.parametrize("intent", [Intent.KNOWLEDGE, Intent.SMALLTALK])
-def test_knowledge_and_smalltalk_are_answered_by_the_model(intent: Intent) -> None:
+@pytest.mark.parametrize("intent", [Intent.KNOWLEDGE, Intent.SMALLTALK, Intent.LIVE_DATA])
+def test_knowledge_smalltalk_and_live_data_are_answered_by_the_model(intent: Intent) -> None:
     setup = Setup([intent], ["Canberra."])
 
     answer = setup.bot.ask("Hauptstadt von Australien?", IP)
@@ -150,14 +150,24 @@ def test_unreadable_gate_reply_is_treated_as_gibberish_not_refused() -> None:
 
 
 def test_same_question_again_comes_from_the_cache_without_model_calls() -> None:
-    setup = Setup([Intent.KNOWLEDGE], ["Canberra."])
-    setup.bot.ask("Hauptstadt von Australien?", IP)
+    setup = Setup([Intent.TASK], task_answers=["Ein Gedicht."])
+    setup.bot.ask("Schreib ein Gedicht!", IP)
 
-    answer = setup.bot.ask("  hauptstadt VON australien? ", "198.51.100.1")
+    answer = setup.bot.ask("  schreib EIN gedicht! ", "198.51.100.1")
 
-    assert answer.text == "Canberra."
+    assert answer.text == "Ein Gedicht."
     assert len(setup.intent_model.calls) == 1
-    assert len(setup.answer_model.calls) == 1
+    assert len(setup.task_model.calls) == 1
+
+
+def test_general_answers_are_not_cached_because_they_know_the_time() -> None:
+    setup = Setup([Intent.LIVE_DATA, Intent.LIVE_DATA], ["Es ist 14:30 Uhr.", "Es ist 14:31 Uhr."])
+    setup.bot.ask("Wie spät ist es?", IP)
+
+    answer = setup.bot.ask("Wie spät ist es?", IP)
+
+    assert answer.text == "Es ist 14:31 Uhr."
+    assert setup.store.read(cache_key("Wie spät ist es?", DAY)) is None
 
 
 def test_daily_limit_gives_the_fixed_answer_before_any_model_call() -> None:
@@ -291,7 +301,7 @@ def test_log_marks_cache_and_limit_outcomes() -> None:
 
 
 def test_answers_cached_by_an_earlier_rollout_are_not_used() -> None:
-    setup = Setup([Intent.KNOWLEDGE], ["Neu."], cache_version="neu")
+    setup = Setup([Intent.TASK], task_answers=["Neu."], cache_version="neu")
     setup.store.write(cache_key("Frage?", DAY, version="alt"), "Alt.")
 
     assert setup.bot.ask("Frage?", IP).text == "Neu."

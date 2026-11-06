@@ -16,10 +16,6 @@ EXPECTED: dict[Intent, tuple[str, str]] = {
         "I'm afraid I can't help you with that. Please ask a professional. If you are in "
         "crisis, please contact a local crisis line or emergency services.",
     ),
-    Intent.LIVE_DATA: (
-        "Aktuelle Daten wie Wetter oder Kurse kann ich nicht abrufen.",
-        "I can't look up live data like the weather or stock prices.",
-    ),
     Intent.POLITICS: ("Das gehört nicht hierher.", "I won't talk about that topic."),
     Intent.CAREER: ("Darüber lerne ich gerade noch.", "I can answer that soon."),
     Intent.PRIVATE: (
@@ -66,7 +62,9 @@ def test_every_intent_without_a_model_answer_has_a_text() -> None:
     assert set(EXPECTED) == {i for i in Intent if reaction_for(i) not in model_kinds}
 
 
-@pytest.mark.parametrize("intent", [Intent.KNOWLEDGE, Intent.SMALLTALK, Intent.TASK])
+@pytest.mark.parametrize(
+    "intent", [Intent.KNOWLEDGE, Intent.SMALLTALK, Intent.LIVE_DATA, Intent.TASK]
+)
 def test_intents_answered_by_the_model_have_no_fixed_text(intent: Intent) -> None:
     with pytest.raises(ValueError, match=intent.value):
         intent_answer(intent, "de")

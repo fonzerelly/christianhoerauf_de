@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -8,10 +9,9 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from bot.adapters.memory_store import MemoryStore
-from bot.adapters.system_clock import SystemClock
 from bot.handler import build_bot, cache_version, handle, language_model
 from bot.pipeline.bot import Bot
-from bot.pipeline.general_answerer import GeneralAnswerer, date_sentence
+from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
 from bot.pipeline.prompts import load_intent_program, load_prompt
 from bot.ports.language_model import LanguageModelError
@@ -250,10 +250,10 @@ def test_build_bot_asks_the_gate_with_temperature_0_and_the_answer_without(
     assert isinstance(answer, dict)
     assert gate["messages"][:-1] == list(load_intent_program().messages)
     assert (gate.get("temperature"), gate.get("max_tokens")) == (0.0, 100)
-    today = date_sentence(SystemClock().today())  # die Antwort auf Allgemeines kennt das Datum
-    assert (
-        answer["messages"][0]["content"] == f"{load_prompt('general_answer').rstrip()}\n\n{today}"
-    )
+    # Hinter dem Prompt stehen Datum und Uhrzeit von jetzt; die Minute kann im Test wechseln.
+    prompt, now = answer["messages"][0]["content"].rsplit("\n\n", 1)
+    assert prompt == load_prompt("general_answer").rstrip()
+    assert re.fullmatch(r"Heute ist \w+, der \d+\. \w+ \d{4}, es ist \d+:\d\d Uhr\.", now)
     assert "temperature" not in answer
 
 

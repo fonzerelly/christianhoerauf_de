@@ -16,6 +16,9 @@ class ReactionKind(Enum):
 _SPECIAL_REACTIONS = {
     Intent.KNOWLEDGE: ReactionKind.GENERAL_ANSWER,
     Intent.SMALLTALK: ReactionKind.GENERAL_ANSWER,
+    # Seit 06.11.2026: Die allgemeine Antwort kennt Datum und Uhrzeit und sagt selbst, wenn sie
+    # etwas wie Wetter oder Kurse nicht weiß (Messung auf der DGX, 05.11.).
+    Intent.LIVE_DATA: ReactionKind.GENERAL_ANSWER,
     Intent.TASK: ReactionKind.TASK_ANSWER,
     Intent.CAREER: ReactionKind.KNOWLEDGE_BASE_ANSWER,
     Intent.FLIRT: ReactionKind.GIMMICK,

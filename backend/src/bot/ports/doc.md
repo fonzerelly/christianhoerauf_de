@@ -23,6 +23,7 @@ Schnittstellen zur Außenwelt. Importiert nur `domain`. Sprachmodell, Zähler-Sp
 | Name | Was es konkret tut |
 |---|---|
 | `Clock.today()` | Das heutige Datum (bestimmt Tageszähler, Tagessalz, Zwischenspeicher). |
+| `Clock.now()` | Datum und Uhrzeit jetzt, mit Zeitzone (für den Satz mit Datum und Uhrzeit im Prompt der allgemeinen Antwort). |
 | `Clock.seconds()` | Sekunden zum Messen von Dauern. |
 
 ## log.py

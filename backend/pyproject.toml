@@ -9,6 +9,8 @@ dependencies = [
     "boto3==1.43.108",
     # Liest varianten.yaml und die Kopfteile der Wissensbasis für den Lebenslauf-Endpunkt.
     "pyyaml==6.0.3",
+    # Zeitzone Europe/Berlin für die Uhrzeit im Prompt; das Lambda-Image hat keine sichere Zeitzonen-Datenbank.
+    "tzdata==2026.5",
 ]
 
 [dependency-groups]

@@ -1,7 +1,7 @@
 """Attrappen für die Schnittstellen (ports), nur für Tests."""
 
 from collections.abc import Mapping, Sequence
-from datetime import date
+from datetime import date, datetime
 
 from bot.ports.language_model import LanguageModelError, Message
 
@@ -27,15 +27,25 @@ def failing_model() -> FakeLanguageModel:
 
 
 class FakeClock:
-    """Feste Uhr: `today()` bleibt gleich, `seconds()` springt bei jedem Aufruf um `step` weiter."""
+    """Feste Uhr: `today()` und `now()` bleiben gleich, `seconds()` springt bei jedem Aufruf um
+    `step` weiter."""
 
-    def __init__(self, today: date = date(2026, 10, 22), step: float = 0.5) -> None:
+    def __init__(
+        self,
+        today: date = date(2026, 10, 22),
+        step: float = 0.5,
+        now: datetime = datetime(2026, 10, 22, 12, 0),
+    ) -> None:
         self._today = today
         self._step = step
+        self._now = now
         self._seconds = 100.0
 
     def today(self) -> date:
         return self._today
+
+    def now(self) -> datetime:
+        return self._now
 
     def seconds(self) -> float:
         self._seconds += self._step
