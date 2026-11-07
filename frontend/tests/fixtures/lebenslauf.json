@@ -1,0 +1,75 @@
+{
+  "abschnitte": [
+    {
+      "name": "beruf",
+      "titel": "Beruf",
+      "eintraege": [
+        {
+          "zeit": "10/2020 – heute",
+          "titel": "Entwicklerin",
+          "organisation": "Beispiel AG",
+          "stichpunkte": ["Datenstrecke mit Kafka", "Neues Frontend"]
+        },
+        {
+          "zeit": "2014 – 09/2020",
+          "titel": "Beraterin",
+          "organisation": "Muster Software AG",
+          "stichpunkte": ["Prozess-Reviews"]
+        }
+      ]
+    },
+    {
+      "name": "lehre",
+      "titel": "Lehre",
+      "eintraege": [
+        {
+          "zeit": "2022 – heute",
+          "titel": "Lehrauftrag Programmieren",
+          "organisation": "Hochschule Beispiel",
+          "stichpunkte": []
+        }
+      ]
+    },
+    {
+      "name": "studium",
+      "titel": "Studium",
+      "eintraege": [
+        {
+          "zeit": "2008 – 2013",
+          "titel": "Informatik",
+          "organisation": "Universität Musterstadt",
+          "stichpunkte": ["Abschluss als Diplom-Informatikerin"]
+        },
+        {
+          "zeit": "2016 – 2019",
+          "titel": "Mathematik, berufsbegleitend",
+          "organisation": "Fernhochschule Beispiel",
+          "stichpunkte": []
+        }
+      ]
+    },
+    {
+      "name": "zivildienst",
+      "titel": "Freiwilligendienst",
+      "eintraege": [
+        {
+          "zeit": "2007",
+          "titel": "Freiwilliges Jahr",
+          "organisation": "ehrenamtlich",
+          "stichpunkte": []
+        }
+      ]
+    },
+    {
+      "name": "projekte",
+      "titel": "Projekte",
+      "eintraege": [
+        {
+          "titel": "Ein Beispielprojekt",
+          "link": null,
+          "text": "Ausgedacht, für Tests."
+        }
+      ]
+    }
+  ]
+}

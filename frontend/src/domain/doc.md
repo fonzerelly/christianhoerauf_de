@@ -4,13 +4,14 @@ Der fachliche Kern: Schrift, Textumbruch, Labyrinth und Routenplanung. Er kennt 
 noch Uhr noch `Math.random`; Zufall kommt über `RandomSource`. Der Architekturtest stellt
 sicher, dass `domain` nur aus `domain` importiert.
 
-| Ordner      | Inhalt                                                              |
-| ----------- | ------------------------------------------------------------------- |
-| `random/`   | Zufallsquelle mit Startwert und Auswahlfunktionen.                  |
-| `font/`     | Die Schrift: Wege der Zeichen.                                      |
-| `text/`     | Text aufbereiten, Trennstellen, Silbentrennung, Zeilenumbruch.      |
-| `picture/`  | Die Bilder der Gimmicks: Herz und Smiley mit der Hand vor dem Mund. |
-| `greeting/` | Persönlicher Link und Begrüßung (Stichwort und Text).               |
+| Ordner      | Inhalt                                                                             |
+| ----------- | ---------------------------------------------------------------------------------- |
+| `random/`   | Zufallsquelle mit Startwert und Auswahlfunktionen.                                 |
+| `font/`     | Die Schrift: Wege der Zeichen.                                                     |
+| `text/`     | Text aufbereiten, Trennstellen, Silbentrennung, Zeilenumbruch.                     |
+| `picture/`  | Die Bilder der Gimmicks: Herz und Smiley mit der Hand vor dem Mund.                |
+| `greeting/` | Persönlicher Link und Begrüßung (Stichwort und Text).                              |
+| `cv/`       | Lebenslauf: Zeiträume, Stationen und Engagements, Beschriftungen, Einstiegsfragen. |
 
 ## lists.ts
 

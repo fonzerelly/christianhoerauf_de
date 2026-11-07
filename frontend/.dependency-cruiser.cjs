@@ -31,7 +31,7 @@ const noOrphans = recommended("no-orphans");
 
 /** Alle Schichten außer den genannten, als regulärer Ausdruck für "path". */
 function layersExcept(...allowed) {
-  const layers = ["domain", "animation", "rendering", "answering", "sound", "ui", "config"];
+  const layers = ["domain", "animation", "rendering", "answering", "cv", "sound", "ui", "config"];
   const forbidden = layers.filter((layer) => !allowed.includes(layer));
   return `^src/(${forbidden.join("|")})/`;
 }
@@ -63,6 +63,13 @@ module.exports = {
       severity: "error",
       from: { path: "^src/answering/" },
       to: { path: layersExcept("answering", "domain", "config") },
+    },
+    {
+      name: "cv-uses-domain-only",
+      comment: "Der Lebenslauf-Adapter liest /lebenslauf und kennt nur die Domäne.",
+      severity: "error",
+      from: { path: "^src/cv/" },
+      to: { path: layersExcept("cv", "domain", "config") },
     },
     {
       name: "sound-uses-domain-only",
