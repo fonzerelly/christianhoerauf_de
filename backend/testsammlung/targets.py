@@ -27,6 +27,8 @@ LM_STUDIO_HOSTS: dict[str, LmStudioHost] = {
 }
 # Der Richter, der Antworten und Folgefragen bewertet (Messung und Training der Antworten).
 JUDGE_HOST = LmStudioHost("http://192.168.178.60:1235/v1", "qwen/qwen3.8-27b")
+# Kev (kev-4b), das Entscheidungsmodell: vergleicht in der Messung das Stichwort mit den Sollwerten.
+KEV_URL = "http://192.168.178.60:1235/v1/systemone"
 BEDROCK = "bedrock"
 DEFAULT_TARGET = "macmini"
 MEASUREMENT_TARGETS = (*LM_STUDIO_HOSTS, BEDROCK)

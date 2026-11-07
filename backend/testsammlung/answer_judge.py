@@ -2,7 +2,8 @@
 
 K17 und K24 sieht er nur mit der Folgefrage, wie ein Besucher, der sie anklickt, ohne die Antwort
 gelesen zu haben. Beide Prompts sind an Christians Urteilen über 90 Folgefragen geeicht
-(docs/backend/antwort-prompt/eichung_richter.json, 03.11.2026): K17 trifft 82 von 85 Urteilen
+(docs/backend/antwort-prompt/eichung_richter.yaml, 03.11.2026; nachprüfbar mit
+scripts/eiche_richter.sh): K17 trifft 82 von 85 Urteilen
 (seit ein Firmenname genügt), K24 85 von 90. Einige Beispiele im Prompt stammen aus diesen
 Fragen. Die Prompts stehen in `richter/k17.md` und `richter/k24.md`; nicht ohne neue Eichung
 ändern.

@@ -108,6 +108,21 @@ verletzte muss-Kriterien, K32, Folgefragen je Antwort und die Fehler je Kriteriu
 `versuche/antworten.<ziel>.json`. Mit `--ziel bedrock` kostet es (nur Gemma und Türsteher laufen
 dort, der Richter bleibt auf der DGX).
 
+## eiche_richter.sh, eiche_stichwort.sh, pruefe_sollwerte.sh
+
+Starten `python -m testsammlung.calibration` mit dem Unterbefehl `richter`, `stichwort` oder
+`sollwerte` und prüfen, ob die Modelle wie Christian urteilen:
+
+- `eiche_richter.sh`: Qwen (DGX) beurteilt die 90 Folgefragen aus `eichung_richter.yaml` nach K17
+  und K24. Druckt die Übereinstimmung mit Christian und jede Abweichung. Etwa 6 Minuten.
+- `eiche_stichwort.sh`: Qwen beurteilt die 49 Stichwörter aus `eichung_stichwort.yaml` nach K13,
+  mit der Wissensbasis wie in der Messung. Etwa 3 Minuten.
+- `pruefe_sollwerte.sh [--fragen DATEI] [--prompt DATEI] [--runden N] [--ziel …]`: Gemma (Standard
+  DGX) beantwortet die Fragen aus `sollwerte_stichwort.yaml`, das Stichwort wird an den Sollwerten
+  gemessen, sonst mit Kev verglichen. Etwa 2 Minuten je Runde für alle 80 Fragen.
+
+Einzelheiten in `versuche/eichung.<prüfung>.json`. Kein Bedrock.
+
 ## trainiere_antworten.sh [--ziel macmini|dgx] [--budget N] [--probe] [--prompt DATEI] [--fragen DATEI] [--aus ORDNER]
 
 Startet `python -m testsammlung.answer_training` mit der Gruppe `dspy`: GEPA trainiert den Prompt
