@@ -24,6 +24,7 @@ import { MediaQueryMotionPreference } from "./rendering/motion-preference";
 import { layoutStage } from "./rendering/stage-layout";
 import type { StageLayout } from "./rendering/stage-layout";
 import { AnimationLoop } from "./ui/animation-loop";
+import { AnswerArea } from "./ui/answer-area";
 import { Conversation } from "./ui/conversation";
 import { selectProfile } from "./ui/device-profile-selector";
 import { PhaseIndicator } from "./ui/phase-indicator";
@@ -31,7 +32,6 @@ import { PreparedPageSource } from "./ui/prepared-page-source";
 import { QuestionForm } from "./ui/question-form";
 import { closesKeyboardAfterSending } from "./ui/on-screen-keyboard";
 import { requireElement } from "./ui/required-element";
-import { SpokenAnswer } from "./ui/spoken-answer";
 import { Stage } from "./ui/stage";
 import type { ScheduleTask } from "./ui/step-runner";
 import { applyStageLayout } from "./ui/stage-frame";
@@ -59,7 +59,8 @@ const stageElement = requireElement(document, "stage", HTMLElement);
 const canvas = requireElement(document, "maze", HTMLCanvasElement);
 const form = requireElement(document, "ask-form", HTMLFormElement);
 const questionInput = requireElement(document, "question", HTMLInputElement);
-const spokenRegion = requireElement(document, "spoken-answer", HTMLElement);
+const answerAreaElement = requireElement(document, "answer-area", HTMLElement);
+const suggestionsElement = requireElement(document, "suggestions", HTMLElement);
 
 function createContext2d(target: HTMLCanvasElement): CanvasRenderingContext2D {
   const context = target.getContext("2d");
@@ -175,7 +176,21 @@ const answerSource: AnswerSource =
       });
 
 // Frage und Antwort
-const conversation = new Conversation(answerSource, stage, new SpokenAnswer(spokenRegion));
+const answerArea = new AnswerArea({
+  document,
+  area: answerAreaElement,
+  suggestions: suggestionsElement,
+  questionInput,
+  areaTop: () => answerAreaElement.getBoundingClientRect().top,
+  viewportHeight: () => window.innerHeight,
+  scrollToArea: () => {
+    answerAreaElement.scrollIntoView({
+      behavior: motion.isReduced ? "auto" : "smooth",
+      block: "start",
+    });
+  },
+});
+const conversation = new Conversation(answerSource, stage, answerArea);
 new QuestionForm(form, questionInput, {
   blurAfterSending: closesKeyboardAfterSending(
     tuning.blurInputAfterSending,
@@ -231,7 +246,7 @@ canvas.addEventListener("contextrestored", () => {
 // Die Begrüßung aus dem persönlichen Link hinter „#“ (Schritt 12.2); der Name bleibt im Browser.
 const personalLink = readPersonalLink(window.location.hash);
 conversation.start({
-  text: greetingParagraphs(personalLink).join(" "),
+  text: greetingParagraphs(personalLink).join("\n\n"),
   keyword: greetingKeyword(personalLink, {
     withHello: profile === "desktop",
     canWrite: (text) => !normalizer.normalize(text).includes(REPLACEMENT_CHARACTER),

@@ -1,0 +1,56 @@
+import type { ElementFactory, ElementLike } from "../ui/dom-like";
+
+/** Ein Element als einfaches Objekt: merkt sich Text, Klassen, Kinder, Attribute und Klick-Hörer. */
+export class FakeElement implements ElementLike<FakeElement> {
+  public textContent: string | null = "";
+  public className = "";
+  public hidden: boolean | string = false;
+  public children: FakeElement[] = [];
+  public readonly attributes = new Map<string, string>();
+  private readonly classes = new Set<string>();
+  private readonly clickListeners: (() => void)[] = [];
+
+  public constructor(public readonly tag: string) {}
+
+  public readonly classList = {
+    toggle: (name: string, force: boolean): boolean => {
+      if (force) this.classes.add(name);
+      else this.classes.delete(name);
+      return force;
+    },
+  };
+
+  /** Hat das Element die Klasse (über `classList`)? */
+  public hasClass(name: string): boolean {
+    return this.classes.has(name);
+  }
+
+  public setAttribute(name: string, value: string): void {
+    this.attributes.set(name, value);
+  }
+
+  public replaceChildren(...children: FakeElement[]): void {
+    this.children = children;
+  }
+
+  public addEventListener(_type: "click", listener: () => void): void {
+    this.clickListeners.push(listener);
+  }
+
+  /** Löst einen Klick aus. */
+  public click(): void {
+    this.clickListeners.forEach((listener) => {
+      listener();
+    });
+  }
+
+  /** Die Kinder als Kurzschrift `Klasse: Text`, zum Vergleichen im Test. */
+  public childTexts(): string[] {
+    return this.children.map((child) => `${child.className}: ${child.textContent ?? ""}`);
+  }
+}
+
+/** Legt `FakeElement`s an. */
+export const fakeDocument: ElementFactory<FakeElement> = {
+  createElement: (tag) => new FakeElement(tag),
+};

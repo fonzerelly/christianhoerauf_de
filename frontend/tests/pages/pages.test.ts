@@ -44,6 +44,15 @@ describe("Seitengerüst (ADR 0007)", () => {
     expect(index.indexOf('id="page"')).toBeLessThan(index.indexOf('id="stage"'));
   });
 
+  it("liest Antworten Screenreadern aus dem Antwortbereich vor, nicht aus einem versteckten Feld", () => {
+    expect(index).toMatch(/<section[^>]*id="answer-area"[^>]*aria-live="polite"/);
+    expect(index).not.toContain('id="spoken-answer"');
+  });
+
+  it("nennt die Folgefragen für Screenreader", () => {
+    expect(index).toMatch(/<div[^>]*id="suggestions"[^>]*aria-label="Folgefragen"/);
+  });
+
   it("hat keinen Ton-Knopf mehr (das Brummen hört man kaum)", () => {
     expect(index).not.toContain('id="sound-toggle"');
   });
@@ -51,6 +60,11 @@ describe("Seitengerüst (ADR 0007)", () => {
 
 describe("Fragefeld", () => {
   const field = /<input[^>]*id="question"[^>]*>/.exec(index)?.[0] ?? "";
+
+  it("spricht wie die übrige Seite mit „Sie“ an", () => {
+    expect(field).toContain('placeholder="Ihre Frage …"');
+    expect(field).toContain('aria-label="Ihre Frage"');
+  });
 
   it("nimmt Fragen bis 500 Zeichen", () => {
     expect(field).toContain('maxlength="500"');

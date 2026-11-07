@@ -24,21 +24,20 @@
     <main id="page">
       <div id="stage">
         <canvas id="maze" aria-hidden="true"></canvas>
-        <!-- Screenreader sehen das Canvas nicht: Hier steht jede Antwort zusätzlich als Text. -->
-        <div id="spoken-answer" class="visually-hidden" aria-live="polite"></div>
       </div>
       <!-- Die Stationen aus /lebenslauf, auf- und zuklappbar (Schritt 12.9 und 12.10). -->
       <section id="timeline" aria-label="Werdegang" hidden></section>
-      <!-- Die Frage klein, die Antwort als Text (Schritt 12.7). -->
-      <section id="answer-area" aria-label="Antwort" hidden></section>
-      <!-- Folgefragen als Knöpfe; ein Klick trägt sie ins Fragefeld ein (Schritt 12.7). -->
-      <div id="suggestions" hidden></div>
+      <!-- Die Frage klein, die Antwort als Text. Screenreader lesen von hier vor (das Canvas
+           sehen sie nicht). -->
+      <section id="answer-area" aria-label="Antwort" aria-live="polite" hidden></section>
+      <!-- Folgefragen als Knöpfe; ein Klick trägt sie ins Fragefeld ein. -->
+      <div id="suggestions" aria-label="Folgefragen" hidden></div>
       <form id="ask-form" autocomplete="off">
         <input
           type="text"
           id="question"
-          placeholder="Deine Frage …"
-          aria-label="Deine Frage"
+          placeholder="Ihre Frage …"
+          aria-label="Ihre Frage"
           maxlength="500"
           enterkeyhint="send"
           autocapitalize="sentences"

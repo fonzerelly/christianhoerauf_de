@@ -31,7 +31,8 @@ class ManualSource implements AnswerSource {
 function setup() {
   const source = new ManualSource();
   const shown: Promise<AnswerContent>[] = [];
-  const spoken: string[] = [];
+  /** Was der Antwortbereich zeigt, als Kurzschrift: „warten: Frage“ oder „Frage → Text“. */
+  const area: string[] = [];
   const conversation = new Conversation(
     source,
     {
@@ -40,18 +41,21 @@ function setup() {
       },
     },
     {
-      show: (text) => {
-        spoken.push(text);
+      showWaiting: (question) => {
+        area.push(`warten: ${question}`);
+      },
+      showAnswer: (question, answer) => {
+        area.push(`${question ?? "(keine Frage)"} → ${answer.text}`);
       },
     },
   );
-  return { source, shown, spoken, conversation };
+  return { source, shown, area, conversation };
 }
 
 describe("Conversation", () => {
   describe("start", () => {
     it("schreibt das Stichwort der Begrüßung mit bis zu zwei Zeilen je Seite, ohne die Quelle zu fragen", async () => {
-      const { conversation, source, shown, spoken } = setup();
+      const { conversation, source, shown, area } = setup();
 
       conversation.start({ text: "Hallo Frau Muster, schön …", keyword: "Hallo\nFrau Muster" });
       await settle();
@@ -61,13 +65,13 @@ describe("Conversation", () => {
         keyword: "Hallo\nFrau Muster",
         maxLinesPerPage: 2,
       });
-      expect(spoken).toEqual(["Hallo Frau Muster, schön …"]);
+      expect(area).toEqual(["(keine Frage) → Hallo Frau Muster, schön …"]);
     });
   });
 
   describe("ask", () => {
-    it("schickt die Frage an die Quelle, schreibt das Stichwort und liest den Text vor", async () => {
-      const { conversation, source, shown, spoken } = setup();
+    it("schickt die Frage an die Quelle, schreibt das Stichwort und zeigt erst das Warten, dann die Antwort", async () => {
+      const { conversation, source, shown, area } = setup();
 
       conversation.ask("Wer bist du?");
       source.respond(0, { text: "Christian Hörauf.", keyword: "CHRIS" });
@@ -75,7 +79,7 @@ describe("Conversation", () => {
 
       expect(source.questions).toEqual(["Wer bist du?"]);
       await expect(shown[0]).resolves.toEqual({ keyword: "CHRIS", maxLinesPerPage: 1 });
-      expect(spoken).toEqual(["Christian Hörauf."]);
+      expect(area).toEqual(["warten: Wer bist du?", "Wer bist du? → Christian Hörauf."]);
     });
 
     it("ignoriert ein Gimmick, das das Frontend noch nicht darstellt", async () => {
@@ -88,19 +92,19 @@ describe("Conversation", () => {
       await expect(shown[0]).resolves.toEqual({ maxLinesPerPage: 1 });
     });
 
-    it("zeichnet zum Herz-Gimmick ein Herz und liest den Text vor", async () => {
-      const { conversation, source, shown, spoken } = setup();
+    it("zeichnet zum Herz-Gimmick ein Herz und zeigt den Text", async () => {
+      const { conversation, source, shown, area } = setup();
 
       conversation.ask("Ich liebe dich, Bot");
       source.respond(0, { text: "<3", keyword: "HERZ", gimmick: { type: "heart" } });
       await settle();
 
       await expect(shown[0]).resolves.toEqual({ picture: "heart", keyword: "HERZ" });
-      expect(spoken).toEqual(["<3"]);
+      expect(area).toEqual(["warten: Ich liebe dich, Bot", "Ich liebe dich, Bot → <3"]);
     });
 
-    it("liest nur die Antwort auf die neueste Frage vor, auch wenn eine ältere später eintrifft", async () => {
-      const { conversation, source, spoken } = setup();
+    it("zeigt nur die Antwort auf die neueste Frage, auch wenn eine ältere später eintrifft", async () => {
+      const { conversation, source, area } = setup();
 
       conversation.ask("erste");
       conversation.ask("zweite");
@@ -109,7 +113,7 @@ describe("Conversation", () => {
       source.respond(0, { text: "erste Antwort" });
       await settle();
 
-      expect(spoken).toEqual(["zweite Antwort"]);
+      expect(area).toEqual(["warten: erste", "warten: zweite", "zweite → zweite Antwort"]);
     });
   });
 });

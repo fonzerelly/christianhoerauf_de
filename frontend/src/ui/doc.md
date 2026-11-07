@@ -9,8 +9,9 @@ werden. `main.ts` übergibt die echten Elemente.
 | `url-parameters.ts`          | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
 | `device-profile-selector.ts` | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
 | `question-form.ts`           | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
-| `spoken-answer.ts`           | `SpokenAnswer`: der `aria-live`-Bereich für Screenreader.                                                  |
-| `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Screenreader.                                            |
+| `answer-area.ts`             | `AnswerArea`: Antwortbereich (Frage, Antwort, Warten) und Folgefragen; der `aria-live`-Bereich.            |
+| `dom-like.ts`                | `ElementLike`, `ElementFactory`: der Ausschnitt des DOM, mit dem `AnswerArea` baut.                        |
+| `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Antwortbereich.                                          |
 | `stage.ts`                   | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe.                                |
 | `step-runner.ts`             | `runInTasks`: rechnet eine Berechnung in Stücken, jedes in einer eigenen Aufgabe.                          |
 | `prepared-page-source.ts`    | `PreparedPageSource`: die Seitenquelle der Bühne (Seiten in Stücken erzeugen, erste Seite vorab zeichnen). |
@@ -28,13 +29,12 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 `selectProfile(windowWidth, requested?)` gibt den Wunsch aus der Adresse zurück, sonst `desktop` ab
 700 px, darunter `handy`. Gewählt wird einmal beim Laden.
 
-## QuestionForm, SpokenAnswer
+## QuestionForm
 
 | Name                                             | Was sie konkret tut                                                                                                                                                                                                                               |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `QuestionForm.constructor(form, input, options)` | Hört auf `submit` des Formulars (verhindert das Neuladen). Beim Verlassen des Felds passiert nichts mehr: Der Sprung nach oben (iOS-Notlösung bis Schritt 12.1) ließ auf der scrollenden Seite den ersten Mausklick auf „Senden“ ins Leere gehen. |
 | `QuestionForm.submit` (privat)                   | Schneidet Leerraum ab; leer: nichts. Sonst die Frage melden, das Feld leeren und - am Handy - das Feld verlassen (schließt die Tastatur).                                                                                                         |
-| `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                                                                                    |
 
 ## closesKeyboardAfterSending
 
@@ -42,14 +42,27 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `closesKeyboardAfterSending(profileWants, hasTouchScreen)` | Liefert `true` nur, wenn das Profil das Verlassen des Fragefelds will (Handy) **und** das Gerät einen Touchscreen hat (`pointer: coarse`). Am Rechner im schmalen Fenster behält das Feld so den Fokus. |
 
+## AnswerArea
+
+Baut mit einer schmalen DOM-Schnittstelle (`dom-like.ts`, generisch über den Elementtyp: im Browser
+`HTMLElement`, im Test `FakeElement` aus `test-support/fake-dom.ts`).
+
+| Methode                        | Was sie konkret tut                                                                                                                                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(parts)`           | Nimmt `document`, Antwortbereich, Platz für Folgefragen, Fragefeld und drei Funktionen: wo der Bereich beginnt (`areaTop`), wie hoch das Fenster ist, und wie zum Bereich gescrollt wird.                       |
+| `showWaiting(question)`        | Zeigt „Ihre Frage: …“ (Klasse `question`), „Der Bot denkt nach“ (`thinking`) und die Absätze der alten Antwort; Klasse `waiting` am Bereich (CSS macht die alte Antwort blass). Folgefragen weg.                |
+| `showAnswer(question, answer)` | Teilt den Text an Leerzeilen in Absätze (Klasse `answer`, ohne Trennstellen-Zeichen), davor die Frage (bei der Begrüßung keine), entfernt `waiting`, zeigt die Folgefragen. Nach einer Frage: `revealIfHidden`. |
+| `showSuggestions` (privat)     | Je Folgefrage ein Knopf (`type="button"`); ein Klick trägt sie ins Fragefeld ein und setzt den Fokus dorthin, schickt aber nicht ab (Q22). Ohne Folgefragen ist der Platz versteckt.                            |
+| `revealIfHidden` (privat)      | Liegt der Anfang des Bereichs über dem Fenster oder tiefer als 60 % der Fensterhöhe, scrollt sie hin (Q32); `main.ts` scrollt sanft, bei weniger Bewegung sofort.                                               |
+
 ## Conversation
 
-| Methode                              | Was sie konkret tut                                                                                                                                                                                                                           |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `constructor(source, stage, spoken)` | Nimmt Antwortquelle, Bühne und Screenreader-Bereich.                                                                                                                                                                                          |
-| `start(greeting)`                    | Zeigt die Begrüßung, die `main.ts` aus dem persönlichen Link baut (Stichwort mit bis zu zwei Zeilen je Seite); die Antwortquelle wird nicht gefragt.                                                                                          |
-| `ask(question)`                      | Holt die Antwort auf die Frage.                                                                                                                                                                                                               |
-| `present` (privat)                   | Gibt der Bühne das Versprechen für den Inhalt (`contentOf`: Text, Bild oder Foto). Sobald die Antwort da ist (und keine neuere Frage gestellt wurde), merkt sie sie sich und liest ihren Text vor; ein unbekanntes Gimmick bleibt unbeachtet. |
+| Methode                                  | Was sie konkret tut                                                                                                                                                                                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(source, stage, answerArea)` | Nimmt Antwortquelle, Bühne und Antwortbereich (`showWaiting`, `showAnswer`).                                                                                                                                                                                                           |
+| `start(greeting)`                        | Zeigt die Begrüßung, die `main.ts` aus dem persönlichen Link baut (Stichwort mit bis zu zwei Zeilen je Seite); die Antwortquelle wird nicht gefragt.                                                                                                                                   |
+| `ask(question)`                          | Zeigt im Antwortbereich das Warten (`showWaiting`) und holt die Antwort auf die Frage.                                                                                                                                                                                                 |
+| `present` (privat)                       | Gibt der Bühne das Versprechen für den Inhalt (`contentOf`: Text, Bild oder Foto). Sobald die Antwort da ist (und keine neuere Frage gestellt wurde), zeigt sie sie im Antwortbereich (`showAnswer` mit der Frage, bei der Begrüßung ohne); ein unbekanntes Gimmick bleibt unbeachtet. |
 
 ## Stage
 
