@@ -108,6 +108,7 @@ function stationenAus(daten) {
       const { von, bis } = zeitraumAus(eintrag.zeit);
       if (Number.isNaN(von) || Number.isNaN(bis)) continue;
       alle.push({
+        id: alle.length, // Schlüssel, über den der Übergang beim Klappen die Einträge zuordnet
         abschnitt: abschnitt.name,
         zeit: eintrag.zeit,
         titel: eintrag.titel,
@@ -245,6 +246,7 @@ function element(tag, klasse, text) {
 function menueKnopfFuer(station, klasse, text) {
   const knopf = element("button", klasse, text);
   knopf.type = "button";
+  knopf.dataset.uebergang = String(station.id);
   knopf.setAttribute("aria-expanded", "false");
   knopf.addEventListener("click", () => oeffneStationsMenue(station, knopf));
   return knopf;
@@ -262,6 +264,7 @@ function stationsKnopf(station) {
 // Zeichnet die Zeitleiste neu. mitAufbau: Linie und Stationen erscheinen nacheinander.
 function zeichneZeitleiste(mitAufbau) {
   schliesseStationsMenue();
+  beendeUebergang();
   if (zeitleistenStand.zustand === "laedt") {
     zeitleisteElement.replaceChildren(element("p", "zlStatus", "Stationen werden geladen …"));
     return;
@@ -326,6 +329,7 @@ function zeichneAufgeklappt(scroll, mitAufbau) {
   const inhalt = element("div", "zlInhalt");
   const achse = element("div", "zlAchse");
   const heute = element("span", "zlHeute", "heute");
+  heute.dataset.uebergang = "heute";
   const stationen = hauptspur.map((station) => {
     const teil = element("div", "zlStation");
     const knopf = stationsKnopf(station);
@@ -395,12 +399,19 @@ function zeichneZugeklappt(scroll) {
   const { hauptspur, engagements } = zeitleistenStand.stationen;
   const alle = [...hauptspur, ...engagements].sort((a, b) => a.von - b.von || engagements.includes(a) - engagements.includes(b));
   const zeile = element("div", "zlZeile");
+  const trenner = (index) => {
+    const punkt = element("span", "trenner", "·");
+    punkt.dataset.uebergang = "trenner-" + index;
+    return punkt;
+  };
   alle.forEach((station, index) => {
-    if (index > 0) zeile.append(element("span", "trenner", "·"));
+    if (index > 0) zeile.append(trenner(index));
     const klasse = engagements.includes(station) ? "engagement" : "";
     zeile.append(menueKnopfFuer(station, klasse, `${jahrDerBeschriftung(station)} ${kurzname(station)}`));
   });
-  zeile.append(element("span", "trenner", "·"), element("span", "heute", "heute"));
+  const heute = element("span", "heute", "heute");
+  heute.dataset.uebergang = "heute";
+  zeile.append(trenner(alle.length), heute);
   scroll.append(zeile);
 }
 
@@ -422,14 +433,169 @@ function klappknopfFuer(aufgeklappt) {
 }
 
 // Klappt die Zeitleiste auf oder zu. Was darunter steht, rutscht mit; die Bühne bleibt.
+// Dazwischen spielt der Übergang (siehe unten), außer das System wünscht weniger Bewegung.
 function setzeZeitleisteAufgeklappt(aufgeklappt) {
   if (zeitleistenStand.aufgeklappt === aufgeklappt) return;
+  beendeUebergang();
+  const vorher = bewegungReduziert ? null : bildDerZeitleiste();
   zeitleistenStand.aufgeklappt = aufgeklappt;
   document.body.dataset.zeitleiste = aufgeklappt ? "auf" : "zu";
   zeichneZeitleiste(false);
-  if (!bewegungReduziert && zeitleisteElement.firstElementChild) {
-    zeitleisteElement.firstElementChild.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, easing: "ease-out" });
+  if (vorher) spieleUebergang(vorher);
+}
+
+// ---------------------------------------------------------------------------
+// Übergang beim Auf- und Zuklappen
+// ---------------------------------------------------------------------------
+//
+// Zuklappen: Die Texte der Stationen und Engagements fahren zu ihrem Platz in der Zeile
+// zusammen, während der Zeitstrahl samt seinen Strichen von rechts nach links verschwindet.
+// Aufklappen: umgekehrt, die Texte fahren auseinander, der Zeitstrahl erscheint von links.
+//
+// Alter und neuer Zustand sind ganz verschiedene Elemente. Deshalb zeichnet die Zeitleiste sofort
+// den neuen Zustand, versteckt ihn aber, und darüber liegt für die Dauer des Übergangs eine
+// Ebene mit Abbildern: je Eintrag eins vom alten und eins vom neuen Aussehen. Beide fahren
+// gemeinsam von der alten an die neue Stelle; das alte blendet dabei aus, das neue ein. Die
+// Einträge findet der Übergang über data-uebergang (Station: ihre id; dazu „heute“ und die Punkte).
+
+const UEBERGANG_DAUER = 450; // Millisekunden
+const UEBERGANG_KURVE = "cubic-bezier(0.4, 0, 0.2, 1)";
+
+// Diese Eigenschaften bekommt ein Abbild fest mit, weil die Regeln im CSS am Ort hängen
+// (.zlZeile button, .zlStation > button ...) und auf der Ebene darüber nicht mehr greifen.
+const STILE_DES_ABBILDS = [
+  "font-family", "font-size", "font-weight", "line-height", "letter-spacing", "color", "background-color",
+  "padding-top", "padding-right", "padding-bottom", "padding-left", "white-space", "text-overflow",
+  "overflow", "text-align",
+];
+
+let laufenderUebergang = null; // { beenden() } solange einer läuft
+
+// Ein Abbild eines Elements für die Ebene: gleicher Inhalt, gleiches Aussehen, keine Bedienung.
+function abbildVon(original) {
+  const stil = getComputedStyle(original);
+  const abbild = original.cloneNode(true);
+  for (const name of STILE_DES_ABBILDS) abbild.style.setProperty(name, stil.getPropertyValue(name));
+  abbild.removeAttribute("id");
+  abbild.tabIndex = -1;
+  Object.assign(abbild.style, { position: "absolute", margin: "0", boxSizing: "border-box", border: "none" });
+  return abbild;
+}
+
+// Hält fest, wie die Zeitleiste gerade aussieht: Höhe, Lage des sichtbaren Bereichs, je Eintrag
+// Lage und Abbild, und aufgeklappt das Gerippe (Linie und Striche ohne Texte).
+function bildDerZeitleiste() {
+  const scroll = zeitleisteElement.querySelector(".zlScroll");
+  if (zeitleistenStand.zustand !== "da" || !scroll) return null;
+  const eintraege = new Map();
+  for (const teil of scroll.querySelectorAll("[data-uebergang]")) {
+    eintraege.set(teil.dataset.uebergang, { lage: teil.getBoundingClientRect(), abbild: abbildVon(teil) });
   }
+  const inhalt = scroll.querySelector(".zlInhalt");
+  let gerippe = null;
+  if (inhalt) {
+    const abbild = inhalt.cloneNode(true);
+    // Texte nur unsichtbar machen, nicht entfernen: Sie geben den Strichen der Stationen die Höhe.
+    abbild.querySelectorAll("button, .zlHeute").forEach((text) => (text.style.visibility = "hidden"));
+    gerippe = { lage: inhalt.getBoundingClientRect(), abbild };
+  }
+  return {
+    hoehe: zeitleisteElement.offsetHeight,
+    sichtbar: scroll.getBoundingClientRect(),
+    eintraege,
+    gerippe,
+  };
+}
+
+// Stellt ein Element auf der Ebene an die Stelle `lage` (Fensterkoordinaten).
+function setzeAuf(ebene, element, lage) {
+  const ursprung = ebene.getBoundingClientRect();
+  Object.assign(element.style, {
+    left: lage.left - ursprung.left + "px",
+    top: lage.top - ursprung.top + "px",
+    width: lage.width + "px",
+    height: lage.height + "px",
+  });
+}
+
+function spieleUebergang(vorher) {
+  const nachher = bildDerZeitleiste();
+  if (!nachher) return;
+  const scroll = zeitleisteElement.querySelector(".zlScroll");
+  const zeitablauf = { duration: UEBERGANG_DAUER, easing: UEBERGANG_KURVE, fill: "both" };
+
+  // Die Ebene liegt über dem sichtbaren Bereich der Zeitleiste und wächst oder schrumpft mit ihr.
+  const ebene = element("div", "zlUebergang");
+  ebene.setAttribute("aria-hidden", "true");
+  Object.assign(ebene.style, {
+    left: nachher.sichtbar.left + window.scrollX + "px",
+    top: nachher.sichtbar.top + window.scrollY + "px",
+    width: nachher.sichtbar.width + "px",
+  });
+  document.body.append(ebene);
+  const animationen = [
+    ebene.animate([{ height: vorher.sichtbar.height + "px" }, { height: nachher.sichtbar.height + "px" }], zeitablauf),
+    // Die Zeitleiste selbst gleitet auf ihre neue Höhe; die Knöpfe am Rand dehnen sich mit (CSS).
+    zeitleisteElement.animate([{ height: vorher.hoehe + "px" }, { height: nachher.hoehe + "px" }], zeitablauf),
+  ];
+  zeitleisteElement.classList.add("imUebergang");
+  scroll.style.visibility = "hidden";
+
+  // Der Zeitstrahl: zuklappen wischt ihn nach links weg, aufklappen von links herein.
+  const gerippe = vorher.gerippe || nachher.gerippe;
+  if (gerippe) {
+    const huelle = element("div", "zlGerippe");
+    ebene.append(huelle);
+    huelle.append(gerippe.abbild);
+    gerippe.abbild.style.position = "absolute";
+    setzeAuf(ebene, gerippe.abbild, gerippe.lage);
+    const offen = "inset(0 0 0 0)";
+    const zu = "inset(0 100% 0 0)";
+    const wisch = vorher.gerippe ? [{ clipPath: offen, opacity: 1 }, { clipPath: zu, opacity: 0.3 }] : [{ clipPath: zu, opacity: 0.3 }, { clipPath: offen, opacity: 1 }];
+    animationen.push(huelle.animate(wisch, zeitablauf));
+  }
+
+  // Die Texte: je Eintrag das alte Abbild aus- und das neue einblenden, beide auf demselben Weg.
+  for (const schluessel of new Set([...vorher.eintraege.keys(), ...nachher.eintraege.keys()])) {
+    const alt = vorher.eintraege.get(schluessel);
+    const neu = nachher.eintraege.get(schluessel);
+    if (alt && neu) {
+      const dx = neu.lage.left - alt.lage.left;
+      const dy = neu.lage.top - alt.lage.top;
+      ebene.append(alt.abbild, neu.abbild);
+      setzeAuf(ebene, alt.abbild, alt.lage);
+      setzeAuf(ebene, neu.abbild, neu.lage);
+      animationen.push(
+        alt.abbild.animate([{ transform: "none", opacity: 1 }, { opacity: 0, offset: 0.6 }, { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 }], zeitablauf),
+        neu.abbild.animate([{ transform: `translate(${-dx}px, ${-dy}px)`, opacity: 0 }, { opacity: 0, offset: 0.3 }, { transform: "none", opacity: 1 }], zeitablauf)
+      );
+    } else {
+      // Nur in einem der beiden Zustände (etwa die Punkte der Zeile): an Ort und Stelle blenden.
+      const einzeln = alt || neu;
+      ebene.append(einzeln.abbild);
+      setzeAuf(ebene, einzeln.abbild, einzeln.lage);
+      const sichtbarkeit = alt ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 0, offset: 0.5 }, { opacity: 1 }];
+      animationen.push(einzeln.abbild.animate(sichtbarkeit, zeitablauf));
+    }
+  }
+
+  let beendet = false;
+  function beenden() {
+    if (beendet) return;
+    beendet = true;
+    animationen.forEach((animation) => animation.cancel());
+    ebene.remove();
+    zeitleisteElement.classList.remove("imUebergang");
+    scroll.style.visibility = "";
+    laufenderUebergang = null;
+  }
+  laufenderUebergang = { beenden };
+  animationen[0].finished.then(beenden, beenden);
+}
+
+// Bricht einen laufenden Übergang ab und zeigt sofort den Endzustand.
+function beendeUebergang() {
+  if (laufenderUebergang) laufenderUebergang.beenden();
 }
 
 function pfeilKnopf(zeichen, beschriftung, richtung, scroll, klasse) {

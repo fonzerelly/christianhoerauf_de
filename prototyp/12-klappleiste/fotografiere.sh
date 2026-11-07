@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Öffnet Prototyp 12 in Chromium (Playwright im Docker) und macht Bildschirmfotos.
+# Öffnet Prototyp 12 in Chromium (klappen: Firefox; Playwright im Docker) und macht Bildschirmfotos.
 #
 #   ./fotografiere.sh rundgang     Rundgang auf Desktop und Handy, Höhen, Breiten, Fehler
 #   ./fotografiere.sh ecken        Nahaufnahmen beider Ecken der Zeitleiste, auf und zu
+#   ./fotografiere.sh klappen      Übergang beim Zu- und Aufklappen in Einzelbildern (0–100 %)
 #   ./fotografiere.sh einzeldatei  prüft die gebaute Einzeldatei (vorher baue-einzeldatei.sh)
 #
 # Zweiter Parameter: Verzeichnis für die Bilder, sonst bilder/ hier (steht in .gitignore).
@@ -15,9 +16,9 @@ was="${1:-}"
 ausgabe="${2:-$hier/bilder}"
 
 case "$was" in
-  rundgang | ecken | einzeldatei) ;;
+  rundgang | ecken | klappen | einzeldatei) ;;
   *)
-    echo "Aufruf: $0 rundgang|ecken|einzeldatei [verzeichnis-für-bilder]" >&2
+    echo "Aufruf: $0 rundgang|ecken|klappen|einzeldatei [verzeichnis-für-bilder]" >&2
     exit 2
     ;;
 esac
@@ -41,9 +42,11 @@ if [ "$was" = einzeldatei ]; then
 fi
 
 mkdir -p "$ausgabe"
-# Unter der eigenen Kennung, damit die Bilder nicht root gehören.
-docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp "${mounts[@]}" \
+# Chromium läuft als root: Unter einer anderen Kennung (--user) findet es andere Schriften, und
+# die Seite sieht anders aus als im Browser. Danach gehören die Bilder wieder dem Aufrufer.
+docker run --rm "${mounts[@]}" \
   -e NODE_PATH=/repo/frontend/node_modules \
+  -e BESITZER="$(id -u):$(id -g)" \
   "mcr.microsoft.com/playwright:v$version-noble" \
-  node "/repo/prototyp/12-klappleiste/fotos/$was.js"
+  sh -c 'node "/repo/prototyp/12-klappleiste/fotos/$0.js"; status=$?; chown -R "$BESITZER" /ausgabe; exit $status' "$was"
 echo "Bilder: $ausgabe"

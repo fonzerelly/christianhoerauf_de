@@ -79,7 +79,7 @@
     .zlRahmen.zu { --pfeil-breite: 28px; --fuss-breite: 72px; }
     body[data-profile="handy"] .zlRahmen { --fuss-breite: 56px; --fuss-hoehe: 30px; }
     /* Die Bildlaufleiste des Browsers ist aus; die eigene liegt in .zlUnten. */
-    .zlScroll { grid-column: 2; grid-row: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .zlScroll { grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
     .zlScroll::-webkit-scrollbar { display: none; }
     .zlUnten { grid-column: 2 / 4; grid-row: 2; display: flex; align-items: center; }
     /* Über die Lücke zwischen „‹“ und dem Inhalt hinweg, damit die Leiste an „‹“ anstößt
@@ -160,12 +160,19 @@
     .zlEngagement button:hover, .zlEngagement button:focus-visible, .zlEngagement button[aria-expanded="true"] { color: var(--gruen-hell); background: rgba(43, 220, 90, 0.1); outline: none; }
 
     /* Zugeklappt: eine Zeile „Jahr Name“ auf der Linie (Q48). */
-    .zlZeile { display: flex; width: max-content; min-width: 100%; gap: 6px 4px; white-space: nowrap; padding: 6px 0 2px; border-top: 2px solid var(--gruen); }
+    .zlZeile { display: flex; width: max-content; min-width: 100%; gap: 6px 4px; white-space: nowrap; padding: 6px 0 2px; }
     .zlZeile button { padding: 2px 6px; font: 14px/1.4 var(--mono); color: var(--gruen-text); }
     .zlZeile button.engagement { font-size: 13px; color: #3f9a5c; }
     .zlZeile button:hover, .zlZeile button[aria-expanded="true"] { color: var(--gruen-hell); background: rgba(43, 220, 90, 0.1); }
     .zlZeile .trenner { color: var(--linie); align-self: center; }
     .zlZeile .heute { color: var(--rot); align-self: center; padding: 0 6px; }
+
+    /* Übergang beim Auf- und Zuklappen (zeitleiste.js): Die Zeitleiste gleitet auf ihre neue Höhe,
+       die Knöpfe am Rand dehnen sich mit. Darüber liegt die Ebene mit den wandernden Abbildern. */
+    #zeitleiste.imUebergang { overflow: hidden; }
+    #zeitleiste.imUebergang .zlRahmen { height: 100%; grid-template-rows: minmax(0, 1fr) auto; }
+    .zlUebergang { position: absolute; z-index: 15; overflow: hidden; pointer-events: none; }
+    .zlGerippe { position: absolute; inset: 0; }
 
     /* ===== Stationsmenü ===== */
     #stationsMenue {

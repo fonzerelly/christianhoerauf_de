@@ -21,7 +21,11 @@ Prototyp 11, der zum Vergleich stehen bleibt. Keine Tests (Prototyp).
   Reihe; reicht der Platz bis zum nächsten Engagement nicht, wird sie mit „…“ gekürzt (ganz im
   Tooltip). Keine Balken für die Dauer.
 - **Zugeklappt:** eine Zeile „Jahr Name“ mit allen Stationen samt Engagements nach Beginn
-  sortiert; Engagements blasser.
+  sortiert; Engagements blasser. Ohne Zeitstrahl.
+- **Übergang beim Klappen:** Beim Zuklappen fahren die Texte der Stationen und Engagements zu
+  ihrem Platz in der Zeile zusammen, während der Zeitstrahl samt Strichen nach links wegwischt;
+  beim Aufklappen fahren sie auseinander, und der Zeitstrahl erscheint von links. Die Höhe gleitet
+  mit (450 ms). Bei „weniger Bewegung“ im System springt sie ohne Übergang.
 - Beide Zustände verschiebbar, seit 1984; beim Laden steht „heute“ am rechten Rand.
 - Das **Stationsmenü** liegt immer über Antwort und Fragefeld, auch auf dem Handy.
 - **Zeitleiste** samt Knöpfen und **Fragefeld** samt „Senden“ sind genau so breit wie das Labyrinth
@@ -51,11 +55,14 @@ eingecheckt):
 ```bash
 ./fotografiere.sh rundgang     # Desktop und Handy durchklicken; Höhen, Breiten, Konsolenfehler
 ./fotografiere.sh ecken        # Nahaufnahmen beider Ecken der Zeitleiste, auf und zu; Griff ziehen
+./fotografiere.sh klappen      # Übergang beim Zu- und Aufklappen in Zeitlupe, je sechs Bilder
 ./fotografiere.sh einzeldatei  # die gebaute Einzeldatei laden, eine Frage stellen, Fehler zählen
 ```
 
 Die Skripte dazu liegen in `fotos/`. Das Docker-Image nimmt die Version von `playwright-core` aus
-`frontend/node_modules`.
+`frontend/node_modules`. `klappen` fotografiert mit Firefox: Chromium im Container zeichnet bewegte
+Texte mit einer anderen Schrift, als es zum Messen nimmt (sie wirken breiter und überlappen). Ob das
+auch im Chrome auf dem Desktop passiert, ist nicht geprüft.
 
 Ganz unten auf der Seite öffnet **Schalter** das Bedienfeld: oben die Schalter dieses Prototyps (rot), darunter
 die Regler aus Prototyp 6. Die Beispiel-Links für die Begrüßung stehen unter „Daten und Bot“.
@@ -174,6 +181,13 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 | `zeichneZeitleiste(mitAufbau)` | Laden, Fehler oder der Rahmen `‹ Inhalt ›` mit dem Klappknopf als Fuß unter `›` (CSS-Raster) und aufgeklapptem oder zugeklapptem Inhalt. Pfeile und Ziehen nur, wenn der Inhalt breiter ist als der Platz; dann steht „heute“ rechts am Rand. |
 | `zeichneAufgeklappt(scroll, mitAufbau)` | Legt alles ins Dokument, misst die Beschriftungen, rechnet den Maßstab (der Beruf füllt die Breite, davor im selben Maßstab), setzt jedes Engagement mit seinem Strich an das Jahr seines Beginns und begrenzt seine Beschriftung bis kurz vor das nächste (das letzte bis zum Ende des Inhalts), dann Linie, „heute“ und Stationen. |
 | `zeichneZugeklappt(scroll)` | Eine Zeile „Jahr Name“ nach Beginn sortiert (bei gleichem Beginn der Beruf vorn), Engagements blasser, am Ende „heute“. |
+| `setzeZeitleisteAufgeklappt(aufgeklappt)` | Hält das Bild des alten Zustands fest, zeichnet den neuen und spielt den Übergang (nicht bei „weniger Bewegung“). Ein laufender Übergang wird vorher beendet. |
+| `UEBERGANG_DAUER`, `UEBERGANG_KURVE`, `STILE_DES_ABBILDS` | 450 ms, Kurve des Übergangs; die Eigenschaften, die ein Abbild fest mitbekommt, weil die CSS-Regeln am Ort hängen. |
+| `abbildVon(original)` | Kopie eines Elements für die Ebene über der Zeitleiste: gleicher Inhalt, Schrift, Farbe und Innenabstand fest eingetragen, nicht bedienbar. |
+| `bildDerZeitleiste()` | Hält fest, wie die Zeitleiste gerade aussieht: Höhe, sichtbarer Bereich, je Eintrag mit `data-uebergang` Lage und Abbild, aufgeklappt dazu das Gerippe (Linie und Striche, Texte unsichtbar, damit die Striche ihre Höhe behalten). |
+| `setzeAuf(ebene, element, lage)` | Stellt ein Abbild an eine Stelle in Fensterkoordinaten, umgerechnet auf die Ebene. |
+| `spieleUebergang(vorher)` | Versteckt den neu gezeichneten Inhalt und legt eine Ebene darüber: Die Höhe der Zeitleiste gleitet, das Gerippe wischt weg oder herein (clip-path), und je Eintrag fahren altes und neues Abbild gemeinsam von der alten an die neue Stelle, das alte blendet aus, das neue ein. Einträge nur auf einer Seite (die Punkte der Zeile) blenden an Ort und Stelle. Danach Ebene weg, Inhalt sichtbar. |
+| `beendeUebergang()` | Bricht einen laufenden Übergang ab und zeigt sofort den Endzustand (vor jedem Neuzeichnen). |
 | `klappknopfFuer(aufgeklappt)` | Der Fuß des L: nur ▴ (zuklappen) bzw. ▾ (aufklappen), Wortlaut in `aria-label`, dazu `aria-expanded`. Behält nach dem Klick den Fokus. |
 | `setzeZeitleisteAufgeklappt(aufgeklappt)` | Klappt um, zeichnet neu und blendet weich ein. Die Bühne bleibt, was darunter steht, rutscht mit. |
 | `bildlaufleisteFuer(scroll)` | Eigene Bildlaufleiste neben dem Fuß (die des Browsers ist ausgeblendet, sie lässt sich nicht dorthin legen): Bahn mit Griff so breit wie der sichtbare Anteil (mindestens 24 px). Griff ziehen mit Maus oder Finger; Klick auf die Bahn springt mit der Griffmitte dorthin. `anpassen()` setzt Breite und Lage nach jedem Verschieben. Für Screenreader verborgen, die Pfeilknöpfe übernehmen. |
