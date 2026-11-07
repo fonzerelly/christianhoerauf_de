@@ -182,9 +182,6 @@ new QuestionForm(form, questionInput, {
     tuning.blurInputAfterSending,
     window.matchMedia("(pointer: coarse)").matches,
   ),
-  scrollToTop: () => {
-    window.scrollTo(0, 0);
-  },
   onQuestion: (question) => {
     conversation.ask(question);
   },

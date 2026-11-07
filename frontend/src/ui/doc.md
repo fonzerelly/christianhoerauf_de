@@ -31,13 +31,13 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 
 ## QuestionForm, connectReplayButton, connectSoundToggle, SpokenAnswer
 
-| Name                                             | Was sie konkret tut                                                                                                                                                                         |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `QuestionForm.constructor(form, input, options)` | Hört auf `submit` des Formulars (verhindert das Neuladen) und `blur` des Felds (schiebt die Seite ganz nach oben - iOS verschiebt sie sonst, um das Feld über die Tastatur zu heben).       |
-| `QuestionForm.submit` (privat)                   | Schneidet Leerraum ab; leer: nichts. Sonst die Frage melden, das Feld leeren und - am Handy - das Feld verlassen (schließt die Tastatur).                                                   |
-| `connectReplayButton(button, onReplay)`          | Ruft `onReplay` bei jedem Klick.                                                                                                                                                            |
-| `connectSoundToggle(button, toggle)`             | Bei jedem Klick: ruft `toggle` (schaltet das Brummen um und sagt, ob es jetzt an ist) und schreibt das Ergebnis nach `aria-pressed`. Der Knopf steht beim Laden auf `aria-pressed="false"`. |
-| `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                              |
+| Name                                             | Was sie konkret tut                                                                                                                                                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QuestionForm.constructor(form, input, options)` | Hört auf `submit` des Formulars (verhindert das Neuladen). Beim Verlassen des Felds passiert nichts mehr: Der Sprung nach oben (iOS-Notlösung bis Schritt 12.1) ließ auf der scrollenden Seite den ersten Mausklick auf „Senden“ ins Leere gehen. |
+| `QuestionForm.submit` (privat)                   | Schneidet Leerraum ab; leer: nichts. Sonst die Frage melden, das Feld leeren und - am Handy - das Feld verlassen (schließt die Tastatur).                                                                                                         |
+| `connectReplayButton(button, onReplay)`          | Ruft `onReplay` bei jedem Klick.                                                                                                                                                                                                                  |
+| `connectSoundToggle(button, toggle)`             | Bei jedem Klick: ruft `toggle` (schaltet das Brummen um und sagt, ob es jetzt an ist) und schreibt das Ergebnis nach `aria-pressed`. Der Knopf steht beim Laden auf `aria-pressed="false"`.                                                       |
+| `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                                                                                    |
 
 ## closesKeyboardAfterSending
 

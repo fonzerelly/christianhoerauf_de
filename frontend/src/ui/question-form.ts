@@ -6,8 +6,6 @@ interface Listenable {
 export interface QuestionFormOptions {
   /** Nach dem Senden das Feld verlassen (schließt am Handy die Tastatur). */
   readonly blurAfterSending: boolean;
-  /** Schiebt die Seite ganz nach oben. */
-  readonly scrollToTop: () => void;
   /** Eine Frage wurde abgeschickt. */
   readonly onQuestion: (question: string) => void;
 }
@@ -26,9 +24,6 @@ export class QuestionForm {
       event.preventDefault(); // sonst lädt der Browser die Seite neu
       this.submit();
     });
-    // iOS verschiebt die Seite, um das Fragefeld über die Tastatur zu heben, und schiebt sie
-    // nicht immer zurück. Beim Verlassen des Felds deshalb wieder ganz nach oben.
-    input.addEventListener("blur", options.scrollToTop);
   }
 
   private submit(): void {

@@ -13,6 +13,9 @@ function fakeElement() {
     addEventListener(type: string, listener: (event: { preventDefault(): void }) => void) {
       listeners.set(type, listener);
     },
+    listensTo(type: string) {
+      return listeners.has(type);
+    },
     fire(type: string) {
       const event = {
         prevented: false,
@@ -30,15 +33,11 @@ function setup(blurAfterSending = false) {
   const form = fakeElement();
   const input = fakeElement();
   const questions: string[] = [];
-  let scrolledToTop = 0;
   new QuestionForm(form, input, {
     blurAfterSending,
-    scrollToTop: () => {
-      scrolledToTop++;
-    },
     onQuestion: (question) => questions.push(question),
   });
-  return { form, input, questions, scrolled: () => scrolledToTop };
+  return { form, input, questions };
 }
 
 describe("QuestionForm", () => {
@@ -94,11 +93,12 @@ describe("QuestionForm", () => {
     expect(input.blurred).toBe(0);
   });
 
-  it("schiebt die Seite beim Verlassen des Felds wieder ganz nach oben (iOS)", () => {
-    const { input, scrolled } = setup();
+  // Bis Schritt 12.1 sprang die Seite beim Verlassen des Felds nach oben (iOS-Notlösung). Auf der
+  // scrollenden Seite ging dadurch der erste Mausklick auf „Senden“ verloren: Beim Drücken verlor
+  // das Feld den Fokus, die Seite sprang, der Knopf rutschte unter dem Zeiger weg.
+  it("lässt die Seite beim Verlassen des Felds, wo sie ist", () => {
+    const { input } = setup();
 
-    input.fire("blur");
-
-    expect(scrolled()).toBe(1);
+    expect(input.listensTo("blur")).toBe(false);
   });
 });
