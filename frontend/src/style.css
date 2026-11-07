@@ -168,18 +168,6 @@ body {
   background: #33ff66;
 }
 
-/* „Nochmal“ ist ein Nebenknopf: gedämpft, damit „Senden“ der Hauptknopf bleibt. */
-#ask-form #replay {
-  color: #7fdc97;
-  background: #0a2a15;
-  border-color: #14502a;
-  font-weight: 400;
-}
-
-#ask-form #replay:hover {
-  background: #0f3d1f;
-}
-
 /* Der Hinweis unter dem Fragefeld: unauffällig, aber gut lesbar (Schrift 12 px, Kontrast über 4,5:1). */
 #notice {
   grid-area: notice;

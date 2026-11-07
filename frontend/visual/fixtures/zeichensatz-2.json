@@ -3,7 +3,7 @@
   "unknownAnswer": "Weiß ich nicht",
   "answers": [
     {
-      "keywords": ["hallo"],
+      "matchTerms": ["hallo"],
       "answer": "HALLO"
     }
   ]

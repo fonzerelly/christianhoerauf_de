@@ -10,7 +10,6 @@ import type { AnswerContent } from "../domain/pages/answer-content";
  */
 export class Conversation {
   private latestQuestion = 0;
-  private lastAnswer: Answer | undefined;
 
   public constructor(
     private readonly source: AnswerSource,
@@ -27,20 +26,12 @@ export class Conversation {
     this.present(this.source.answer(question));
   }
 
-  /** Schreibt die zuletzt eingetroffene Antwort noch einmal, wie eine neue. Ohne Antwort passiert nichts. */
-  public replay(): void {
-    if (this.lastAnswer !== undefined) this.present(Promise.resolve(this.lastAnswer));
-  }
-
   /** Zeigt die Antwort auf die neueste Frage. Eine ältere, die später eintrifft, wird nicht vorgelesen. */
   private present(reply: Promise<Answer>): void {
     this.latestQuestion++;
     const question = this.latestQuestion;
     const content = reply.then((answer) => {
-      if (question === this.latestQuestion) {
-        this.lastAnswer = answer;
-        this.spoken.show(answer.text);
-      }
+      if (question === this.latestQuestion) this.spoken.show(answer.text);
       return contentOf(answer);
     });
     this.stage.show(content);

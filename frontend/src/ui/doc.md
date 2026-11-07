@@ -9,7 +9,6 @@ werden. `main.ts` übergibt die echten Elemente.
 | `url-parameters.ts`          | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
 | `device-profile-selector.ts` | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
 | `question-form.ts`           | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
-| `replay-button.ts`           | `connectReplayButton`: der Knopf „Nochmal“.                                                                |
 | `sound-toggle.ts`            | `connectSoundToggle`: der Ton-Knopf (Brummen an/aus, `aria-pressed`).                                      |
 | `spoken-answer.ts`           | `SpokenAnswer`: der `aria-live`-Bereich für Screenreader.                                                  |
 | `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Screenreader.                                            |
@@ -29,13 +28,12 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 `selectProfile(windowWidth, requested?)` gibt den Wunsch aus der Adresse zurück, sonst `desktop` ab
 700 px, darunter `handy`. Gewählt wird einmal beim Laden.
 
-## QuestionForm, connectReplayButton, connectSoundToggle, SpokenAnswer
+## QuestionForm, connectSoundToggle, SpokenAnswer
 
 | Name                                             | Was sie konkret tut                                                                                                                                                                                                                               |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `QuestionForm.constructor(form, input, options)` | Hört auf `submit` des Formulars (verhindert das Neuladen). Beim Verlassen des Felds passiert nichts mehr: Der Sprung nach oben (iOS-Notlösung bis Schritt 12.1) ließ auf der scrollenden Seite den ersten Mausklick auf „Senden“ ins Leere gehen. |
 | `QuestionForm.submit` (privat)                   | Schneidet Leerraum ab; leer: nichts. Sonst die Frage melden, das Feld leeren und - am Handy - das Feld verlassen (schließt die Tastatur).                                                                                                         |
-| `connectReplayButton(button, onReplay)`          | Ruft `onReplay` bei jedem Klick.                                                                                                                                                                                                                  |
 | `connectSoundToggle(button, toggle)`             | Bei jedem Klick: ruft `toggle` (schaltet das Brummen um und sagt, ob es jetzt an ist) und schreibt das Ergebnis nach `aria-pressed`. Der Knopf steht beim Laden auf `aria-pressed="false"`.                                                       |
 | `SpokenAnswer.show(text)`                        | Schreibt den Originaltext (ohne Trennstellen-Zeichen) in den Bereich mit `aria-live="polite"`.                                                                                                                                                    |
 
@@ -52,7 +50,6 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 | `constructor(source, stage, spoken)` | Nimmt Antwortquelle, Bühne und Screenreader-Bereich.                                                                                                                                                                                          |
 | `start()`                            | Holt die Begrüßung (leere Frage).                                                                                                                                                                                                             |
 | `ask(question)`                      | Holt die Antwort auf die Frage.                                                                                                                                                                                                               |
-| `replay()`                           | Schreibt die zuletzt eingetroffene Antwort noch einmal, wie eine neue. Ohne Antwort: nichts.                                                                                                                                                  |
 | `present` (privat)                   | Gibt der Bühne das Versprechen für den Inhalt (`contentOf`: Text, Bild oder Foto). Sobald die Antwort da ist (und keine neuere Frage gestellt wurde), merkt sie sie sich und liest ihren Text vor; ein unbekanntes Gimmick bleibt unbeachtet. |
 
 ## Stage

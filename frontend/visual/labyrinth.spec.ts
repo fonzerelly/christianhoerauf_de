@@ -171,17 +171,6 @@ test.describe("Frage und Antwort", () => {
 
     await expect(page).toHaveScreenshot("frage-weiterschieben.png");
   });
-
-  test("Nochmal schreibt die Antwort in einem frischen Labyrinth", async ({ page }) => {
-    await open(page, "zeichensatz-1");
-    await advanceUntil(page, "resting");
-
-    await page.click("#replay");
-    await advanceUntil(page, "scrolling");
-    await advance(page, 0.6);
-
-    await expect(page).toHaveScreenshot("nochmal-weiterschieben.png");
-  });
 });
 
 test.describe("Bildstörung", () => {

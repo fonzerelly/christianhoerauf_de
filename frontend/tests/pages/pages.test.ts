@@ -30,6 +30,23 @@ describe("Hinweis unter dem Fragefeld", () => {
   });
 });
 
+describe("Fragefeld", () => {
+  const field = /<input[^>]*id="question"[^>]*>/.exec(index)?.[0] ?? "";
+
+  it("nimmt Fragen bis 500 Zeichen", () => {
+    expect(field).toContain('maxlength="500"');
+  });
+
+  it("prüft die Rechtschreibung (die Seite ist deutsch) und lässt die Autokorrektur an", () => {
+    expect(field).toContain('spellcheck="true"');
+    expect(field).not.toContain('autocorrect="off"');
+  });
+
+  it("hat keinen Knopf „Nochmal“ mehr daneben", () => {
+    expect(index).not.toContain('id="replay"');
+  });
+});
+
 describe.each([
   ["impressum.html", imprint],
   ["datenschutz.html", privacy],

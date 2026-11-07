@@ -110,43 +110,4 @@ describe("Conversation", () => {
       expect(spoken).toEqual(["zweite Antwort"]);
     });
   });
-
-  describe("replay", () => {
-    it("schreibt die letzte Antwort noch einmal, wie eine neue", async () => {
-      const { conversation, source, shown, spoken } = setup();
-      conversation.ask("Wer bist du?");
-      source.respond(0, { text: "Christian" });
-      await settle();
-
-      conversation.replay();
-      await settle();
-
-      expect(source.questions).toEqual(["Wer bist du?"]);
-      expect(shown).toHaveLength(2);
-      await expect(shown[1]).resolves.toBe("Christian");
-      expect(spoken).toEqual(["Christian", "Christian"]);
-    });
-
-    it("schreibt nichts, solange noch keine Antwort da ist", async () => {
-      const { conversation, shown } = setup();
-
-      conversation.replay();
-      await settle();
-
-      expect(shown).toEqual([]);
-    });
-
-    it("wiederholt die zuletzt eingetroffene Antwort, nicht eine, auf die noch gewartet wird", async () => {
-      const { conversation, source, shown } = setup();
-      conversation.ask("erste");
-      source.respond(0, { text: "Erste Antwort" });
-      await settle();
-      conversation.ask("zweite"); // noch keine Antwort
-
-      conversation.replay();
-      await settle();
-
-      await expect(shown[2]).resolves.toBe("Erste Antwort");
-    });
-  });
 });

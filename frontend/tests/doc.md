@@ -3,11 +3,12 @@
 Tests, die mehrere Teile des Codes zusammen prüfen. Die Unit-Tests der einzelnen Klassen liegen
 neben dem Code unter `src/`.
 
-| Ordner / Datei   | Was sie prüft                                                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `golden-master/` | Der Neubau erzeugt bei gleichen Eingaben dasselbe wie der Prototyp.                                                            |
-| `pages/`         | Hinweis am Fragefeld, Impressum, Datenschutzerklärung, `CNAME` und Workflow zum Ausrollen: der Text steht, wie er stehen muss. |
-| `structure/`     | Labyrinth-Seiten von außen: Der Leser liest den Text aus der Route, die Route hält die Regeln ein.                             |
+| Ordner / Datei     | Was sie prüft                                                                                                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `golden-master/`   | Der Neubau erzeugt bei gleichen Eingaben dasselbe wie der Prototyp.                                                                                                                          |
+| `pages/`           | Hinweis am Fragefeld, Fragefeld (500 Zeichen, Rechtschreibprüfung, kein „Nochmal“), Impressum, Datenschutzerklärung, `CNAME` und Workflow zum Ausrollen: der Text steht, wie er stehen muss. |
+| `visual-fixtures/` | Die Inhalte der Bildtests (`visual/fixtures/*.json`) haben das Format von `content.json` (`parseContent` wirft nicht). Sonst scheitern alle Bildtests an „Das klappt gerade nicht“.          |
+| `structure/`       | Labyrinth-Seiten von außen: Der Leser liest den Text aus der Route, die Route hält die Regeln ein.                                                                                           |
 
 ## golden-master
 

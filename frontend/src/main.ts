@@ -31,7 +31,6 @@ import { PhaseIndicator } from "./ui/phase-indicator";
 import { PreparedPageSource } from "./ui/prepared-page-source";
 import { QuestionForm } from "./ui/question-form";
 import { closesKeyboardAfterSending } from "./ui/on-screen-keyboard";
-import { connectReplayButton } from "./ui/replay-button";
 import { requireElement } from "./ui/required-element";
 import { SpokenAnswer } from "./ui/spoken-answer";
 import { connectSoundToggle } from "./ui/sound-toggle";
@@ -59,7 +58,6 @@ const stageElement = requireElement(document, "stage", HTMLElement);
 const canvas = requireElement(document, "maze", HTMLCanvasElement);
 const form = requireElement(document, "ask-form", HTMLFormElement);
 const questionInput = requireElement(document, "question", HTMLInputElement);
-const replayButton = requireElement(document, "replay", HTMLButtonElement);
 const spokenRegion = requireElement(document, "spoken-answer", HTMLElement);
 const soundToggle = requireElement(document, "sound-toggle", HTMLButtonElement);
 
@@ -185,9 +183,6 @@ new QuestionForm(form, questionInput, {
   onQuestion: (question) => {
     conversation.ask(question);
   },
-});
-connectReplayButton(replayButton, () => {
-  conversation.replay();
 });
 
 // Größe der Bühne und Sichtbarkeit der Seite
