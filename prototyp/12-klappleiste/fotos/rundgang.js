@@ -43,7 +43,11 @@ async function hoehe(seite) { return seite.evaluate(() => document.getElementByI
     await seite.waitForTimeout(400);
     console.log("Fragefeld:", await seite.inputValue("#question"), "| Fokus:", await seite.evaluate(() => document.activeElement.id));
     await seite.screenshot({ path: `${AUSGABE}/d3-zu-nach-menue.png` });
-    await seite.press("#question", "Enter");
+    // Mit der Maus auf „Senden“, nicht Enter: Ein Klick muss genügen, auch wenn das Fragefeld den
+    // Fokus hat und die Seite gescrollt ist (bis 07.11. sprang die Seite dann nach oben).
+    await seite.click("#send");
+    await seite.waitForTimeout(300);
+    console.log("Nach einem Klick auf Senden gefragt:", await seite.evaluate(() => !!document.querySelector("#antwortBereich .frage")));
     await seite.waitForTimeout(3500);
     console.log("Bühne zu:", await hoehe(seite));
     await seite.screenshot({ path: `${AUSGABE}/d4-antwort.png` });

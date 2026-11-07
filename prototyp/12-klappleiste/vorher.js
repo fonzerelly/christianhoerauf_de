@@ -30,3 +30,11 @@ Object.assign(CONFIG.profiles.handy, {
   glow: 5,
   glitchStrength: 6,
 });
+
+// Kein Sprung nach oben, wenn das Fragefeld den Fokus verliert (07.11.). seite.js setzt dafür in
+// connectControls einen Lauscher, gedacht für iOS, das die Seite für die Tastatur verschiebt und
+// nicht immer zurückschiebt. Im neuen Aufbau scrollt die Seite aber ohnehin, und der Sprung schadet:
+// Drückt man mit der Maus auf „Senden“, verliert das Feld den Fokus, die Seite springt, der Knopf
+// rutscht unter dem Zeiger weg und der Klick geht verloren. Dieser Lauscher wird VOR dem aus
+// seite.js angemeldet und hält ihn auf.
+document.getElementById("question").addEventListener("blur", (ereignis) => ereignis.stopImmediatePropagation());

@@ -99,6 +99,7 @@ startet beim Laden sofort; `oberflaeche.js` baut die Begrüßung danach neu.
 | Name | Was es tut |
 |---|---|
 | Config-Änderungen | Bedienfeld an (Knopf „Schalter“), kein „Nochmal“, keine `=`-Testhilfe. Rest-Helligkeit 0 (stehende Buchstaben regelt `buehne.js`), dunkle Ecken 20 %, Bedienfeld beim Laden zu. Handy: 45 Spalten für 10 Zeichen je Zeile (≈ 8 px je Zelle), Wände, Spur und Leuchten entsprechend dünner. |
+| Lauscher „blur“ am Fragefeld | Hält den Lauscher aus `seite.js` auf, der beim Verlassen des Fragefelds nach oben scrollt (iOS-Notlösung aus Prototyp 6). Sonst ging der erste Mausklick auf „Senden“ verloren: Beim Drücken verlor das Feld den Fokus, die Seite sprang, der Knopf rutschte unter dem Zeiger weg. Angemeldet vor `seite.js`, damit `stopImmediatePropagation` greift. |
 
 ## inhalte.js
 
