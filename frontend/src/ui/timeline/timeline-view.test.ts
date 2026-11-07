@@ -43,7 +43,11 @@ const STATIONS: Stations = {
 function setup() {
   const container = new FakeElement("section");
   container.hidden = true;
+  const connected: Record<string, FakeElement>[] = [];
   const view = new TimelineView({
+    connectScrolling: (elements) => {
+      connected.push({ ...elements });
+    },
     document: fakeDocument,
     container,
     measureWidth: () => 100,
@@ -53,7 +57,7 @@ function setup() {
     minPixelsPerYear: 34,
     today: TODAY,
   });
-  return { container, view };
+  return { container, view, connected };
 }
 
 describe("TimelineView", () => {
@@ -150,6 +154,39 @@ describe("TimelineView", () => {
     it("zeigt beim Laden „heute“ am rechten Rand", () => {
       expect(first(container, "timeline-scroll").scrollLeft).toBe(1234);
     });
+  });
+
+  it("rahmt den Inhalt: links „‹“, rechts „›“, darunter die Bahn mit dem Griff; und verbindet sie zum Verschieben", () => {
+    const { container, view, connected } = setup();
+
+    view.showStations(STATIONS);
+
+    const frame = first(container, "timeline-frame");
+    expect(frame.children.map(({ className }) => className)).toEqual([
+      "timeline-arrow earlier",
+      "timeline-scroll",
+      "timeline-arrow later",
+      "timeline-bottom",
+    ]);
+    const [earlier, , later, bottom] = frame.children;
+    expect([earlier?.textContent, later?.textContent]).toEqual(["‹", "›"]);
+    expect([earlier?.attributes.get("aria-label"), later?.attributes.get("aria-label")]).toEqual([
+      "Früher",
+      "Später",
+    ]);
+    const track = first(container, "timeline-track");
+    expect(bottom?.children).toEqual([track]);
+    expect(track.attributes.get("aria-hidden")).toBe("true");
+    expect(connected).toEqual([
+      {
+        frame,
+        scroll: first(container, "timeline-scroll"),
+        earlier,
+        later,
+        track,
+        thumb: first(container, "timeline-thumb"),
+      },
+    ]);
   });
 
   it("legt die Linie ohne Engagements nach oben", () => {

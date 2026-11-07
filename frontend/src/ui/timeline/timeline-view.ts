@@ -33,6 +33,18 @@ export interface TimelineViewParts<Element extends ElementLike<Element>> {
   readonly minPixelsPerYear: number;
   /** Das heutige Datum als Jahr mit Nachkommastellen. */
   readonly today: number;
+  /** Verbindet Pfeile, Bildlaufleiste und Ziehen mit dem verschiebbaren Bereich (`ScrollControls`). */
+  readonly connectScrolling: (elements: ScrollingElements<Element>) => void;
+}
+
+/** Die Elemente, mit denen sich die Zeitleiste verschieben lässt. */
+export interface ScrollingElements<Element> {
+  readonly frame: Element;
+  readonly scroll: Element;
+  readonly earlier: Element;
+  readonly later: Element;
+  readonly track: Element;
+  readonly thumb: Element;
 }
 
 const px = (value: number): string => `${String(value)}px`;
@@ -80,10 +92,21 @@ export class TimelineView<Element extends ElementLike<Element>> {
       ...engagementBlocks.map(({ block }) => block),
       today,
     );
+    // Rahmen (Raster im CSS):  [‹] [verschiebbarer Inhalt] [›]
+    //                              [Bahn mit Griff        ]
     const scroll = this.element("div", "timeline-scroll");
     scroll.append(content);
+    const earlier = this.arrow("earlier", "‹", "Früher");
+    const later = this.arrow("later", "›", "Später");
+    const thumb = this.element("div", "timeline-thumb");
+    const track = this.element("div", "timeline-track");
+    // Tastatur und Screenreader nehmen die Pfeile; die Bahn ist nur fürs Auge und die Maus.
+    track.setAttribute("aria-hidden", "true");
+    track.append(thumb);
+    const bottomRow = this.element("div", "timeline-bottom");
+    bottomRow.append(track);
     const frame = this.element("div", "timeline-frame");
-    frame.append(scroll);
+    frame.append(earlier, scroll, later, bottomRow);
     this.show(frame);
 
     const layout = layOutExpanded(
@@ -122,6 +145,15 @@ export class TimelineView<Element extends ElementLike<Element>> {
     );
     this.place(content, { width: layout.contentWidth, height: bottom + BOTTOM_SPACE });
     scroll.scrollLeft = scrollWidth(scroll);
+    this.parts.connectScrolling({ frame, scroll, earlier, later, track, thumb });
+  }
+
+  /** Ein Pfeil zum Verschieben: „‹“ (früher) links, „›“ (später) rechts. */
+  private arrow(direction: "earlier" | "later", sign: string, label: string): Element {
+    const arrow = this.element("button", `timeline-arrow ${direction}`, sign);
+    arrow.setAttribute("type", "button");
+    arrow.setAttribute("aria-label", label);
+    return arrow;
   }
 
   /** Eine Station: ein Block unter der Linie mit einem Knopf aus Jahr, Organisation und Titel. */

@@ -4,26 +4,27 @@ Die Verbindung zur Seite: Fragefeld, Bühne, Takt, Fenstergröße. Die Klassen n
 statt echter DOM-Elemente (`{ addEventListener }`, `{ textContent }` …), damit sie ohne Browser getestet
 werden. `main.ts` übergibt die echten Elemente.
 
-| Datei                        | Was sie tut                                                                                                |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `url-parameters.ts`          | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
-| `device-profile-selector.ts` | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
-| `question-form.ts`           | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
-| `answer-area.ts`             | `AnswerArea`: Antwortbereich (Frage, Antwort, Warten) und Folgefragen; der `aria-live`-Bereich.            |
-| `dom-like.ts`                | `ElementLike`, `ElementFactory`: der Ausschnitt des DOM, mit dem `AnswerArea` baut.                        |
-| `conversation.ts`            | `Conversation`: Frage → Antwortquelle → Bühne und Antwortbereich.                                          |
-| `stage.ts`                   | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe.                                |
-| `step-runner.ts`             | `runInTasks`: rechnet eine Berechnung in Stücken, jedes in einer eigenen Aufgabe.                          |
-| `prepared-page-source.ts`    | `PreparedPageSource`: die Seitenquelle der Bühne (Seiten in Stücken erzeugen, erste Seite vorab zeichnen). |
-| `phase-indicator.ts`         | `PhaseIndicator`: Abschnitt der Animation als `data-phase`.                                                |
-| `stage-size-watcher.ts`      | `StageSizeWatcher`: baut neu, wenn die Bühne anders breit wird.                                            |
-| `stage-frame.ts`             | `applyStageLayout`: Höhe der Bühne und Anfang/Breite des Labyrinths an die Seite.                          |
-| `animation-loop.ts`          | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                                                     |
-| `required-element.ts`        | `requireElement`: Element der Seite holen und prüfen.                                                      |
-| `test-hooks.ts`              | `readTestHooks`: Uhr, Bildtakt und Startwert, die ein Test mitgibt.                                        |
-| `timeline/timeline-view.ts`  | `TimelineView`: baut, misst und legt die Zeitleiste; Laden und Fehler.                                     |
-| `timeline/timeline.ts`       | `Timeline`: lädt den Lebenslauf, zeigt Stationen oder Fehler, „Nochmal versuchen“.                         |
-| `timeline/year-of-date.ts`   | `yearOfDate`: ein Datum als Jahr mit Nachkommastellen.                                                     |
+| Datei                         | Was sie tut                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `url-parameters.ts`           | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
+| `device-profile-selector.ts`  | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
+| `question-form.ts`            | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
+| `answer-area.ts`              | `AnswerArea`: Antwortbereich (Frage, Antwort, Warten) und Folgefragen; der `aria-live`-Bereich.            |
+| `dom-like.ts`                 | `ElementLike`, `ElementFactory`: der Ausschnitt des DOM, mit dem `AnswerArea` baut.                        |
+| `conversation.ts`             | `Conversation`: Frage → Antwortquelle → Bühne und Antwortbereich.                                          |
+| `stage.ts`                    | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe.                                |
+| `step-runner.ts`              | `runInTasks`: rechnet eine Berechnung in Stücken, jedes in einer eigenen Aufgabe.                          |
+| `prepared-page-source.ts`     | `PreparedPageSource`: die Seitenquelle der Bühne (Seiten in Stücken erzeugen, erste Seite vorab zeichnen). |
+| `phase-indicator.ts`          | `PhaseIndicator`: Abschnitt der Animation als `data-phase`.                                                |
+| `stage-size-watcher.ts`       | `StageSizeWatcher`: baut neu, wenn die Bühne anders breit wird.                                            |
+| `stage-frame.ts`              | `applyStageLayout`: Höhe der Bühne und Anfang/Breite des Labyrinths an die Seite.                          |
+| `animation-loop.ts`           | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                                                     |
+| `required-element.ts`         | `requireElement`: Element der Seite holen und prüfen.                                                      |
+| `test-hooks.ts`               | `readTestHooks`: Uhr, Bildtakt und Startwert, die ein Test mitgibt.                                        |
+| `timeline/timeline-view.ts`   | `TimelineView`: baut, misst und legt die Zeitleiste; Laden und Fehler.                                     |
+| `timeline/timeline.ts`        | `Timeline`: lädt den Lebenslauf, zeigt Stationen oder Fehler, „Nochmal versuchen“.                         |
+| `timeline/scroll-controls.ts` | `ScrollControls`: Pfeile, eigene Bildlaufleiste und Ziehen.                                                |
+| `timeline/year-of-date.ts`    | `yearOfDate`: ein Datum als Jahr mit Nachkommastellen.                                                     |
 
 ## readUrlParameters, selectProfile
 
@@ -125,6 +126,19 @@ und Zellgröße; die Tastatur-Falle am Handy (niedrigeres Fenster beim Tippen) g
 | `Timeline.load()`                     | Zeigt „wird geladen“, lädt den Lebenslauf, liest die Stationen (`stationsOf` mit `today`) und zeigt sie; scheitert es, den Fehler mit einem „Nochmal versuchen“, das wieder `load` ruft.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `Timeline.refresh()`                  | Zeichnet die geladenen Stationen neu (andere Breite); ohne Stationen nichts.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `yearOfDate(date)`                    | Jahr + vergangener Anteil des Jahres (mittleres Jahr mit Schalttagen). Hier, weil die Domäne keine Uhr kennt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+`showStations` rahmt den verschiebbaren Bereich: links „‹“ (`aria-label` „Früher“), rechts „›“
+(„Später“), darunter die Bahn mit dem Griff (`aria-hidden`, Tastatur und Screenreader nehmen die
+Pfeile), und übergibt diese Elemente an `connectScrolling` (in `main.ts`: `ScrollControls`).
+
+| `ScrollControls`     | Was sie konkret tut                                                                                                                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(parts)` | Verbindet Pfeile, Verschieben, Griff, Bahn und Ziehen mit dem Inhalt und ruft `update`. Hat eigene schmale Schnittstellen für Zeiger-Ereignisse (`PointerLike`).                                                                                  |
+| `update()`           | Passt alles hinein: Klasse `fits` am Rahmen, Pfeile versteckt. Sonst Pfeile da, am Anfang „‹“ und am Ende „›“ ausgegraut (`disabled`); Griff nach `thumbOf`. Läuft bei jedem `scroll`.                                                            |
+| Pfeile               | Klick: um 60 % der sichtbaren Breite, sanft (bei weniger Bewegung sofort).                                                                                                                                                                        |
+| Griff                | Druck fängt den Zeiger (`setPointerCapture`), Ziehen verschiebt nach `scrollLeftForThumbDrag`, Loslassen oder Abbruch beendet.                                                                                                                    |
+| Bahn                 | Druck auf die Bahn (nicht auf den Griff): `scrollLeftForTrackClick`, sanft bzw. sofort.                                                                                                                                                           |
+| Inhalt ziehen        | Nur Maus, linke Taste: ab 4 px Bewegung gilt es als Ziehen (Klasse `dragging`) und verschiebt mit; Loslassen oder Verlassen beendet. Danach fängt der nächste Klick ab (keine Station öffnet sich). Mit dem Finger verschiebt der Browser selbst. |
 
 `main.ts` baut die Zeitleiste nur, wenn es eine Adresse für den Lebenslauf gibt (`cvUrlOf`, im
 Test `cvUrl` aus den Test-Hooks); sonst bleibt `#timeline` versteckt. Wird die Bühne anders breit,

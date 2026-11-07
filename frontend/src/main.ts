@@ -37,6 +37,7 @@ import { Stage } from "./ui/stage";
 import type { ScheduleTask } from "./ui/step-runner";
 import { applyStageLayout } from "./ui/stage-frame";
 import { StageSizeWatcher } from "./ui/stage-size-watcher";
+import { ScrollControls } from "./ui/timeline/scroll-controls";
 import { Timeline } from "./ui/timeline/timeline";
 import { TimelineView } from "./ui/timeline/timeline-view";
 import { yearOfDate } from "./ui/timeline/year-of-date";
@@ -273,6 +274,9 @@ const timeline =
           scrollWidth: (element) => element.scrollWidth,
           minPixelsPerYear: tuning.timelineMinPixelsPerYear,
           today,
+          connectScrolling: (elements) => {
+            new ScrollControls({ ...elements, prefersReducedMotion: () => motion.isReduced });
+          },
         }),
         today,
       );
