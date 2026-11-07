@@ -12,6 +12,7 @@ sicher, dass `domain` nur aus `domain` importiert.
 | `picture/`  | Die Bilder der Gimmicks: Herz und Smiley mit der Hand vor dem Mund.                |
 | `greeting/` | Persönlicher Link und Begrüßung (Stichwort und Text).                              |
 | `cv/`       | Lebenslauf: Zeiträume, Stationen und Engagements, Beschriftungen, Einstiegsfragen. |
+| `timeline/` | Maßstab der Zeitleiste: Abschnitte, Pixel je Jahr, Lage der Engagements.           |
 
 ## lists.ts
 
