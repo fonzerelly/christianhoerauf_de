@@ -31,22 +31,29 @@ Prototyp 11, der zum Vergleich stehen bleibt. Keine Tests (Prototyp).
 - **Zeitleiste** samt Knöpfen und **Fragefeld** samt „Senden“ sind genau so breit wie das Labyrinth
   (das aus ganzen Zellen besteht und deshalb etwas schmaler ist als die Bühne); Antwort, Folgefragen
   und Hinweise beginnen an seiner linken Kante.
-- Schalter „Höhe der Bühne“: 10, 14 (Start) oder 18 Reihen. Bei 10 und 14 passt eine Zeile
-  Stichwort auf eine Seite, bei 18 zwei; die Begrüßung „HALLO / FRAU MUSTER“ läuft sonst über zwei
-  Seiten.
+- **Raster (07.11., nach Ansehen):** Desktop 16 statt 24 px je Zelle, 15 Reihen, die Bühne also
+  240 px hoch (wie 10 Reihen à 24 px); Wände, Spur und Leuchten im selben Verhältnis dünner. Handy
+  45 Spalten (≈ 8 px) und 18 Reihen, 144 px. Andere Raster im Bedienfeld („Raster am Desktop“,
+  „Reihen am Handy“). Bis 17 Reihen passt eine Zeile Stichwort auf eine Seite, ab 18 zwei (die
+  Begrüßung „FRAU MUSTER“ am Handy steht dann auf einer Seite).
+- **Zwei Durchläufe** statt drei.
+- **Gimmicks** (Herz, Smiley, Foto), ausgelöst über drei Knöpfe im Bedienfeld. Herz und Smiley
+  zeichnet der Code der echten App (`bilder-der-app.js`). Jedes ist so groß, wie es auf die Bühne
+  passt. Mindestens braucht das Foto 10 Reihen, das Herz 15, der Smiley 22; passt es nicht,
+  schreibt der Lichtpunkt das Stichwort, und das Bedienfeld sagt, warum.
 - Entfallen: Schalter Zeitleiste fest/verschiebbar, Nebenspur, Handy waagrecht/senkrecht, Handy-Menü.
 
 **Wie in Prototyp 11:** Der Lichtpunkt schreibt nur das Stichwort, die Antwort steht als Text
 darunter; schneller schreiben und wiederholen (schaltbar); Folgefragen als Knöpfe; Fehler des Bots
 als HTTP-Code bzw. OFFLINE oder TIMEOUT. Die übrigen Schalter tragen noch ihre Kennung `p11…`.
 
-**Nicht drin:** echter Bot (Lorem ipsum, der Reihe nach), Gimmicks, Pulsieren am Haltepunkt
+**Nicht drin:** echter Bot (Lorem ipsum, der Reihe nach), Pulsieren am Haltepunkt
 während des Wartens, Ton.
 
 ## Ansehen
 
 ```bash
-./baue-einzeldatei.sh   # holt den Lebenslauf und schreibt /mnt/share/website/klappleiste/index.html
+./baue-einzeldatei.sh   # holt den Lebenslauf, schreibt /mnt/share/website/klappleiste/index.html (Foto eingebettet)
 ```
 
 Bildschirmfotos und Prüfung in Chromium (Playwright im Docker, Bilder nach `bilder/`, nicht
@@ -56,7 +63,15 @@ eingecheckt):
 ./fotografiere.sh rundgang     # Desktop und Handy durchklicken; Höhen, Breiten, Konsolenfehler
 ./fotografiere.sh ecken        # Nahaufnahmen beider Ecken der Zeitleiste, auf und zu; Griff ziehen
 ./fotografiere.sh klappen      # Übergang beim Zu- und Aufklappen in Zeitlupe, je sechs Bilder
+./fotografiere.sh gimmicks     # Herz, Smiley, Foto in vier Rastern, je mittendrin und fertig
 ./fotografiere.sh einzeldatei  # die gebaute Einzeldatei laden, eine Frage stellen, Fehler zählen
+```
+
+`bilder-der-app.js` ist erzeugt; nur wenn sich Herz oder Smiley in der App ändern, neu bauen
+(braucht `npm install` in `frontend/`):
+
+```bash
+./baue-bilder-der-app.sh
 ```
 
 Die Skripte dazu liegen in `fotos/`. Das Docker-Image nimmt die Version von `playwright-core` aus
@@ -72,7 +87,8 @@ Abruf deshalb, und es gilt der Schnappschuss aus `hole-lebenslauf.sh` (steht in 
 Repo ist öffentlich). Im echten Frontend gibt es keinen Schnappschuss.
 
 Reihenfolge der Skripte: Prototyp 6 (`config.js` … `einstellungen.js`), `vorher.js`, `seite.js`,
-dann Schnappschuss, `inhalte.js`, `buehne.js`, `zeitleiste.js`, `oberflaeche.js`. `seite.js`
+dann Schnappschuss, `inhalte.js`, `buehne.js`, `bilder-der-app.js`, `gimmicks.js`, `zeitleiste.js`,
+`oberflaeche.js`. `seite.js`
 startet beim Laden sofort; `oberflaeche.js` baut die Begrüßung danach neu.
 
 ## Abweichungen und Auslegungen
@@ -93,12 +109,23 @@ startet beim Laden sofort; `oberflaeche.js` baut die Begrüßung danach neu.
 - **Wo der Fuß des L sitzt**: „vertikal gespiegeltes L“ ist hier als ⅃ gelesen: senkrecht „›“
   rechts, darunter der Fuß, der nach links unter die Zeitleiste ragt. Dafür kommt unter der
   Zeitleiste eine schmale Zeile dazu (22 px, Handy 30 px), in der nur der Fuß steht.
+- **Größe der Gimmicks**: In der App nimmt ein Bild zwei Drittel, ein Foto zwei Fünftel der
+  kürzeren Seite ein. Auf der flachen Bühne ist das immer die Höhe, und es bliebe kaum etwas übrig
+  (bei 15 Reihen ein Herz von 9 Zellen, zu klein). Hier ist jedes Gimmick so groß, wie es passt.
+- **Rand um Gimmicks**: oben und unten 1 Reihe frei statt 2 wie um einen Text. Mit 2 bräuchte das
+  Herz 17 Reihen. Der Lichtpunkt kommt bei Laufrichtung „gerade“ ohnehin von der Seite, auf Höhe
+  der untersten Reihe des Gimmicks.
+- **Passt ein Gimmick nicht**, schreibt der Lichtpunkt das Stichwort (in der App: den Antworttext,
+  den es auf der Bühne nicht mehr gibt).
+- **Foto**: Die Spalte wird gewürfelt wie in der App, senkrecht liegt es mittig (es gibt nur eine
+  Reihe Spielraum).
 
 ## vorher.js
 
 | Name | Was es tut |
 |---|---|
-| Config-Änderungen | Bedienfeld an (Knopf „Schalter“), kein „Nochmal“, keine `=`-Testhilfe. Rest-Helligkeit 0 (stehende Buchstaben regelt `buehne.js`), dunkle Ecken 20 %, Bedienfeld beim Laden zu. Handy: 45 Spalten für 10 Zeichen je Zeile (≈ 8 px je Zelle), Wände, Spur und Leuchten entsprechend dünner. |
+| Config-Änderungen | Bedienfeld an (Knopf „Schalter“), kein „Nochmal“, keine `=`-Testhilfe. Rest-Helligkeit 0 (stehende Buchstaben regelt `buehne.js`), dunkle Ecken 20 %, Bedienfeld beim Laden zu. Desktop: 16 px je Zelle. Handy: 45 Spalten für 10 Zeichen je Zeile (≈ 8 px je Zelle), Wände, Spur und Leuchten entsprechend dünner. |
+| `aussehenFuerZellgroesse(zelle)` | Zellgröße samt Wand, Spur, Leuchten, Überstrahlen und Bildstörung, im Verhältnis zu den Grundwerten bei 24 px (Wand und Spur auf halbe Pixel gerundet). Gilt fürs Desktop-Profil; `oberflaeche.js` nimmt es, wenn das Raster umgeschaltet wird. |
 | Lauscher „blur“ am Fragefeld | Hält den Lauscher aus `seite.js` auf, der beim Verlassen des Fragefelds nach oben scrollt (iOS-Notlösung aus Prototyp 6). Sonst ging der erste Mausklick auf „Senden“ verloren: Beim Drücken verlor das Feld den Fokus, die Seite sprang, der Knopf rutschte unter dem Zeiger weg. Angemeldet vor `seite.js`, damit `stopImmediatePropagation` greift. |
 
 ## inhalte.js
@@ -119,6 +146,7 @@ startet beim Laden sofort; `oberflaeche.js` baut die Begrüßung danach neu.
 | `fehlerAntwort(code)` | Text und Stichwort für einen Fehler: HTTP-Code, `OFFLINE` oder `TIMEOUT`. |
 | `warte(ms)` | Ein Versprechen, das nach der Zeit erfüllt ist. |
 | `frageVorgetaeuschtenBot(fehlerart)` | Nach 0,8–2,2 s die nächste Antwort der Reihe, oder der gewählte Fehler; `TIMEOUT` nach 4 s. |
+| `GIMMICK_ANTWORTEN` | Je eine Antwort mit Herz, Smiley und Foto: Stichwort (falls das Gimmick nicht passt), Gimmick, kurzer Text. |
 
 ## buehne.js
 
@@ -153,6 +181,42 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 | `pruefeWiederholung()` | Ist die Antwort fertig und die Pause um, startet der nächste Durchlauf, solange es noch einen gibt. |
 | `buehneNeuAufbauen()` | Baut die aktuelle Antwort mit den jetzigen Schaltern neu und schreibt sie von vorn (auch nach einer anderen Höhe). |
 | `jedesBildDerBuehne()` | Läuft in jedem Bild und prüft die Wiederholung. |
+
+## gimmicks.js
+
+Nach `buehne.js` geladen; ersetzt `buildAnswerPages`, `createAnswer` und `drawPage` noch einmal
+durch Zuweisung. Route und Seite sind aus `route-builder.ts` und `maze-page-generator.ts` der App
+übertragen, mit den Bausteinen aus Prototyp 6.
+
+| Name | Was es tut |
+|---|---|
+| `fotoVonChris` | Das Foto aus `frontend/src/assets/chris.jpg` (in der Einzeldatei als data:-Adresse). Zeichnet neu, sobald es geladen ist. |
+| `reihenFuerBild(bild)` | Höhe des Bilds + 3 Reihen für An- und Ablauf + je 1 Reihe frei oben und unten. |
+| `platziereBild(name, cols, rows)` | Das breiteste Bild mit ungerader Breite, das passt (höchstens so breit wie die Bühne ohne je 3 Spalten Rand), waagrecht und senkrecht mittig. `null`, wenn selbst die kleinste Größe aus der App (Herz 11, Smiley 17) nicht passt. |
+| `platziereFoto(cols, rows, random)` | Das größte quadratische Foto, das samt Rahmen passt; Spalte gewürfelt, senkrecht mittig. `null` unter 6 Zellen. |
+| `mindestReihen(gimmick)` | Wie viele Reihen das Gimmick mindestens braucht (Foto 10, Herz 15, Smiley 22). |
+| `setzeRouteZusammen(…)` | Wie `buildRoute` in Prototyp 6 bzw. `assemble` in der App: zwei Schritte außerhalb, Anlauf in Windungen zum linken Tor, die Mitte, Ablauf in Windungen vom rechten Tor zum Ausgang, zwei Schritte hinaus. |
+| `blockFuerBild(platz)` | Das Rechteck aus Bild und den 3 Reihen darunter; um ihn herum teilen sich Anlauf und Ablauf das Labyrinth. |
+| `routeFuerBild(…)` | Wie `buildPicture`: in der untersten Reihe des Blocks von links heran, senkrecht hinauf zum Anfang des Bilds, das Bild (Wegpunkte aus der App), eine Reihe unter das Bild und darin nach rechts hinaus. |
+| `rahmenUm(foto)` | Die Zellen direkt um das Foto. |
+| `routeFuerFoto(…)` | Wie `buildPhoto`: unten links an den Rahmen, dreimal herum (Schriftwege), unten nach rechts hinaus. Merkt am Foto in `rundenEnden`, wo jede Runde endet. |
+| `oeffneRaum(maze, foto)` | Nimmt alle Wände zwischen den Zellen unter dem Foto weg; die nach außen bleiben. |
+| `generiereGimmickSeite(plan, …)` | Wie `generatePage`: Ausgang, Route, freibrechen, beim Foto den Raum öffnen, den Rest wachsen lassen. Keine Zeilen. |
+| `planeGimmick(gimmick, random)` | `{bild}`, `{foto}` oder `null`, wenn es nicht passt. |
+| `anlaufReiheVon(plan)` | Die unterste Reihe des Gimmicks; dort liegen bei Laufrichtung „gerade“ Ein- und Ausgang. |
+| `createAnswer` (ersetzt) | Wie bisher, trägt das vorgemerkte Gimmick an der Antwort ein. |
+| `zeigeAntwortMitGimmick(stichwort, frage, gimmick)` | Merkt das Gimmick vor und ruft `showAnswer`. |
+| `buildAnswerPages` (ersetzt) | Mit Gimmick, das passt: genau eine Seite damit, Eingang gegenüber dem vorigen Ausgang bzw. links auf Höhe der untersten Reihe. Sonst wie in `buehne.js` (Stichwort). Wiederholung und Stehenbleiben wie beim Stichwort. |
+| `zeigeGimmickHinweis(gimmick, passt)` | Schreibt ins Bedienfeld, ob es passt bzw. wie viele Reihen fehlen. |
+| `verkleinertesFoto(bloecke)` | Das Foto auf `bloecke` × `bloecke` Pixel verkleinert, je Größe einmal. |
+| `zeichneFoto(seite, settings)` | Wie `PhotoPainter`: Foto im Rahmen, um die halbe Wandbreite eingerückt; vor der ersten Runde Blöcke von 2 Zellen, dann 1, dann ½, nach der dritten scharf. |
+| `drawPage` (ersetzt) | Auf Seiten mit Foto: Wände, Foto, dann Spur und Lichtpunkt. |
+
+## bilder-der-app.js, baue-bilder-der-app.sh
+
+Erzeugt von `baue-bilder-der-app.sh` mit `rolldown` aus `frontend/node_modules`: bündelt
+`drawPicture` und `SMALLEST_SIZE` aus `frontend/src/domain/picture/` zu einem Skript ohne Module
+mit der globalen Variable `BILDER_DER_APP`. Nicht von Hand ändern.
 
 ## zeitleiste.js
 
@@ -211,8 +275,11 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 | `zeigeWarten(frage)` | Neue Frage steht da, „Der Bot denkt nach …“, alte Antwort blass. |
 | `setzeFolgefragen(fragen)` | Knöpfe über dem Fragefeld; Klick trägt nur ein. |
 | `zeigeAntwortImBild()` | Scrollt zur Antwort, wenn sie nicht gut zu sehen ist. |
-| `stelleFrage(frage)` | Klappt die Zeitleiste zu, fragt den vorgetäuschten Bot, zeigt die Antwort, lässt das Stichwort schreiben. Überholte Antworten werden verworfen. |
+| `stelleFrage(frage, gimmick)` | Klappt die Zeitleiste zu, fragt den vorgetäuschten Bot (mit `gimmick` nach 0,8 s die Antwort aus `GIMMICK_ANTWORTEN`), zeigt die Antwort, lässt das Stichwort schreiben bzw. das Gimmick zeichnen. Überholte Antworten werden verworfen. |
 | Absenden (Lauscher) | Fängt das Absenden vor `seite.js` ab. |
-| `wertVon(id)`, `leseSchalter()` | Liest das Bedienfeld in `SCHALTER` und `ZEITLEISTE`. |
-| Schalter-Lauscher | Übernehmen Änderungen; „Höhe der Bühne“ baut die aktuelle Antwort sofort neu; „Dunkle Ecken“ stellt den Regler aus Prototyp 6. |
+| `wertVon(id)`, `leseSchalter()` | Liest das Bedienfeld in `SCHALTER` und `ZEITLEISTE`; die Reihen je nach Profil aus „Raster am Desktop“ oder „Reihen am Handy“. |
+| `rasterAmDesktop()` | Liest „Raster am Desktop“: aus „16x15“ wird `{zelle: 16, reihen: 15}`. |
+| `wendeEckenAn()` | „Dunkle Ecken“ stellt den Regler aus Prototyp 6 und meldet ihm die Änderung. |
+| Schalter-Lauscher | Übernehmen Änderungen. „Raster am Desktop“ trägt Zellgröße und Aussehen ins Desktop-Profil ein und wendet es neu an (dann `wendeEckenAn`); „Reihen am Handy“ baut die aktuelle Antwort sofort neu. Ein anderes Profil von Hand baut Bühne und Zeitleiste neu. |
+| Gimmick-Knöpfe | Stellen die Frage „Gimmick: Herz“ usw. mit dem Gimmick. |
 | `starteSeite()` | Schalter lesen, Begrüßung als erste Antwort (bis zu zwei Zeilen) bauen, Zeitleiste aufgeklappt laden. |

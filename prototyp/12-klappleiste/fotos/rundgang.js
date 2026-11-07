@@ -1,5 +1,5 @@
 // Rundgang durch Prototyp 12 auf Desktop (1440 × 900) und Handy (390 × 844): Begrüßung,
-// Stationsmenü, Einstiegsfrage, Antwort, Auf- und Zuklappen, Höhen 10 und 18 Reihen.
+// Stationsmenü, Einstiegsfrage, Antwort, Auf- und Zuklappen, andere Raster am Desktop.
 // Gibt Bühnenhöhen, Breiten (Labyrinth, Zeitleiste, Fragefeld) und Konsolenfehler aus.
 // Aufruf über ../fotografiere.sh rundgang
 const { chromium } = require("playwright-core");
@@ -61,16 +61,17 @@ async function hoehe(seite) { return seite.evaluate(() => document.getElementByI
     await seite.evaluate(() => document.querySelector(".zlScroll").scrollLeft = 0);
     await seite.waitForTimeout(200);
     await seite.screenshot({ path: `${AUSGABE}/d7-links.png` });
-    for (const r of ["10", "18"]) {
-      await seite.evaluate((r) => { const f = document.getElementById("p12Reihen"); f.value = r; f.dispatchEvent(new Event("input")); }, r);
+    for (const raster of ["24x14", "10x24"]) {
+      await seite.evaluate((r) => { const f = document.getElementById("p12RasterDesktop"); f.value = r; f.dispatchEvent(new Event("input")); }, raster);
       await seite.waitForTimeout(2500);
-      console.log("Reihen", r, "Bühne:", await hoehe(seite));
-      await seite.screenshot({ path: `${AUSGABE}/d8-reihen${r}.png` });
+      console.log("Raster", raster, "Bühne:", await hoehe(seite), "Zellen:", await seite.evaluate(() => `${scene.cols} × ${scene.rows}`));
+      await seite.screenshot({ path: `${AUSGABE}/d8-raster${raster}.png` });
     }
   });
   await lauf(browser, "handy", { width: 390, height: 844 }, async (seite) => {
     await seite.goto(ADRESSE + MUSTER);
     await seite.waitForTimeout(4000);
+    console.log("Bühne:", await hoehe(seite), "Zellen:", await seite.evaluate(() => `${scene.cols} × ${scene.rows}`));
     console.log(JSON.stringify(await breiten(seite), null, 1));
     await seite.screenshot({ path: `${AUSGABE}/h1-auf.png`, fullPage: true });
     await seite.click(".zlStation >> nth=-1 >> button");

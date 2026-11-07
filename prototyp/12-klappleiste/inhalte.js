@@ -145,6 +145,14 @@ const VORGETAEUSCHTE_ANTWORTEN = [
   { keyword: "CODE-KATAS", text: loremMitLaenge(120), suggestions: [] },
 ];
 
+// Antworten mit Gimmick, ausgelöst über die Knöpfe im Bedienfeld. Das Stichwort schreibt der
+// Lichtpunkt nur, wenn das Gimmick nicht auf die Bühne passt.
+const GIMMICK_ANTWORTEN = {
+  herz: { keyword: "HERZ", gimmick: "herz", text: "Vorgetäuschte Antwort mit dem Herz. " + loremMitLaenge(140), suggestions: [] },
+  smiley: { keyword: "SMILEY", gimmick: "smiley", text: "Vorgetäuschte Antwort mit dem Smiley. " + loremMitLaenge(140), suggestions: [] },
+  foto: { keyword: "FOTO", gimmick: "foto", text: "Vorgetäuschte Antwort mit dem Foto. " + loremMitLaenge(140), suggestions: [] },
+};
+
 // Was im Antwortbereich steht, wenn der Bot nicht erreichbar ist (Q35). Das Labyrinth schreibt
 // dazu den HTTP-Code oder OFFLINE bzw. TIMEOUT.
 function fehlerAntwort(code) {

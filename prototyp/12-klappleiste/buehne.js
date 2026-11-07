@@ -13,12 +13,12 @@
 
 // Die Schalter aus dem Bedienfeld; oberflaeche.js hält sie aktuell.
 const SCHALTER = {
-  reihen: 14, // Höhe der Bühne in Zellen: 10 (eine Zeile Stichwort), 14 oder 18 (zwei Zeilen)
+  reihen: 15, // Höhe der Bühne in Zellen, je Profil (oberflaeche.js): Desktop 15 à 16 px, Handy 18
   laufrichtung: "gerade", // "gerade" | "zufall" | "obenunten" | "hoehe"
   lage: "startwert", // "startwert" | "mitte" | "links"
   tempo: 1.5, // Faktor auf das Tempo aus Prototyp 6
   pause: 2, // Sekunden zwischen zwei Durchläufen
-  durchlaeufe: 3, // 0 = endlos
+  durchlaeufe: 2, // 0 = endlos
   labyrinth: "gleich", // "gleich" | "neu": was beim nächsten Durchlauf zu sehen ist
   stehen: "danach", // "danach" | "immer" | "nie": bleiben die Buchstaben stehen?
 };

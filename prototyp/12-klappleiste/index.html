@@ -333,13 +333,30 @@
 
     <div id="controlsBody">
       <h2 class="p11">Prototyp 12: Schalter</h2>
-      <label>Höhe der Bühne (gilt sofort)
-        <select id="p12Reihen">
-          <option value="10">10 Reihen: eine Zeile Stichwort</option>
-          <option value="14" selected>14 Reihen: eine Zeile, mehr Labyrinth</option>
-          <option value="18">18 Reihen: zwei Zeilen (wie Prototyp 11 im Werdegang)</option>
+      <label>Raster am Desktop (gilt sofort)
+        <select id="p12RasterDesktop">
+          <option value="16x15" selected>16 px · 15 Reihen · 240 px hoch (gewählt)</option>
+          <option value="16x22">16 px · 22 Reihen · 352 px (Smiley passt)</option>
+          <option value="12x20">12 px · 20 Reihen · 240 px</option>
+          <option value="10x24">10 px · 24 Reihen · 240 px (Smiley passt)</option>
+          <option value="24x10">24 px · 10 Reihen · 240 px (keine Gimmicks)</option>
+          <option value="24x14">24 px · 14 Reihen · 336 px (bisher)</option>
         </select>
       </label>
+      <label>Reihen am Handy, 45 Spalten (gilt sofort)
+        <select id="p12ReihenHandy">
+          <option value="14">14 Reihen (bisher)</option>
+          <option value="18" selected>18 Reihen (gewählt)</option>
+          <option value="22">22 Reihen (Smiley passt)</option>
+        </select>
+      </label>
+      <p class="hint">Gimmick auslösen (wie eine Frage, deren Antwort ein Gimmick hat):</p>
+      <div class="linkKnoepfe">
+        <button type="button" data-gimmick="herz">Herz</button>
+        <button type="button" data-gimmick="smiley">Smiley</button>
+        <button type="button" data-gimmick="foto">Foto</button>
+      </div>
+      <p class="hint" id="p12GimmickHinweis" aria-live="polite"></p>
       <p class="hint">Aus Prototyp 11 (Grilling 06./07.11.): Laufrichtung, Lage und Wiederholung gelten ab der
         nächsten Antwort; „Jetzt neu aufbauen“ zeigt sie sofort an der aktuellen.</p>
       <button type="button" id="p11NeuAufbauen">Jetzt neu aufbauen</button>
@@ -365,7 +382,7 @@
         <input type="range" id="p11Pause" min="0" max="8" step="0.5" value="2">
       </label>
       <label>Durchläufe (0 = endlos) <span data-for="p11Durchlaeufe"></span>
-        <input type="range" id="p11Durchlaeufe" min="0" max="6" step="1" value="3">
+        <input type="range" id="p11Durchlaeufe" min="0" max="6" step="1" value="2">
       </label>
       <label>Bei Wiederholung
         <select id="p11Labyrinth">
@@ -583,6 +600,8 @@
   <script src="lebenslauf-schnappschuss.js"></script>
   <script src="inhalte.js"></script>
   <script src="buehne.js"></script>
+  <script src="bilder-der-app.js"></script>
+  <script src="gimmicks.js"></script>
   <script src="zeitleiste.js"></script>
   <script src="oberflaeche.js"></script>
 </body>

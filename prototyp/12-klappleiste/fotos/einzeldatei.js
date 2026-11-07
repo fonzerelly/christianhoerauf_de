@@ -1,5 +1,6 @@
 // Prüft die gebaute Einzeldatei (baue-einzeldatei.sh): lädt sie, stellt eine Frage, zählt die
-// Einträge der zugeklappten Zeitleiste und meldet Konsolenfehler; dazu ein Bildschirmfoto.
+// Einträge der zugeklappten Zeitleiste, prüft das eingebettete Foto und meldet Konsolenfehler;
+// dazu ein Bildschirmfoto.
 // Aufruf über ../fotografiere.sh einzeldatei
 const { chromium } = require("playwright-core");
 
@@ -18,6 +19,7 @@ const { chromium } = require("playwright-core");
   await seite.waitForTimeout(2500);
   await seite.screenshot({ path: "/ausgabe/einzeldatei.png" });
   const eintraege = await seite.locator(".zlZeile button").count();
-  console.log(`Einträge zugeklappt: ${eintraege} | Fehler: ${fehler.length ? fehler.join("; ") : "keine"}`);
+  const foto = await seite.evaluate(() => fotoVonChris.naturalWidth);
+  console.log(`Einträge zugeklappt: ${eintraege} | Foto fürs Gimmick: ${foto} px breit | Fehler: ${fehler.length ? fehler.join("; ") : "keine"}`);
   await browser.close();
 })();

@@ -4,6 +4,7 @@
 #   ./fotografiere.sh rundgang     Rundgang auf Desktop und Handy, Höhen, Breiten, Fehler
 #   ./fotografiere.sh ecken        Nahaufnahmen beider Ecken der Zeitleiste, auf und zu
 #   ./fotografiere.sh klappen      Übergang beim Zu- und Aufklappen in Einzelbildern (0–100 %)
+#   ./fotografiere.sh gimmicks     Herz, Smiley und Foto auf Desktop und Handy, je mittendrin und fertig
 #   ./fotografiere.sh einzeldatei  prüft die gebaute Einzeldatei (vorher baue-einzeldatei.sh)
 #
 # Zweiter Parameter: Verzeichnis für die Bilder, sonst bilder/ hier (steht in .gitignore).
@@ -16,9 +17,9 @@ was="${1:-}"
 ausgabe="${2:-$hier/bilder}"
 
 case "$was" in
-  rundgang | ecken | klappen | einzeldatei) ;;
+  rundgang | ecken | klappen | gimmicks | einzeldatei) ;;
   *)
-    echo "Aufruf: $0 rundgang|ecken|klappen|einzeldatei [verzeichnis-für-bilder]" >&2
+    echo "Aufruf: $0 rundgang|ecken|klappen|gimmicks|einzeldatei [verzeichnis-für-bilder]" >&2
     exit 2
     ;;
 esac

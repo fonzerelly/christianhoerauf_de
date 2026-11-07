@@ -64,19 +64,26 @@ function zeigeAntwortImBild() {
 
 let letzteFrageNummer = 0;
 
-async function stelleFrage(frage) {
+// gimmick (darf fehlen): "herz" | "smiley" | "foto" – dann kommt die Antwort mit diesem Gimmick.
+async function stelleFrage(frage, gimmick) {
   const nummer = ++letzteFrageNummer;
   setzeZeitleisteAufgeklappt(false); // Q43: wer fragt, braucht Platz für die Antwort
   setzeFolgefragen([]);
   zeigeWarten(frage);
 
-  const antwort = await frageVorgetaeuschtenBot(document.getElementById("p11Bot").value);
+  let antwort;
+  if (gimmick) {
+    await warte(800);
+    antwort = GIMMICK_ANTWORTEN[gimmick];
+  } else {
+    antwort = await frageVorgetaeuschtenBot(document.getElementById("p11Bot").value);
+  }
   if (nummer !== letzteFrageNummer) return; // von einer neueren Frage überholt
 
   zeigeAntwort(frage, [antwort.text]);
   setzeFolgefragen(antwort.suggestions || []);
   // Ohne Stichwort schreibt der Lichtpunkt nichts, er zieht nur einen Pfad (Leerzeichen).
-  showAnswer(antwort.keyword || " ", frage);
+  zeigeAntwortMitGimmick(antwort.keyword || " ", frage, antwort.gimmick);
   zeigeAntwortImBild();
 }
 
@@ -111,7 +118,7 @@ function wertVon(id) {
 
 // Liest alle Schalter in SCHALTER (buehne.js) und ZEITLEISTE (zeitleiste.js).
 function leseSchalter() {
-  SCHALTER.reihen = Number(wertVon("p12Reihen"));
+  SCHALTER.reihen = profilName() === "handy" ? Number(wertVon("p12ReihenHandy")) : rasterAmDesktop().reihen;
   SCHALTER.laufrichtung = wertVon("p11Laufrichtung");
   SCHALTER.lage = wertVon("p11Lage");
   SCHALTER.tempo = wertVon("p11Tempo");
@@ -129,23 +136,51 @@ for (const id of ["p11Laufrichtung", "p11Lage", "p11Tempo", "p11Pause", "p11Durc
   });
 }
 
-// Eine andere Höhe der Bühne gilt sofort: Die aktuelle Antwort wird darin neu aufgebaut.
-document.getElementById("p12Reihen").addEventListener("input", () => {
+// Das Raster am Desktop aus dem Bedienfeld: "16x15" heißt 16 px je Zelle, 15 Reihen.
+function rasterAmDesktop() {
+  const [zelle, reihen] = wertVon("p12RasterDesktop").split("x").map(Number);
+  return { zelle, reihen };
+}
+
+// „Dunkle Ecken“ stellt den Regler aus Prototyp 6 und meldet ihm die Änderung.
+function wendeEckenAn() {
+  const regler = document.getElementById("vignetteStrength");
+  regler.value = wertVon("p11Ecken");
+  regler.dispatchEvent(new Event("input"));
+}
+document.getElementById("p11Ecken").addEventListener("input", wendeEckenAn);
+
+// Ein anderes Raster gilt sofort: Die aktuelle Antwort wird darin neu aufgebaut. Am Desktop
+// ändern sich mit der Zellgröße auch Wände, Spur und Leuchten (aussehenFuerZellgroesse in
+// vorher.js); das Profil wird dafür neu angewandt, was die dunklen Ecken zurücksetzt.
+document.getElementById("p12RasterDesktop").addEventListener("input", () => {
+  Object.assign(CONFIG.profiles.desktop, aussehenFuerZellgroesse(rasterAmDesktop().zelle));
+  leseSchalter();
+  scene.answer.lauf = 0;
+  if (profilName() === "desktop") {
+    switchProfile("desktop");
+    wendeEckenAn();
+  }
+});
+document.getElementById("p12ReihenHandy").addEventListener("input", () => {
   leseSchalter();
   buehneNeuAufbauen();
 });
 
-// „Dunkle Ecken“ stellt den Regler aus Prototyp 6 und meldet ihm die Änderung.
-document.getElementById("p11Ecken").addEventListener("input", (ereignis) => {
-  const regler = document.getElementById("vignetteStrength");
-  regler.value = ereignis.target.value;
-  regler.dispatchEvent(new Event("input"));
+// Die Knöpfe für die Gimmicks: wie eine Frage, deren Antwort das Gimmick hat.
+document.querySelectorAll("[data-gimmick]").forEach((knopf) => {
+  knopf.addEventListener("click", () => stelleFrage("Gimmick: " + knopf.textContent, knopf.dataset.gimmick));
 });
 
 document.getElementById("p11NeuAufbauen").addEventListener("click", buehneNeuAufbauen);
 document.getElementById("p11LebenslaufNeu").addEventListener("click", ladeZeitleiste);
-// Ein anderes Geräteprofil von Hand (Regler-Leiste): Zeitleiste passend neu zeichnen.
-document.getElementById("profile").addEventListener("change", () => zeichneZeitleiste(false));
+// Ein anderes Geräteprofil von Hand (Regler-Leiste): Bühne mit dessen Reihen neu aufbauen,
+// Zeitleiste passend neu zeichnen.
+document.getElementById("profile").addEventListener("change", () => {
+  leseSchalter();
+  buehneNeuAufbauen();
+  zeichneZeitleiste(false);
+});
 
 // Knöpfe für die Beispiel-Links: Adresse ändern und neu laden.
 document.getElementById("p11Links").replaceChildren(
