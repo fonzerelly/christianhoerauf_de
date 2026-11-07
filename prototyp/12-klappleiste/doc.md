@@ -11,7 +11,8 @@ Prototyp 11, der zum Vergleich stehen bleibt. Keine Tests (Prototyp).
   sie, sobald eine Frage abgeschickt oder im Stationsmenü eine Einstiegsfrage gewählt wird; auf
   nur von Hand über den Klappknopf. Er ist der Fuß unter dem Pfeil „›“: beide zusammen sehen aus
   wie ein gespiegeltes L (umrandet, nicht gefüllt), darauf nur ▾ oder ▴. Links neben dem Fuß
-  liegt eine eigene Bildlaufleiste, die bündig an ihm endet. Auf dem Handy fehlen die Pfeile, dort
+  liegt eine eigene Bildlaufleiste, die bündig an ihm endet; links reicht „‹“ ebenso tief, und
+  die Leiste beginnt bündig daran. Auf dem Handy fehlen die Pfeile, dort
   bleibt nur der Fuß.
 - **Aufgeklappt:** Stationen groß unter der Linie, nebeneinander, Abstände nach Zeit, jede
   mindestens so breit wie ihre Beschriftung; nichts wird nach oben oder unten versetzt. Die

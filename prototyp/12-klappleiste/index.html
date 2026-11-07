@@ -82,6 +82,10 @@
     .zlScroll { grid-column: 2; grid-row: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
     .zlScroll::-webkit-scrollbar { display: none; }
     .zlUnten { grid-column: 2 / 4; grid-row: 2; display: flex; align-items: center; }
+    /* Über die Lücke zwischen „‹“ und dem Inhalt hinweg, damit die Leiste an „‹“ anstößt
+       (nicht auf dem Handy: dort gibt es kein „‹“, die Leiste beginnt mit dem Inhalt). */
+    body:not([data-profile="handy"]) .zlUnten { margin-left: -6px; }
+    body:not([data-profile="handy"]) .zlLeiste { border-radius: 0; }
     .zlLeiste { position: relative; flex: 1; min-width: 0; height: 6px; margin-right: 0; background: rgba(31, 122, 64, 0.35); border-radius: 3px 0 0 3px; cursor: pointer; touch-action: none; }
     .zlGriff { position: absolute; top: 0; bottom: 0; background: var(--linie); border-radius: 3px; cursor: grab; touch-action: none; }
     .zlGriff:hover, .zlGriff:active { background: var(--gruen); }
@@ -98,7 +102,8 @@
     .zlPfeil:focus-visible, .zlKlapp:focus-visible { outline: 1px solid var(--gruen); outline-offset: -2px; }
     .zlPfeil { width: var(--pfeil-breite); font-size: 20px; line-height: 1; }
     .zlRahmen.zu .zlPfeil { font-size: 16px; }
-    .zlPfeil.frueher { grid-column: 1; grid-row: 1; }
+    /* „‹“ reicht bis unten, so tief wie der Fuß rechts; die Leiste beginnt bündig daran. */
+    .zlPfeil.frueher { grid-column: 1; grid-row: 1 / 3; }
     .zlPfeil.spaeter { grid-column: 3; grid-row: 1; border-bottom: none; }
     /* Nur das Zeichen wird blass, nicht der Rand: sonst bräche der Umriss des L auf. */
     .zlPfeil:disabled { color: rgba(43, 220, 90, 0.25); background: transparent; cursor: default; }
