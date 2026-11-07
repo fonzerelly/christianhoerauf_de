@@ -2,13 +2,12 @@ import { describe, expect, it } from "vitest";
 import { parseContent } from "./content";
 
 const VALID = {
-  greeting: "Hallo",
   unknownAnswer: "Weiß ich nicht",
   answers: [{ matchTerms: ["hallo", "hi"], answer: "HALLO" }],
 };
 
 describe("parseContent", () => {
-  it("liest Begrüßung, Standardantwort und Suchwort-Tabelle", () => {
+  it("liest Standardantwort und Suchwort-Tabelle", () => {
     expect(parseContent(VALID)).toEqual(VALID);
   });
 
@@ -29,8 +28,6 @@ describe("parseContent", () => {
   it.each([
     ["kein Objekt", "text", "Der Inhalt"],
     ["null", null, "Der Inhalt"],
-    ["keine Begrüßung", { ...VALID, greeting: undefined }, "greeting"],
-    ["Begrüßung ist kein Text", { ...VALID, greeting: 5 }, "greeting"],
     ["keine Standardantwort", { ...VALID, unknownAnswer: undefined }, "unknownAnswer"],
     ["Tabelle ist keine Liste", { ...VALID, answers: "x" }, "answers"],
     ["Eintrag ist kein Objekt", { ...VALID, answers: [1] }, "answers[0]"],

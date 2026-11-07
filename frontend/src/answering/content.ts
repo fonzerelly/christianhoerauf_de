@@ -1,8 +1,7 @@
 import type { MatchTermEntry } from "./match-term-matcher";
 
-/** Der Inhalt von `content.json`: Begrüßung, Standardantwort und die Suchwort-Tabelle. */
+/** Der Inhalt von `content.json`: Standardantwort und die Suchwort-Tabelle. */
 export interface Content {
-  readonly greeting: string;
   readonly unknownAnswer: string;
   readonly answers: readonly MatchTermEntry[];
 }
@@ -46,7 +45,6 @@ export function parseContent(json: unknown): Content {
   if (!Array.isArray(answers)) throw invalid("answers", "eine Liste");
 
   return {
-    greeting: textAt(json, "greeting", "greeting"),
     unknownAnswer: textAt(json, "unknownAnswer", "unknownAnswer"),
     answers: answers.map((entry: unknown, index) => parseEntry(entry, index)),
   };

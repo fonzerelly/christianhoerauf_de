@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { StaticContentAnswerSource, UNAVAILABLE_ANSWER } from "./static-content-answer-source";
 
 const CONTENT = {
-  greeting: "Hier entsteht etwas",
   unknownAnswer: "Weiß ich nicht",
   answers: [
     { matchTerms: ["hallo"], answer: "HALLO" },
@@ -23,12 +22,6 @@ function loader(result: () => Promise<unknown>) {
 }
 
 describe("StaticContentAnswerSource", () => {
-  it("antwortet auf eine leere Frage mit der Begrüßung", async () => {
-    const source = new StaticContentAnswerSource(loader(() => Promise.resolve(CONTENT)).load);
-
-    await expect(source.answer("")).resolves.toEqual({ text: "Hier entsteht etwas" });
-  });
-
   it("antwortet auf eine Frage mit der Antwort des passenden Suchworts", async () => {
     const source = new StaticContentAnswerSource(loader(() => Promise.resolve(CONTENT)).load);
 
@@ -54,7 +47,7 @@ describe("StaticContentAnswerSource", () => {
     const { load, state } = loader(() => Promise.resolve(CONTENT));
     const source = new StaticContentAnswerSource(load);
 
-    await Promise.all([source.answer(""), source.answer("hallo"), source.answer("x")]);
+    await Promise.all([source.answer("y"), source.answer("hallo"), source.answer("x")]);
     await source.answer("noch eine");
 
     expect(state.calls).toBe(1);
@@ -79,7 +72,7 @@ describe("StaticContentAnswerSource", () => {
   it("sagt dasselbe, wenn der Inhalt die falsche Form hat", async () => {
     const source = new StaticContentAnswerSource(loader(() => Promise.resolve({ foo: 1 })).load);
 
-    await expect(source.answer("")).resolves.toEqual({
+    await expect(source.answer("hallo")).resolves.toEqual({
       text: UNAVAILABLE_ANSWER,
       keyword: "OFFLINE",
     });

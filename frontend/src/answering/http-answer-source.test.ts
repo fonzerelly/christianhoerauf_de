@@ -1,21 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { HttpAnswerSource, UNREACHABLE_ANSWER } from "./http-answer-source";
 import type { HttpFetch, HttpRequest } from "./http-answer-source";
-import type { AnswerSource } from "./answer-source";
 
 const URL = "https://example.test/ask";
-
-/** Die Begrüßungsquelle: antwortet auf jede Frage mit "BEGRÜSSUNG" und zählt mit. */
-function greetingSource() {
-  const questions: string[] = [];
-  const source: AnswerSource = {
-    answer: (question) => {
-      questions.push(question);
-      return Promise.resolve({ text: "BEGRÜSSUNG" });
-    },
-  };
-  return { source, questions };
-}
 
 /** Eine Antwort des Servers mit Status und JSON-Inhalt. */
 function respond(status: number, body: unknown) {
@@ -31,15 +18,13 @@ function build(
   fetchFunction: HttpFetch,
   timeoutSignal: (millis: number) => AbortSignal = () => new AbortController().signal,
 ) {
-  const greeting = greetingSource();
   const source = new HttpAnswerSource({
     url: URL,
     fetchFunction,
-    greetingSource: greeting.source,
     timeoutMillis: 15000,
     timeoutSignal,
   });
-  return { source, greeting };
+  return { source };
 }
 
 describe("HttpAnswerSource", () => {
@@ -131,18 +116,6 @@ describe("HttpAnswerSource", () => {
     const { source } = build(() => respond(200, { text: "ANTWORT", suggestions }));
 
     await expect(source.answer("Hallo?")).resolves.toEqual({ text: "ANTWORT" });
-  });
-
-  it("beantwortet die leere Frage aus der Begrüßungsquelle, ohne das Netz zu fragen", async () => {
-    let calls = 0;
-    const { source, greeting } = build(() => {
-      calls++;
-      return respond(200, { text: "ANTWORT" });
-    });
-
-    await expect(source.answer("")).resolves.toEqual({ text: "BEGRÜSSUNG" });
-    expect(greeting.questions).toEqual([""]);
-    expect(calls).toBe(0);
   });
 
   it("zeigt bei Status 400 den Text der Antwort", async () => {

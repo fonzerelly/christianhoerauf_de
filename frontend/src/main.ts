@@ -158,8 +158,7 @@ const stage = new Stage({
 });
 
 // Antwortquelle (ADR 0003): Ohne Adresse des Backends antwortet die statische Datei; mit Adresse
-// (beim Bauen aus VITE_ANSWER_URL) fragt die Seite das Backend. Begrüßung und leere Frage kommen
-// immer aus der Datei.
+// (beim Bauen aus VITE_ANSWER_URL) fragt die Seite das Backend. Die Begrüßung baut die Seite selbst.
 const ANSWER_TIMEOUT_MILLIS = 15_000;
 const staticAnswers = new StaticContentAnswerSource(() => fetchJson("content.json", fetch));
 const answerUrl = import.meta.env.VITE_ANSWER_URL;
@@ -170,7 +169,6 @@ const answerSource: AnswerSource =
         url: answerUrl,
         // Als eigene Funktion: `fetch` muss mit `window` als `this` laufen, sonst „Illegal invocation“.
         fetchFunction: (url, init) => fetch(url, init),
-        greetingSource: staticAnswers,
         timeoutMillis: ANSWER_TIMEOUT_MILLIS,
         timeoutSignal: (millis) => AbortSignal.timeout(millis),
       });

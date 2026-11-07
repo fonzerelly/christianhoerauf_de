@@ -22,8 +22,6 @@ export interface HttpAnswerSourceSettings {
   /** Adresse des Backends. */
   readonly url: string;
   readonly fetchFunction: HttpFetch;
-  /** Beantwortet die leere Frage (Begrüßung); das Backend wird dafür nicht gefragt. */
-  readonly greetingSource: AnswerSource;
   readonly timeoutMillis: number;
   /** Liefert ein Signal, das nach so vielen Millisekunden abbricht (im Browser `AbortSignal.timeout`). */
   readonly timeoutSignal: (millis: number) => AbortSignal;
@@ -95,15 +93,12 @@ function unreachable(keyword: string): Answer {
  * "keyword"?, "suggestions"?}`. Bei Status 400 gilt der Text der Antwort (das Backend sagt, was an
  * der Frage nicht stimmt). Sonst gilt bei einem Fehler `UNREACHABLE_ANSWER` mit einem Stichwort:
  * dem HTTP-Code bei anderem Status, `TIMEOUT` nach der Zeitüberschreitung, `OFFLINE` ohne
- * Verbindung (auch CORS), `FEHLER` bei unbrauchbarer Antwort. Die Begrüßung (leere Frage) kommt
- * aus `greetingSource`.
+ * Verbindung (auch CORS), `FEHLER` bei unbrauchbarer Antwort.
  */
 export class HttpAnswerSource implements AnswerSource {
   public constructor(private readonly settings: HttpAnswerSourceSettings) {}
 
   public async answer(question: string): Promise<Answer> {
-    if (question === "") return this.settings.greetingSource.answer(question);
-
     const signal = this.settings.timeoutSignal(this.settings.timeoutMillis);
     let response: Awaited<ReturnType<HttpFetch>>;
     try {

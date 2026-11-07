@@ -6,7 +6,7 @@ import type { Answer } from "./answer";
  */
 export interface AnswerSource {
   /**
-   * Die Antwort auf eine Frage. Eine leere Frage (`""`) liefert die Begrüßung. Das Versprechen
+   * Die Antwort auf eine Frage (die Begrüßung baut die Seite selbst, ADR 0007). Das Versprechen
    * wird immer eingelöst: Kann die Quelle nicht antworten, liefert sie eine Antwort, die das sagt.
    */
   answer(question: string): Promise<Answer>;

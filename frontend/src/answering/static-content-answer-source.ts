@@ -9,8 +9,8 @@ import { OFFLINE_KEYWORD } from "./http-answer-source";
 export const UNAVAILABLE_ANSWER = "Das klappt gerade nicht. Versuch es später nochmal.";
 
 /**
- * Antwortet aus der statischen Datei `content.json`: auf eine leere Frage mit der Begrüßung, sonst
- * mit der Antwort des ersten passenden Suchworts, sonst mit der Standardantwort. Die Datei wird
+ * Antwortet aus der statischen Datei `content.json`: mit der Antwort des ersten passenden
+ * Suchworts, sonst mit der Standardantwort. Die Datei wird
  * beim ersten Mal geladen und dann behalten; schlägt das Laden fehl, wird es bei der nächsten Frage
  * erneut versucht.
  */
@@ -37,7 +37,6 @@ export class StaticContentAnswerSource implements AnswerSource {
   }
 
   private answerFor(question: string, content: Content): Answer {
-    if (question === "") return { text: content.greeting };
     const entry = new MatchTermMatcher(content.answers).find(question);
     if (entry === undefined) return { text: content.unknownAnswer };
     return entry.keyword === undefined
