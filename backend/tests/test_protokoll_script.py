@@ -71,3 +71,9 @@ def test_prints_keyword_and_suggestions_of_a_knowledge_answer(tmp_path: Path) ->
         "  ?: Was erlebte Chris mit der Polizei?\n"
         "  ?: Warum nutzte Chris C++?\n"
     ) in output
+
+
+def test_marks_a_question_that_was_a_suggested_follow_up(tmp_path: Path) -> None:
+    output = run(tmp_path, [record(intent="christian/career", suggested=True)])
+
+    assert "christian/career → answered (Folgefrage)  812 ms" in output

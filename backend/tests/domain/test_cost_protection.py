@@ -10,6 +10,7 @@ from bot.domain.cost_protection import (
     daily_counter_key,
     daily_limit_reached,
     normalize_question,
+    suggestion_key,
     visitor_counter_key,
     visitor_limit_reached,
     visitor_tag,
@@ -90,3 +91,17 @@ def test_tag_is_short_hex_and_does_not_reveal_the_ip(ip: str, secret: str, day: 
 
 def test_another_secret_gives_another_tag() -> None:
     assert visitor_tag("1.2.3.4", "a", DAY) != visitor_tag("1.2.3.4", "b", DAY)
+
+
+def test_suggestion_key_ignores_case_and_spacing_but_not_the_day() -> None:
+    question = "Was erlebte Chris mit der Polizei?"
+
+    assert suggestion_key(question, DAY) == suggestion_key(
+        "  was erlebte CHRIS mit der polizei?", DAY
+    )
+    assert suggestion_key(question, DAY) != suggestion_key(question, date(2026, 10, 23))
+
+
+def test_suggestion_key_is_not_the_cache_key_and_does_not_contain_the_question() -> None:
+    assert suggestion_key("geheim", DAY) != cache_key("geheim", DAY)
+    assert "geheim" not in suggestion_key("geheim", DAY)

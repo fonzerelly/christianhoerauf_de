@@ -18,7 +18,9 @@ aws logs filter-log-events \
     # Nur Zeilen behalten, die JSON sind und eine Frage enthalten.
     [ .[] | (.[1] | fromjson? | objects | select(.question)) as $eintrag
           | $eintrag + {zeit: (.[0] / 1000 | floor | strflocaltime("%d.%m. %H:%M"))} ]
-    | (.[] | "\(.zeit)  \(.intent // "–") → \(.outcome)  \(.duration_ms) ms  [\(.visitor)]\n"
+    # „(Folgefrage)“: Der Besucher hat eine Folgefrage gestellt, die der Bot vorgeschlagen hatte.
+    | (.[] | "\(.zeit)  \(.intent // "–") → \(.outcome)\(if .suggested then " (Folgefrage)" else "" end)"
+             + "  \(.duration_ms) ms  [\(.visitor)]\n"
              + "  F: \(.question)\n"
              + "  A: \(.answer)\n"
              # Antworten aus der Wissensbasis: Stichwort (S) und Folgefragen (?), wenn es sie gibt.

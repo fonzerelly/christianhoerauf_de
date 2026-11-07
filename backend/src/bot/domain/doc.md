@@ -51,6 +51,7 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 | `daily_counter_key(day)` | Schlüssel des Tageszählers, z. B. `daily:2026-10-22`. |
 | `visitor_counter_key(tag, day)` | Schlüssel des Besucherzählers, z. B. `visitor:2026-10-22:ab12...`. |
 | `cache_key(question, day, version)` | Schlüssel des Zwischenspeichers: Kennung des Ausrollens, Tag und SHA-256 der aufbereiteten Frage. Die Frage selbst steht nicht im Schlüssel. Nach einem neuen Ausrollen (andere `version`) passt kein alter Eintrag mehr. |
+| `suggestion_key(question, day)` | Schlüssel für eine Folgefrage, die der Bot heute vorgeschlagen hat: Tag und SHA-256 der aufbereiteten Frage, ohne Kennung des Ausrollens (eine Folgefrage bleibt nach dem Ausrollen eine des Bots). Die Frage selbst steht nicht im Schlüssel. |
 | `visitor_tag(ip, secret, day)` | 16 Hexzeichen als Kürzel des Besuchers. Erst wird aus Geheimnis und Datum das Tagessalz berechnet (HMAC-SHA-256, nie gespeichert), dann die IP damit gehasht. Gleiche IP am selben Tag ergibt gleiches Kürzel, anderer Tag oder andere IP ein anderes. |
 
 ## reply_check.py

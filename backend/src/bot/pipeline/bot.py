@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from bot.domain.answer import Answer
@@ -7,6 +7,7 @@ from bot.domain.cost_protection import (
     cache_key,
     daily_counter_key,
     daily_limit_reached,
+    suggestion_key,
     visitor_counter_key,
     visitor_limit_reached,
     visitor_tag,
@@ -33,6 +34,8 @@ class _Outcome:
     answer: Answer
     name: str
     intent: Intent | None = None
+    # Die Frage ist eine Folgefrage, die der Bot heute selbst vorgeschlagen hat.
+    suggested: bool = False
 
 
 class Bot:
@@ -84,6 +87,8 @@ class Bot:
             record["keyword"] = outcome.answer.keyword
         if outcome.answer.suggestions:
             record["suggestions"] = list(outcome.answer.suggestions)
+        if outcome.suggested:
+            record["suggested"] = True
         self._log.write(record)
         return outcome.answer
 
@@ -96,11 +101,21 @@ class Bot:
         cached = self._store.read(cache_key(question, day, self._cache_version))
         if cached is not None:
             return _Outcome(Answer.from_dict(json.loads(cached)), "cache")
-        # 3. Absicht bestimmen.
+        # 3. Absicht bestimmen. Eine Folgefrage, die der Bot heute selbst vorgeschlagen hat, gehört
+        #    zur Laufbahn, ohne den Türsteher: Er stufte manche falsch ein (Messung 07.11.2026).
+        if self._store.read(suggestion_key(question, day)) is not None:
+            outcome = self._react(question, tag, day, language, Intent.CAREER)
+            return replace(outcome, suggested=True)
         try:
             intent = self._classifier.classify(question)
         except LanguageModelError:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable")
+        return self._react(question, tag, day, language, intent)
+
+    def _react(
+        self, question: str, tag: str, day: date, language: Language, intent: Intent
+    ) -> _Outcome:
+        """Schritt 4 von `_decide`: die Reaktion auf die Absicht."""
         # 4. Reaktion: fester Text oder Gimmick ohne weiteren Modellaufruf, sonst das Modell.
         #    Ein Gimmick bringt seinen festen Text mit: für den Screenreader und für ein Frontend,
         #    das das Gimmick nicht kennt.
@@ -136,6 +151,9 @@ class Bot:
         if reaction is not ReactionKind.GENERAL_ANSWER:
             key = cache_key(question, day, self._cache_version)
             self._store.write(key, json.dumps(answer.to_dict(), ensure_ascii=False))
+        # Die Folgefragen merken, damit sie beim Anklicken nicht am Türsteher scheitern.
+        for suggestion in answer.suggestions:
+            self._store.write(suggestion_key(suggestion, day), "1")
         return _Outcome(answer, "answered", intent)
 
     @staticmethod

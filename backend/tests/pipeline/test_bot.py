@@ -382,3 +382,37 @@ def test_log_has_keyword_and_suggestions_of_a_knowledge_answer() -> None:
         "Navigon Highlights",
         ["Was erlebte Chris mit der Polizei?"],
     )
+
+
+def test_a_follow_up_the_bot_suggested_skips_the_gate_and_is_answered_from_the_knowledge_base() -> (
+    None
+):
+    # Ohne Abkürzung stufte der Türsteher sie als Allgemeinwissen ein.
+    setup = Setup(
+        [Intent.CAREER, Intent.KNOWLEDGE],
+        answers=["Allgemein."],
+        knowledge_answers=[FIELDS_REPLY, "Chris wurde angehalten."],
+    )
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP)
+
+    answer = setup.bot.ask("was erlebte Chris mit der  Polizei?", IP)
+
+    assert answer.text == "Chris wurde angehalten."
+    assert len(setup.intent_model.calls) == 1
+    record = setup.log.records[1]
+    assert (record["intent"], record.get("suggested")) == ("christian/career", True)
+
+
+def test_a_dropped_or_edited_follow_up_goes_through_the_gate() -> None:
+    setup = Setup(
+        [Intent.CAREER, Intent.KNOWLEDGE, Intent.KNOWLEDGE],
+        answers=["C++ ist schnell.", "Weil es schnell ist."],
+        knowledge_answers=[FIELDS_REPLY],
+    )
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP)
+
+    setup.bot.ask("Warum nutzte man C++?", IP)
+    setup.bot.ask("Was erlebte Chris mit der Polizei? Und warum?", IP)
+
+    assert len(setup.intent_model.calls) == 3
+    assert [record.get("suggested") for record in setup.log.records] == [None, None, None]

@@ -43,3 +43,11 @@ def visitor_tag(ip: str, secret: str, day: date) -> str:
     und nie gespeichert; ohne das Geheimnis lässt sich aus dem Kürzel die IP nicht zurückrechnen."""
     daily_salt = hmac.new(secret.encode(), day.isoformat().encode(), hashlib.sha256).digest()
     return hmac.new(daily_salt, ip.encode(), hashlib.sha256).hexdigest()[:_TAG_LENGTH]
+
+
+def suggestion_key(question: str, day: date) -> str:
+    """Schlüssel für eine Folgefrage, die der Bot heute vorgeschlagen hat; wie beim
+    Zwischenspeicher nur ein Hash. Ohne Version: Eine Folgefrage bleibt nach einem neuen Ausrollen
+    eine Frage des Bots."""
+    digest = hashlib.sha256(normalize_question(question).encode()).hexdigest()
+    return f"suggestion:{day.isoformat()}:{digest}"
