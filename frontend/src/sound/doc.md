@@ -1,6 +1,8 @@
 # sound
 
-Das Brummen einer alten Bildröhre. Der Ordner kennt nur `domain/` (für `RandomSource`) und
+Das Brummen einer alten Bildröhre. **Seit Schritt 12.3 nicht eingebaut** (ADR 0007, Q12: man hört es
+kaum): `main.ts` verdrahtet es nicht mehr, der Ton-Knopf ist weg. Der Code bleibt für spätere
+Versuche mit dem Klang-Prototyp liegen. Der Ordner kennt nur `domain/` (für `RandomSource`) und
 `config/`; Animation, Zeichnen und Oberfläche kennen ihn nicht, nur `ui/` und `main.ts` steuern ihn
 (Architekturtest). Der Ton-Ausgang des Browsers steckt hinter dem schmalen `AudioContextLike`; im
 Test steht eine Attrappe dafür, die jeden Aufruf aufzeichnet (`test-support/fake-audio-context.ts`).

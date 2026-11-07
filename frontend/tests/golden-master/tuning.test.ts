@@ -1,6 +1,10 @@
 // Golden Master Abstimmungswerte: `config/tuning.ts` hält dieselben Werte wie `config.js` des
 // Prototyps (Grundwerte, überschrieben vom Geräteprofil). Prozentwerte stehen im Neubau als
 // Anteile von 0 bis 1.
+//
+// Ausgenommen sind die Werte, die mit der flachen Bühne (ADR 0007, Prototyp 12) bewusst anders
+// sind: Raster und Reihen, Wand- und Spurbreite, Leuchten, Überstrahlen, Bildstörung und dunkle
+// Ecken. Die prüft `src/config/tuning.test.ts`.
 
 import { describe, expect, it } from "vitest";
 import { DESKTOP_FROM_WIDTH, TUNING } from "../../src/config/tuning";
@@ -32,22 +36,16 @@ describe.each(["desktop", "handy"] as const)("Abstimmungswerte des Profils %s", 
       scrollSeconds: values.scrollSeconds,
       holdSeconds: values.holdSeconds,
       fadeSeconds: values.fadeSeconds,
-      trailWidth: values.trailWidth,
-      glow: values.glow,
     });
   });
 
-  it("übernimmt Monitor und Wände, Prozentwerte als Anteile", () => {
+  it("übernimmt den Monitor, Prozentwerte als Anteile", () => {
     expect(tuning).toMatchObject({
-      bloomRadius: values.bloomRadius,
       bloomStrength: Number(values.bloomStrength) / 100,
       scanlineStrength: Number(values.scanlineStrength) / 100,
-      vignetteStrength: Number(values.vignetteStrength) / 100,
       flickerStrength: Number(values.flickerStrength) / 100,
       glitchesPerMinute: values.glitchesPerMinute,
-      glitchStrength: values.glitchStrength,
       connectorOpacity: Number(values.connectorOpacity) / 100,
-      wallWidth: values.wallWidth,
     });
   });
 
@@ -69,13 +67,6 @@ describe.each(["desktop", "handy"] as const)("Abstimmungswerte des Profils %s", 
       returnWindiness: Number(values.returnWindiness) / 100,
       maxWallRun: values.maxWallRun,
     });
-  });
-
-  it("teilt die Bühne wie der Prototyp ein: feste Spaltenzahl oder feste Zellgröße", () => {
-    const columns = Number(values.cellColumns);
-    expect(tuning.stageSizing).toEqual(
-      columns > 0 ? { columns } : { cellSize: Number(values.cellSize) },
-    );
   });
 
   it("übernimmt die Geräteeinstellungen", () => {

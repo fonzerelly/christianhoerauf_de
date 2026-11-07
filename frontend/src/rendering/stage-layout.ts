@@ -1,8 +1,7 @@
 import type { Position } from "../domain/maze/position";
 
-/** Kleiner darf das Raster nie werden: so viel braucht ein einzelnes Zeichen samt freien Rändern. */
+/** Schmaler darf das Raster nie werden: so viel braucht ein einzelnes Zeichen samt freien Rändern. */
 const MIN_COLUMNS = 10;
-const MIN_ROWS = 10;
 
 /** Wie das Raster auf der Bühne eingeteilt wird: feste Spaltenzahl (Handy) oder feste Zellgröße in Pixeln (Desktop). */
 export type StageSizing = { readonly columns: number } | { readonly cellSize: number };
@@ -24,37 +23,39 @@ export interface StageLayout {
 }
 
 /**
- * Teilt die Bühne in das Raster ein. Die Pixeldichte des Geräts wird auf `maxPixelRatio` gedeckelt,
+ * Teilt die Bühne in das Raster ein: so breit wie die Bühne, genau `rows` Reihen hoch; die Höhe
+ * der Bühne ergibt sich daraus (`viewHeight`). Die Pixeldichte des Geräts wird auf `maxPixelRatio` gedeckelt,
  * sonst hätte jedes Bild am Handy neunmal so viele Pixel. Bei fester Spaltenzahl ergibt sich die
  * Zellgröße aus der Breite, abgerundet auf ganze Geräte-Pixel, damit alle Wände gleich scharf werden.
  */
 export function layoutStage(
-  view: { readonly width: number; readonly height: number },
+  viewWidth: number,
   devicePixelRatio: number,
   maxPixelRatio: number,
   sizing: StageSizing,
+  rows: number,
 ): StageLayout {
   const pixelRatio = Math.min(devicePixelRatio || 1, maxPixelRatio);
   const cellSize =
     "columns" in sizing
-      ? Math.floor((view.width * pixelRatio) / sizing.columns) / pixelRatio
+      ? Math.floor((viewWidth * pixelRatio) / sizing.columns) / pixelRatio
       : sizing.cellSize;
 
   const columns = Math.max(
     MIN_COLUMNS,
-    "columns" in sizing ? sizing.columns : Math.floor(view.width / cellSize),
+    "columns" in sizing ? sizing.columns : Math.floor(viewWidth / cellSize),
   );
-  const rows = Math.max(MIN_ROWS, Math.floor(view.height / cellSize));
   return {
-    viewWidth: view.width,
-    viewHeight: view.height,
+    viewWidth,
+    // Die Bühne ist genau so hoch wie ihre Reihen (ADR 0007); das Raster steht oben bündig.
+    viewHeight: rows * cellSize,
     pixelRatio,
     cellSize,
     columns,
     rows,
     // auf ganze Pixel gerundet, damit die vorab gezeichneten Wände scharf bleiben
-    offsetX: Math.floor((view.width - columns * cellSize) / 2),
-    offsetY: Math.floor((view.height - rows * cellSize) / 2),
+    offsetX: Math.floor((viewWidth - columns * cellSize) / 2),
+    offsetY: 0,
   };
 }
 

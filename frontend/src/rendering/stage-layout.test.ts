@@ -3,61 +3,66 @@ import { cellCenterOn, layoutStage } from "./stage-layout";
 
 describe("layoutStage", () => {
   it("teilt eine Handy-Bühne mit fester Spaltenzahl ein: Zellgröße aus der Breite, auf ganze Geräte-Pixel gerundet", () => {
-    // 390 px bei Pixeldichte 2: 780 Geräte-Pixel / 34 Spalten = 22,9 => 22 Geräte-Pixel = 11 px je Zelle
-    const layout = layoutStage({ width: 390, height: 844 }, 3, 2, { columns: 34 });
+    // 390 px bei Pixeldichte 2: 780 Geräte-Pixel / 45 Spalten = 17,3 => 17 Geräte-Pixel = 8,5 px je Zelle
+    const layout = layoutStage(390, 3, 2, { columns: 45 }, 18);
 
     expect(layout).toEqual({
       viewWidth: 390,
-      viewHeight: 844,
+      viewHeight: 153,
       pixelRatio: 2,
-      cellSize: 11,
-      columns: 34,
-      rows: 76,
-      offsetX: 8,
-      offsetY: 4,
+      cellSize: 8.5,
+      columns: 45,
+      rows: 18,
+      offsetX: 3, // (390 - 45 × 8,5) / 2 = 3,75, auf ganze Pixel abgerundet
+      offsetY: 0,
     });
   });
 
-  it("teilt eine Desktop-Bühne mit fester Zellgröße ein und zentriert das Raster", () => {
-    const layout = layoutStage({ width: 1440, height: 900 }, 1, 3, { cellSize: 24 });
+  it("teilt eine Desktop-Bühne mit fester Zellgröße ein und zentriert das Raster waagrecht", () => {
+    const layout = layoutStage(1450, 1, 3, { cellSize: 16 }, 15);
 
-    expect(layout).toMatchObject({
+    expect(layout).toEqual({
+      viewWidth: 1450,
+      viewHeight: 240,
       pixelRatio: 1,
-      cellSize: 24,
-      columns: 60,
-      rows: 37,
-      offsetX: 0,
-      offsetY: 6,
+      cellSize: 16,
+      columns: 90,
+      rows: 15,
+      offsetX: 5,
+      offsetY: 0,
     });
+  });
+
+  it("ist genau so hoch wie die Reihen, egal wie breit", () => {
+    expect(layoutStage(800, 1, 3, { cellSize: 16 }, 15).viewHeight).toBe(240);
+    expect(layoutStage(2400, 1, 3, { cellSize: 16 }, 15).viewHeight).toBe(240);
   });
 
   it("deckelt die Pixeldichte des Geräts mit dem Höchstwert", () => {
-    expect(layoutStage({ width: 1000, height: 500 }, 3, 2, { cellSize: 24 }).pixelRatio).toBe(2);
-    expect(layoutStage({ width: 1000, height: 500 }, 1.5, 2, { cellSize: 24 }).pixelRatio).toBe(
-      1.5,
-    );
+    expect(layoutStage(1000, 3, 2, { cellSize: 24 }, 10).pixelRatio).toBe(2);
+    expect(layoutStage(1000, 1.5, 2, { cellSize: 24 }, 10).pixelRatio).toBe(1.5);
   });
 
   it("nimmt Pixeldichte 1, wenn das Gerät keine nennt (0)", () => {
-    expect(layoutStage({ width: 1000, height: 500 }, 0, 3, { cellSize: 24 }).pixelRatio).toBe(1);
+    expect(layoutStage(1000, 0, 3, { cellSize: 24 }, 10).pixelRatio).toBe(1);
   });
 
-  it("macht das Raster nie kleiner als 10 mal 10 Zellen", () => {
-    const layout = layoutStage({ width: 100, height: 100 }, 1, 1, { cellSize: 24 });
+  it("macht das Raster nie schmaler als 10 Spalten", () => {
+    const layout = layoutStage(100, 1, 1, { cellSize: 24 }, 10);
 
-    expect(layout).toMatchObject({ columns: 10, rows: 10, offsetX: -70, offsetY: -70 });
+    expect(layout).toMatchObject({ columns: 10, offsetX: -70 });
   });
 });
 
 describe("cellCenterOn", () => {
-  const layout = layoutStage({ width: 390, height: 844 }, 3, 2, { columns: 34 });
+  const layout = layoutStage(1450, 1, 3, { cellSize: 16 }, 15);
 
   it("liefert den Mittelpunkt einer Zelle auf der Bühne", () => {
-    // Rand (8, 4), Zellen zu 11 Pixeln: Zelle (2, 3) beginnt bei (30, 37), ihre Mitte liegt 5,5 weiter
-    expect(cellCenterOn(layout, { x: 2, y: 3 })).toEqual({ x: 35.5, y: 42.5 });
+    // Rand (5, 0), Zellen zu 16 Pixeln: Zelle (2, 3) beginnt bei (37, 48), ihre Mitte liegt 8 weiter
+    expect(cellCenterOn(layout, { x: 2, y: 3 })).toEqual({ x: 45, y: 56 });
   });
 
   it("funktioniert auch für Stellen zwischen zwei Zellen", () => {
-    expect(cellCenterOn(layout, { x: 2.5, y: 3 })).toEqual({ x: 41, y: 42.5 });
+    expect(cellCenterOn(layout, { x: 2.5, y: 3 })).toEqual({ x: 53, y: 56 });
   });
 });

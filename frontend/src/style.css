@@ -15,27 +15,14 @@
   border: 0;
 }
 
-/* Die Seite ist genau so hoch wie das Fenster und scrollt nie. Weil nichts scrollt,
-   fährt am Handy auch die Adressleiste nicht ein und aus. */
-html,
+/* Eine gewöhnliche, scrollende Seite (ADR 0007). */
+html {
+  background: #020a04;
+}
+
 body {
-  height: 100%;
   margin: 0;
-  overflow: hidden;
-}
-
-@supports (height: 100dvh) {
-  body {
-    height: 100dvh;
-  }
-}
-
-body {
-  display: grid;
-  /* minmax(0, 1fr): Die Spalte ist so breit wie das Fenster und wächst nicht mit dem Fragefeld mit. */
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto auto;
-  grid-template-areas: "stage" "ask" "notice";
+  min-height: 100vh;
   font:
     14px/1.4 ui-monospace,
     "DejaVu Sans Mono",
@@ -49,14 +36,28 @@ body {
   text-size-adjust: 100%;
 }
 
-/* Das Canvas bekommt eine feste Größe in Pixeln. Schrumpft die Bühne, weil die
-   Bildschirmtastatur aufgeht, wird es nur unten abgeschnitten statt verzerrt. */
+[hidden] {
+  display: none !important;
+}
+
+/* Der Rand links und rechts: am Handy schmal. */
+#page {
+  --edge: 38px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px var(--edge) 40px;
+}
+
+body[data-profile="handy"] #page {
+  --edge: max(14px, env(safe-area-inset-left));
+  padding-top: 14px;
+}
+
+/* Die Bühne ist so hoch wie ihre Reihen; main.ts setzt die Höhe (Reihen × Zellgröße). */
 #stage {
-  grid-area: stage;
   position: relative;
+  width: 100%;
   overflow: hidden;
-  min-width: 0;
-  min-height: 0;
 }
 
 #maze {
@@ -66,48 +67,22 @@ body {
   display: block;
 }
 
-/* Der Ton-Knopf: rund, oben rechts auf der Bühne. Das Symbol zeigt den Zustand (aria-pressed). */
-#sound-toggle {
-  position: absolute;
-  top: max(8px, env(safe-area-inset-top));
-  right: max(8px, env(safe-area-inset-right));
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
-  color: #7fdc97;
-  background: rgba(2, 10, 4, 0.75);
-  border: 1px solid #1f7a40;
-  border-radius: 50%;
+/* Alles unter der Bühne beginnt an der linken Kante des Labyrinths; Zeitleiste und Fragefeld sind
+   genau so breit wie das Labyrinth. main.ts setzt --maze-left und --maze-width. */
+#timeline,
+#answer-area,
+#suggestions,
+#ask-form,
+#notice {
+  margin-left: var(--maze-left, 0);
 }
 
-#sound-toggle:hover {
-  border-color: #33ff66;
-}
-
-#sound-toggle:focus-visible {
-  outline: 2px solid #33ff66;
-  outline-offset: 2px;
-}
-
-#sound-toggle[aria-pressed="true"] {
-  color: #33ff66;
-  border-color: #33ff66;
-  box-shadow: 0 0 10px rgba(43, 220, 90, 0.5);
-}
-
-#sound-toggle[aria-pressed="true"] .muted,
-#sound-toggle[aria-pressed="false"] .waves {
-  display: none;
+#timeline,
+#ask-form {
+  width: var(--maze-width, 100%);
 }
 
 .noscript-hint {
-  grid-area: stage;
-  align-self: center;
   padding: 24px;
   text-align: center;
   font-size: 18px;
@@ -116,12 +91,9 @@ body {
 
 /* Das Fragefeld: Schrift mindestens 16 px, sonst zoomt iOS beim Antippen hinein. */
 #ask-form {
-  grid-area: ask;
   display: flex;
   gap: 8px;
-  padding: 8px;
-  background: #04140a;
-  border-top: 1px solid #14502a;
+  margin-top: 18px;
 }
 
 #question {
@@ -170,17 +142,15 @@ body {
 
 /* Der Hinweis unter dem Fragefeld: unauffällig, aber gut lesbar (Schrift 12 px, Kontrast über 4,5:1). */
 #notice {
-  grid-area: notice;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0 16px;
-  padding: 4px 8px;
-  padding-bottom: max(4px, env(safe-area-inset-bottom));
+  padding: 6px 0;
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
   font-size: 12px;
   color: #5fb878;
-  background: #04140a;
 }
 
 #notice p {

@@ -109,10 +109,17 @@ async function advanceUntil(page: Page, phase: Phase): Promise<void> {
 
 const SINGLE_PAGE_FIXTURES = ["zeichensatz-1", "zeichensatz-2", "ersatzglyphe"];
 
+/**
+ * Bis Schritt 12.5 schreibt der Lichtpunkt noch den ganzen Text, nicht nur das Stichwort. Damit ein
+ * Zeichensatz auf eine Seite passt, ist die Bühne in diesen Tests höher als die 15 bzw. 18 Reihen
+ * der Seite (am Handy bis zu vier Zeilen zu 10 Zeichen). Mit dem Stichwort entfällt das.
+ */
+const TALL_STAGE = { stageRows: 34 };
+
 for (const fixture of SINGLE_PAGE_FIXTURES) {
   test.describe(fixture, () => {
     test("mitten im Schreiben", async ({ page }) => {
-      await open(page, fixture);
+      await open(page, fixture, TALL_STAGE);
 
       await advance(page, 3);
 
@@ -120,7 +127,7 @@ for (const fixture of SINGLE_PAGE_FIXTURES) {
     });
 
     test("am Haltepunkt, die Spur bleibt stehen", async ({ page }) => {
-      await open(page, fixture, LASTING_TRAIL);
+      await open(page, fixture, { ...LASTING_TRAIL, ...TALL_STAGE });
 
       await advanceUntil(page, "resting");
       await advance(page, 0.8);
@@ -184,36 +191,13 @@ test.describe("Bildstörung", () => {
   });
 });
 
-test.describe("Ton-Knopf", () => {
-  test("steht beim Laden auf aus", async ({ page }) => {
-    await open(page, "zeichensatz-1");
-
-    const toggle = page.locator("#sound-toggle");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
-    await expect(toggle).toHaveScreenshot("ton-knopf-aus.png");
-  });
-
-  test("schaltet bei jedem Klick um und zeigt es im Symbol", async ({ page }) => {
-    await open(page, "zeichensatz-1");
-    const toggle = page.locator("#sound-toggle");
-
-    await toggle.click();
-    await page.mouse.move(0, 0); // der Zeiger soll den Knopf nicht hervorheben
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
-    await expect(toggle).toHaveScreenshot("ton-knopf-an.png");
-
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
-  });
-});
-
 test.describe("weniger Bewegung gewünscht", () => {
   test.use({ reducedMotion: "reduce" });
 
   test("der Lichtpunkt leuchtet am Haltepunkt ruhig, ohne Flimmern und Bildstörung", async ({
     page,
   }) => {
-    await open(page, "zeichensatz-1", LASTING_TRAIL);
+    await open(page, "zeichensatz-1", { ...LASTING_TRAIL, ...TALL_STAGE });
 
     await advanceUntil(page, "resting");
     await advance(page, 0.8);

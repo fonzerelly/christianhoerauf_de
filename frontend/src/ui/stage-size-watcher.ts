@@ -2,12 +2,10 @@
 const SETTLE_MILLIS = 300;
 
 export interface StageSizeWatcherParts {
-  /** Die Bühne, deren Größe beobachtet wird. */
-  readonly stage: { readonly clientWidth: number; readonly clientHeight: number };
+  /** Die Bühne, deren Breite beobachtet wird. */
+  readonly stage: { readonly clientWidth: number };
   /** Für welche Größe der Bühne zuletzt gebaut wurde. */
   readonly builtFor: () => { width: number; height: number };
-  /** Hat gerade das Fragefeld den Fokus? Dann ist am Handy vermutlich die Bildschirmtastatur offen. */
-  readonly isTyping: () => boolean;
   /** Baut für die neue Größe neu. */
   readonly rebuild: () => void;
   /** Ruft `callback` nach `millis` Millisekunden; die Rückgabe bricht den Aufruf ab. */
@@ -15,17 +13,12 @@ export interface StageSizeWatcherParts {
 }
 
 /**
- * Beobachtet die Größe der Bühne und baut neu, wenn sie sich wirklich geändert hat.
+ * Beobachtet die Breite der Bühne und baut neu, wenn sie sich wirklich geändert hat (Handy
+ * gedreht, Fenster gezogen). Die Höhe zählt nicht: Sie ergibt sich aus Reihen und Zellgröße
+ * (ADR 0007). Bildschirmtastatur und Adressleiste am Handy lösen deshalb nichts aus.
  *
- * Die Falle am Handy: Die Bildschirmtastatur macht das Fenster niedriger. Würde darauf neu
- * gebaut, begänne die Animation bei jedem Antippen des Fragefelds von vorn. Deshalb:
- * - andere Breite (Handy gedreht, Fenster gezogen) → neu bauen
- * - nur andere Höhe, während getippt wird → nichts tun (das Bild bleibt stehen und wird unten
- *   abgeschnitten)
- * - nur andere Höhe, ohne dass getippt wird → neu bauen
- *
- * Reagiert wird erst, wenn die Größe 0,3 Sekunden ruhig war: Beim Aus- und Einfahren der
- * Tastatur ändert sie sich oft mehrmals hintereinander.
+ * Reagiert wird erst, wenn die Größe 0,3 Sekunden ruhig war: Beim Ziehen am Fenster ändert sie
+ * sich oft mehrmals hintereinander.
  */
 export class StageSizeWatcher {
   private cancelWaiting: (() => void) | undefined;
@@ -41,10 +34,7 @@ export class StageSizeWatcher {
   }
 
   private check(): void {
-    const { stage, builtFor, isTyping, rebuild } = this.parts;
-    const built = builtFor();
-    const widthChanged = stage.clientWidth !== built.width;
-    const heightChanged = stage.clientHeight !== built.height;
-    if (widthChanged || (heightChanged && !isTyping())) rebuild();
+    const { stage, builtFor, rebuild } = this.parts;
+    if (stage.clientWidth !== builtFor().width) rebuild();
   }
 }

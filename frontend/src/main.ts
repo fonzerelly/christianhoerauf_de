@@ -21,9 +21,6 @@ import { CanvasRenderer } from "./rendering/canvas-renderer";
 import { MediaQueryMotionPreference } from "./rendering/motion-preference";
 import { layoutStage } from "./rendering/stage-layout";
 import type { StageLayout } from "./rendering/stage-layout";
-import { HumControl } from "./sound/hum-control";
-import { HumDrift } from "./sound/hum-drift";
-import { WebAudioHum } from "./sound/web-audio-hum";
 import { AnimationLoop } from "./ui/animation-loop";
 import { Conversation } from "./ui/conversation";
 import { selectProfile } from "./ui/device-profile-selector";
@@ -33,9 +30,9 @@ import { QuestionForm } from "./ui/question-form";
 import { closesKeyboardAfterSending } from "./ui/on-screen-keyboard";
 import { requireElement } from "./ui/required-element";
 import { SpokenAnswer } from "./ui/spoken-answer";
-import { connectSoundToggle } from "./ui/sound-toggle";
 import { Stage } from "./ui/stage";
 import type { ScheduleTask } from "./ui/step-runner";
+import { applyStageLayout } from "./ui/stage-frame";
 import { StageSizeWatcher } from "./ui/stage-size-watcher";
 import { readTestHooks } from "./ui/test-hooks";
 import { readUrlParameters } from "./ui/url-parameters";
@@ -53,13 +50,14 @@ const tuning = {
   ...testHooks?.tuning,
 };
 
-// Elemente der Seite
+// Elemente der Seite; das Profil steht am body, das Layout richtet sich danach (Ränder am Handy)
+document.body.dataset.profile = profile;
+const pageElement = requireElement(document, "page", HTMLElement);
 const stageElement = requireElement(document, "stage", HTMLElement);
 const canvas = requireElement(document, "maze", HTMLCanvasElement);
 const form = requireElement(document, "ask-form", HTMLFormElement);
 const questionInput = requireElement(document, "question", HTMLInputElement);
 const spokenRegion = requireElement(document, "spoken-answer", HTMLElement);
-const soundToggle = requireElement(document, "sound-toggle", HTMLButtonElement);
 
 function createContext2d(target: HTMLCanvasElement): CanvasRenderingContext2D {
   const context = target.getContext("2d");
@@ -67,24 +65,21 @@ function createContext2d(target: HTMLCanvasElement): CanvasRenderingContext2D {
   return context;
 }
 
+/** Teilt die Bühne nach ihrer Breite ein und setzt danach ihre Höhe und die Breite des Labyrinths. */
 function measureStage(): StageLayout {
-  return layoutStage(
-    { width: stageElement.clientWidth, height: stageElement.clientHeight },
+  const layout = layoutStage(
+    stageElement.clientWidth,
     window.devicePixelRatio,
     tuning.maxPixelRatio,
     tuning.stageSizing,
+    tuning.stageRows,
   );
+  applyStageLayout(stageElement, pageElement, layout);
+  return layout;
 }
 
-// Zufall für Flimmern, Bildstörung und Brummen; ein Test legt den Startwert fest
+// Zufall für Flimmern und Bildstörung; ein Test legt den Startwert fest
 const randomSeed = testHooks?.randomSeed ?? Math.floor(Math.random() * 2 ** 32);
-
-// Brummen: Der Ton-Ausgang entsteht erst beim ersten Klick auf den Ton-Knopf (Autoplay-Regeln)
-const hum = new HumControl(
-  new WebAudioHum(() => new AudioContext(), tuning),
-  new HumDrift(new Mulberry32(randomSeed + 1), tuning),
-);
-connectSoundToggle(soundToggle, () => hum.toggle());
 
 // Zeichnen. Eine vorab gezeichnete Fläche wird ausgeführt (`flush`), indem sie auf ein
 // Ein-Pixel-Canvas kopiert wird: Der Browser muss dafür alles Aufgezeichnete rechnen, aber nichts
@@ -152,7 +147,6 @@ const stage = new Stage({
     ),
   baseSeed: tuning.seed,
   phaseDisplay: new PhaseIndicator(stageElement),
-  hum,
 });
 
 // Antwortquelle (ADR 0003): Ohne Adresse des Backends antwortet die statische Datei; mit Adresse
@@ -189,7 +183,6 @@ new QuestionForm(form, questionInput, {
 const sizeWatcher = new StageSizeWatcher({
   stage: stageElement,
   builtFor: () => stage.builtFor,
-  isTyping: () => document.activeElement === questionInput,
   rebuild: () => {
     stage.rebuild();
   },
@@ -203,7 +196,7 @@ const sizeWatcher = new StageSizeWatcher({
 window.addEventListener("resize", () => {
   sizeWatcher.notifyChange();
 });
-// Das Auf- und Zuklappen von Bedienelementen ändert die Bühne, ohne dass das Fenster sich ändert.
+// Eine Bildlaufleiste, die erscheint oder verschwindet, ändert die Breite, ohne dass das Fenster sich ändert.
 new ResizeObserver(() => {
   sizeWatcher.notifyChange();
 }).observe(stageElement);
@@ -222,7 +215,6 @@ const loop = new AnimationLoop(
 document.addEventListener("visibilitychange", () => {
   const isVisible = document.visibilityState === "visible";
   loop.pageVisibilityChanged(isVisible);
-  hum.pageVisibilityChanged(isVisible);
 });
 // Der Browser meldet hiermit, dass er den Zeichenzustand des Canvas verloren und neu angelegt hat.
 canvas.addEventListener("contextrestored", () => {

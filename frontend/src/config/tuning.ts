@@ -71,6 +71,8 @@ export interface Tuning {
   readonly wallWidth: number;
   /** Wie das Raster auf der Bühne eingeteilt wird: feste Spaltenzahl (Handy) oder feste Zellgröße in Pixeln (Desktop). */
   readonly stageSizing: { readonly columns: number } | { readonly cellSize: number };
+  /** So viele Reihen hoch ist die Bühne; ihre Höhe ist Reihen × Zellgröße (ADR 0007). */
+  readonly stageRows: number;
 
   // Gerät
   /** Höchste Pixeldichte des Bildes; kleiner ist unschärfer, aber schneller. */
@@ -105,16 +107,16 @@ const BASE: Tuning = {
   scrollSeconds: 1.2,
   holdSeconds: 0.6,
   fadeSeconds: 0.8,
-  trailWidth: 5,
-  glow: 16,
+  trailWidth: 3.5,
+  glow: 11,
   connectorOpacity: 0.25,
-  bloomRadius: 7,
+  bloomRadius: 5,
   bloomStrength: 0.8,
   scanlineStrength: 0.35,
-  vignetteStrength: 0.55,
+  vignetteStrength: 0.2,
   flickerStrength: 0.25,
   glitchesPerMinute: 8,
-  glitchStrength: 14,
+  glitchStrength: 9,
   backgroundColor: "#03140a",
   wallColor: "#2bdc5a",
   trailColor: "#ff2a2a",
@@ -125,8 +127,9 @@ const BASE: Tuning = {
   returnBandRows: 2,
   returnWindiness: 0.5,
   maxWallRun: 4,
-  wallWidth: 3,
-  stageSizing: { cellSize: 24 },
+  wallWidth: 2,
+  stageSizing: { cellSize: 16 },
+  stageRows: 15,
   maxPixelRatio: 3,
   blurInputAfterSending: false,
   restingDistance: 2,
@@ -139,21 +142,24 @@ const BASE: Tuning = {
 };
 
 /**
- * Die Werte je Geräteprofil. Das Handy hat kleine Zellen (34 Spalten ergeben 7 Zeichen je Zeile);
- * Wände, Spur und Leuchten sind auf diese Zellgröße heruntergerechnet.
+ * Die Werte je Geräteprofil (gewählt mit Prototyp 12, ADR 0007). Desktop: Zellen zu 16 px statt
+ * früher 24, 15 Reihen (240 px); Wände, Spur, Leuchten und Bildstörung im Verhältnis 16 zu 24
+ * dünner. Handy: 45 Spalten für 10 Zeichen je Zeile (≈ 8 px je Zelle), 18 Reihen; Wände, Spur und
+ * Leuchten auf diese Zellgröße heruntergerechnet.
  */
 export const TUNING: Readonly<Record<ProfileName, Tuning>> = {
   desktop: BASE,
   handy: {
     ...BASE,
     blurInputAfterSending: true,
-    stageSizing: { columns: 34 },
-    wallWidth: 1.5,
-    bloomRadius: 3,
+    stageSizing: { columns: 45 },
+    stageRows: 18,
+    wallWidth: 1.1,
+    bloomRadius: 2.5,
     bloomStrength: 0.7,
-    trailWidth: 3,
-    glow: 7,
-    glitchStrength: 8,
+    trailWidth: 2.2,
+    glow: 5,
+    glitchStrength: 6,
     scrollSeconds: 1,
     maxPixelRatio: 2,
   },

@@ -18,8 +18,6 @@ export interface StageParts {
   readonly phaseDisplay: { show(phase: Phase): void };
   /** Reiht Aufgaben ein, in denen die Wände der nächsten Seite vorab gezeichnet werden. */
   readonly scheduleTask: ScheduleTask;
-  /** Das Brummen: bekommt in jedem Bild die vergangene Zeit und ob gerade eine Bildstörung läuft. */
-  readonly hum: { update(seconds: number, isGlitching: boolean): void };
 }
 
 /**
@@ -61,8 +59,6 @@ export class Stage {
     if (isAnimating || this.wasAnimating || this.parts.renderer.isGlitching || this.needsDraw) {
       this.parts.renderer.draw(this.playback, seconds);
     }
-    // Erst nach dem Zeichnen: Eine Bildstörung kann erst in diesem Bild begonnen haben.
-    this.parts.hum.update(seconds, this.parts.renderer.isGlitching);
     this.wasAnimating = isAnimating;
     this.needsDraw = false;
     this.prepareNextPage();

@@ -21,14 +21,13 @@ function manualDelay() {
   };
 }
 
-function setup(options: { isTyping?: boolean } = {}) {
+function setup() {
   const stage = { clientWidth: 390, clientHeight: 700 };
   const timers = manualDelay();
   let rebuilds = 0;
   const watcher = new StageSizeWatcher({
     stage,
     builtFor: () => ({ width: 390, height: 700 }),
-    isTyping: () => options.isTyping ?? false,
     rebuild: () => {
       rebuilds++;
     },
@@ -61,7 +60,7 @@ describe("StageSizeWatcher", () => {
   });
 
   it("baut neu, wenn sich die Breite geändert hat (Handy gedreht, Fenster gezogen)", () => {
-    const { watcher, timers, rebuilds, stage } = setup({ isTyping: true });
+    const { watcher, timers, rebuilds, stage } = setup();
     stage.clientWidth = 500;
 
     watcher.notifyChange();
@@ -70,24 +69,16 @@ describe("StageSizeWatcher", () => {
     expect(rebuilds()).toBe(1);
   });
 
-  it("baut nicht neu, wenn nur die Höhe sich geändert hat, während getippt wird (Bildschirmtastatur)", () => {
-    const { watcher, timers, rebuilds, stage } = setup({ isTyping: true });
+  // Die Höhe der Bühne setzt die Seite selbst (Reihen × Zellgröße, ADR 0007). Ändert sie sich
+  // trotzdem (Bildschirmtastatur, Adressleiste am Handy), gibt es nichts neu zu bauen.
+  it("baut nicht neu, wenn sich nur die Höhe geändert hat", () => {
+    const { watcher, timers, rebuilds, stage } = setup();
     stage.clientHeight = 400;
 
     watcher.notifyChange();
     timers.runAll();
 
     expect(rebuilds()).toBe(0);
-  });
-
-  it("baut neu, wenn nur die Höhe sich geändert hat und nicht getippt wird", () => {
-    const { watcher, timers, rebuilds, stage } = setup({ isTyping: false });
-    stage.clientHeight = 400;
-
-    watcher.notifyChange();
-    timers.runAll();
-
-    expect(rebuilds()).toBe(1);
   });
 
   it("baut nicht neu, wenn die Größe am Ende dieselbe ist wie beim Bauen", () => {

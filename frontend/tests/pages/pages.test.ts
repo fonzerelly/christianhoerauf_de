@@ -30,6 +30,25 @@ describe("Hinweis unter dem Fragefeld", () => {
   });
 });
 
+describe("Seitengerüst (ADR 0007)", () => {
+  it("ordnet von oben nach unten: Bühne, Zeitleiste, Antwortbereich, Folgefragen, Fragefeld, Hinweis", () => {
+    const ids = ["stage", "timeline", "answer-area", "suggestions", "ask-form", "notice"];
+    const positions = ids.map((id) => index.indexOf(`id="${id}"`));
+
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
+  it("legt alles in einen Hauptbereich, an dem die Breite des Labyrinths hängt", () => {
+    expect(index).toMatch(/<main id="page">/);
+    expect(index.indexOf('id="page"')).toBeLessThan(index.indexOf('id="stage"'));
+  });
+
+  it("hat keinen Ton-Knopf mehr (das Brummen hört man kaum)", () => {
+    expect(index).not.toContain('id="sound-toggle"');
+  });
+});
+
 describe("Fragefeld", () => {
   const field = /<input[^>]*id="question"[^>]*>/.exec(index)?.[0] ?? "";
 
