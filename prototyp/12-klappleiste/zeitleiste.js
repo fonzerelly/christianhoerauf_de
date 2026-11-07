@@ -3,9 +3,13 @@
 //
 // Aufgeklappt: Stationen groß unter der Linie, nebeneinander und nach Zeit gelegt, keine
 //   wird versetzt; jede ist mindestens so breit wie ihre Beschriftung (Q45). Die Engagements
-//   (Lehre, Ehrenamt, berufsbegleitendes Studium) stehen klein über der Linie (Q47).
+//   (Lehre, Ehrenamt, berufsbegleitendes Studium) stehen klein über der Linie (Q47): ein
+//   dünner Strich zweigt bei ihrem Beginn nach oben ab, daneben die Beschriftung. Reicht der
+//   Platz bis zum nächsten Engagement nicht, wird sie mit „…“ gekürzt.
 // Zugeklappt: eine Zeile, alle Stationen samt Engagements nach Beginn sortiert (Q48).
 // Beide verschiebbar; beim Laden steht „heute“ am rechten Rand (Q46).
+// Rechts sitzt ein Knopf wie ein gespiegeltes L: oben „›“ (später), unten der Fuß zum
+// Auf- und Zuklappen.
 //
 // Die Stationen kommen zur Laufzeit von /lebenslauf. Der Endpunkt erlaubt nur
 // christianhoerauf.de als Herkunft; aus dem Prototyp heraus scheitert der Abruf deshalb meist,
@@ -33,8 +37,10 @@ const BESCHRIFTUNG_LUFT = 12;
 const PIXEL_JE_JAHR_MINDESTENS = { desktop: 34, handy: 22 };
 // Platz rechts für das Wort „heute“ hinter dem Ende der Linie.
 const PLATZ_FUER_HEUTE = 64;
-// Höhe einer Bahn der Engagements über der Linie.
-const BAHN_HOEHE = 26;
+// Höhe des Strichs, mit dem ein Engagement von der Linie nach oben abzweigt.
+const ENGAGEMENT_HOEHE = 24;
+// So schmal darf eine gekürzte Beschriftung eines Engagements höchstens werden.
+const ENGAGEMENT_MINDESTBREITE = 40;
 
 function istHandy() {
   return document.body.dataset.profile === "handy";
@@ -269,10 +275,11 @@ function zeichneZeitleiste(mitAufbau) {
     return;
   }
 
-  // Rahmen: [‹] [verschiebbarer Inhalt] [›] [Klappknopf]
+  // Rahmen (Raster im CSS):  [‹] [verschiebbarer Inhalt] [›]
+  //                                           [Klappknopf  ]  <- Fuß des gespiegelten L
   const scroll = element("div", "zlScroll");
-  const frueher = pfeilKnopf("‹", "Früher", -1, scroll);
-  const spaeter = pfeilKnopf("›", "Später", 1, scroll);
+  const frueher = pfeilKnopf("‹", "Früher", -1, scroll, "frueher");
+  const spaeter = pfeilKnopf("›", "Später", 1, scroll, "spaeter");
   const klappknopf = klappknopfFuer(zeitleistenStand.aufgeklappt);
   // Erst ohne Pfeile messen, ob der Inhalt überhaupt breiter ist als der Platz.
   frueher.hidden = spaeter.hidden = true;
@@ -280,7 +287,7 @@ function zeichneZeitleiste(mitAufbau) {
   rahmen.append(frueher, scroll, spaeter, klappknopf);
   zeitleisteElement.replaceChildren(rahmen);
 
-  if (zeitleistenStand.aufgeklappt) zeichneAufgeklappt(scroll, klappknopf, mitAufbau);
+  if (zeitleistenStand.aufgeklappt) zeichneAufgeklappt(scroll, mitAufbau);
   else zeichneZugeklappt(scroll);
 
   const laeuftUeber = scroll.scrollWidth > scroll.clientWidth + 1;
@@ -304,7 +311,7 @@ function zeichneZeitleiste(mitAufbau) {
 // Aufgeklappt, von oben nach unten: Engagements, Linie mit „heute“, Stationen.
 // Die Elemente kommen zuerst ins Dokument, weil sich ihre Breite erst dort messen lässt;
 // danach werden sie an ihren Platz gestellt.
-function zeichneAufgeklappt(scroll, klappknopf, mitAufbau) {
+function zeichneAufgeklappt(scroll, mitAufbau) {
   const profil = profilDerZeitleiste();
   const { hauptspur, beruf, engagements } = zeitleistenStand.stationen;
 
@@ -318,14 +325,17 @@ function zeichneAufgeklappt(scroll, klappknopf, mitAufbau) {
     teil.append(knopf);
     return teil;
   });
-  const balken = engagements.map((station) => {
-    const teil = element("div", "zlBalken");
-    const knopf = menueKnopfFuer(station, "", beschriftungDesEngagements(station));
-    knopf.title = station.zeit;
+  const marker = engagements.map((station) => {
+    const teil = element("div", "zlEngagement");
+    const beschriftung = beschriftungDesEngagements(station);
+    const knopf = menueKnopfFuer(station, "", beschriftung);
+    // Die Beschriftung kann gekürzt sein; im Tooltip und für Screenreader steht sie ganz.
+    knopf.title = `${station.zeit} · ${beschriftung}`;
+    knopf.setAttribute("aria-label", `${beschriftung}, ${station.zeit}`);
     teil.append(knopf);
     return teil;
   });
-  inhalt.append(achse, ...stationen, ...balken, heute);
+  inhalt.append(achse, ...stationen, ...marker, heute);
   scroll.append(inhalt);
 
   // Maßstab: Der Beruf füllt die Breite (ohne den Platz für „heute“); was davor war, kommt im
@@ -338,24 +348,20 @@ function zeichneAufgeklappt(scroll, klappknopf, mitAufbau) {
   const gelegt = legeAbschnitte(abschnitte, jeJahr);
   const endeDerLinie = gelegt[gelegt.length - 1].x + gelegt[gelegt.length - 1].breite;
 
-  // Engagements auf Bahnen verteilen: Bahn 0 liegt direkt über der Linie. Überschneidet sich ein
-  // Engagement mit dem vorigen (Balken oder Beschriftung), kommt es eine Bahn höher (Q47).
-  const bahnenEnde = []; // je Bahn: bis wohin sie belegt ist (Pixel)
-  const bahnen = engagements.map((station, index) => {
-    const links = xFuerJahr(station.von, gelegt);
-    const rechts = Math.max(links + 6, xFuerJahr(station.bis, gelegt));
-    const teil = balken[index];
-    teil.style.left = links + "px";
-    teil.style.width = rechts - links + "px";
-    const ende = Math.max(rechts, links + teil.firstElementChild.offsetWidth) + BESCHRIFTUNG_LUFT;
-    let bahn = bahnenEnde.findIndex((belegtBis) => belegtBis <= links);
-    if (bahn === -1) bahn = bahnenEnde.length;
-    bahnenEnde[bahn] = ende;
-    return bahn;
-  });
-  const linieOben = bahnenEnde.length * BAHN_HOEHE + (bahnenEnde.length > 0 ? 6 : 0);
-  bahnen.forEach((bahn, index) => {
-    balken[index].style.top = linieOben - (bahn + 1) * BAHN_HOEHE + "px";
+  // Engagements: alle in einer Reihe über der Linie, jedes beim Jahr seines Beginns. Die
+  // Beschriftung darf bis kurz vor das nächste Engagement reichen, das letzte bis zum Ende der
+  // Zeitleiste; was nicht passt, kürzt das CSS mit „…“.
+  const linieOben = engagements.length > 0 ? ENGAGEMENT_HOEHE + 2 : 0;
+  const endeDesInhalts = endeDerLinie + PLATZ_FUER_HEUTE;
+  const anfaenge = engagements.map((station) => xFuerJahr(station.von, gelegt));
+  marker.forEach((teil, index) => {
+    const platzBis = index + 1 < anfaenge.length ? anfaenge[index + 1] : endeDesInhalts;
+    teil.style.left = anfaenge[index] + "px";
+    teil.style.top = linieOben - ENGAGEMENT_HOEHE + "px";
+    teil.style.height = ENGAGEMENT_HOEHE + "px";
+    teil.firstElementChild.style.maxWidth =
+      Math.max(ENGAGEMENT_MINDESTBREITE, platzBis - anfaenge[index] - BESCHRIFTUNG_LUFT) + "px";
+    teil.style.transitionDelay = mitAufbau ? 0.6 + index * 0.06 + "s" : "0s";
   });
 
   achse.style.top = linieOben + "px";
@@ -370,12 +376,8 @@ function zeichneAufgeklappt(scroll, klappknopf, mitAufbau) {
     teil.style.transitionDelay = mitAufbau ? 0.3 + index * 0.06 + "s" : "0s";
   });
   const unterkante = Math.max(...stationen.map((teil) => teil.offsetTop + teil.offsetHeight));
-  const breiteDerBalken = Math.max(0, ...balken.map((teil) => teil.offsetLeft + teil.firstElementChild.offsetWidth));
-  inhalt.style.width = Math.max(endeDerLinie + PLATZ_FUER_HEUTE, breiteDerBalken) + "px";
+  inhalt.style.width = endeDesInhalts + "px";
   inhalt.style.height = unterkante + 8 + "px";
-
-  // Der Klappknopf sitzt am Ende der Linie, in beiden Zuständen auf ihrer Höhe.
-  klappknopf.style.marginTop = Math.max(0, linieOben - 14) + "px";
   zeigeAufbau(inhalt, mitAufbau);
 }
 
@@ -398,11 +400,9 @@ function zeichneZugeklappt(scroll) {
 // Auf- und Zuklappen (Q42, Q43)
 // ---------------------------------------------------------------------------
 
+// Der Fuß des gespiegelten L unter „›“: nur ein Pfeil, ▴ klappt zu, ▾ klappt auf.
 function klappknopfFuer(aufgeklappt) {
-  // Auf dem Handy bleibt nur der Pfeil sichtbar (CSS), sonst nähme der Knopf der Zeitleiste
-  // ein Viertel der Breite.
   const knopf = element("button", "zlKlapp", aufgeklappt ? "▴" : "▾");
-  knopf.append(element("span", "zlKlappText", aufgeklappt ? " zuklappen" : " aufklappen"));
   knopf.type = "button";
   knopf.setAttribute("aria-expanded", String(aufgeklappt));
   knopf.setAttribute("aria-label", aufgeklappt ? "Zeitleiste zuklappen" : "Zeitleiste aufklappen");
@@ -424,8 +424,8 @@ function setzeZeitleisteAufgeklappt(aufgeklappt) {
   }
 }
 
-function pfeilKnopf(zeichen, beschriftung, richtung, scroll) {
-  const knopf = element("button", "zlPfeil", zeichen);
+function pfeilKnopf(zeichen, beschriftung, richtung, scroll, klasse) {
+  const knopf = element("button", "zlPfeil " + klasse, zeichen);
   knopf.type = "button";
   knopf.setAttribute("aria-label", beschriftung);
   knopf.addEventListener("click", () => {
@@ -473,7 +473,7 @@ function macheZiehbar(scroll) {
 // Achse ziehen, Stationen einblenden: Die Klasse "da" startet die Übergänge aus dem CSS.
 function zeigeAufbau(inhalt, mitAufbau) {
   if (!mitAufbau || bewegungReduziert) {
-    inhalt.querySelectorAll(".zlAchse, .zlStation, .zlBalken").forEach((teil) => (teil.style.transition = "none"));
+    inhalt.querySelectorAll(".zlAchse, .zlStation, .zlEngagement").forEach((teil) => (teil.style.transition = "none"));
     inhalt.classList.add("da");
     return;
   }

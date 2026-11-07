@@ -66,6 +66,11 @@ layoutGrid = function (settings) {
   urspruenglichesLayoutGrid(settings);
   scene.rows = SCHALTER.reihen;
   scene.offsetY = 0;
+  // Zeitleiste und Fragefeld sind genau so breit wie das Labyrinth und stehen bündig darunter.
+  // Das Labyrinth ist etwas schmaler als die Bühne, weil es aus ganzen Zellen besteht.
+  const seite = document.getElementById("seite");
+  seite.style.setProperty("--labyrinth-links", scene.offsetX + "px");
+  seite.style.setProperty("--labyrinth-breite", scene.cols * scene.cellSize + "px");
 };
 
 // ---------------------------------------------------------------------------

@@ -9,14 +9,21 @@ Prototyp 11, der zum Vergleich stehen bleibt. Keine Tests (Prototyp).
   der Ausschnitt, der dem Lichtpunkt nachlief, ist weg (er ließ das Labyrinth stottern).
 - Die **Zeitleiste** klappt auf und zu. Start aufgeklappt mit der Begrüßung darunter. Zu klappt
   sie, sobald eine Frage abgeschickt oder im Stationsmenü eine Einstiegsfrage gewählt wird; auf
-  nur von Hand über den Klappknopf am rechten Ende (auf dem Handy nur der Pfeil).
+  nur von Hand über den Klappknopf. Er ist der Fuß unter dem Pfeil „›“: beide zusammen sehen aus
+  wie ein gespiegeltes L, darauf nur ▾ oder ▴. Auf dem Handy fehlen die Pfeile, dort bleibt nur der Fuß.
 - **Aufgeklappt:** Stationen groß unter der Linie, nebeneinander, Abstände nach Zeit, jede
   mindestens so breit wie ihre Beschriftung; nichts wird nach oben oder unten versetzt. Die
-  **Engagements** (Lehre, Ehrenamt, berufsbegleitendes Studium) stehen klein über der Linie.
+  **Engagements** (Lehre, Ehrenamt, berufsbegleitendes Studium) stehen klein über der Linie: Ein
+  dünner Strich zweigt bei ihrem Beginn nach oben ab, oben daneben die Beschriftung. Alle in einer
+  Reihe; reicht der Platz bis zum nächsten Engagement nicht, wird sie mit „…“ gekürzt (ganz im
+  Tooltip). Keine Balken für die Dauer.
 - **Zugeklappt:** eine Zeile „Jahr Name“ mit allen Stationen samt Engagements nach Beginn
   sortiert; Engagements blasser.
 - Beide Zustände verschiebbar, seit 1984; beim Laden steht „heute“ am rechten Rand.
 - Das **Stationsmenü** liegt immer über Antwort und Fragefeld, auch auf dem Handy.
+- **Zeitleiste** samt Knöpfen und **Fragefeld** samt „Senden“ sind genau so breit wie das Labyrinth
+  (das aus ganzen Zellen besteht und deshalb etwas schmaler ist als die Bühne); Antwort, Folgefragen
+  und Hinweise beginnen an seiner linken Kante.
 - Schalter „Höhe der Bühne“: 10, 14 (Start) oder 18 Reihen. Bei 10 und 14 passt eine Zeile
   Stichwort auf eine Seite, bei 18 zwei; die Begrüßung „HALLO / FRAU MUSTER“ läuft sonst über zwei
   Seiten.
@@ -35,7 +42,7 @@ während des Wartens, Ton.
 ./baue-einzeldatei.sh   # holt den Lebenslauf und schreibt /mnt/share/website/klappleiste/index.html
 ```
 
-Unten rechts öffnet **Schalter** das Bedienfeld: oben die Schalter dieses Prototyps (rot), darunter
+Ganz unten auf der Seite öffnet **Schalter** das Bedienfeld: oben die Schalter dieses Prototyps (rot), darunter
 die Regler aus Prototyp 6. Die Beispiel-Links für die Begrüßung stehen unter „Daten und Bot“.
 
 `/lebenslauf` erlaubt nur christianhoerauf.de als Herkunft. Aus dem Prototyp heraus scheitert der
@@ -58,6 +65,12 @@ startet beim Laden sofort; `oberflaeche.js` baut die Begrüßung danach neu.
 - **Namen in der zugeklappten Zeile**: Organisation ohne Rechtsform wie in Prototyp 11
   (dort werden auch „Software AG“ und „Automotive GmbH“ abgeschnitten: „Method Park“,
   „Elektrobit“), sonst der Titel („Schulzeit in Schwabach“). Keine Kürzel von Hand.
+- **Gekürzte Engagements**: Bei 1440 px wird „Informatik-Kurse an einer Grundschule“ zu
+  „Informatik-Kurs…“, weil 2020 schon Ansbach folgt; auf dem Handy noch kürzer. Gekürzt wird am
+  Ende per CSS, nicht nach Wörtern.
+- **Wo der Fuß des L sitzt**: „vertikal gespiegeltes L“ ist hier als ⅃ gelesen: senkrecht „›“
+  rechts, darunter der Fuß, der nach links unter die Zeitleiste ragt. Dafür kommt unter der
+  Zeitleiste eine schmale Zeile dazu (22 px, Handy 30 px), in der nur der Fuß steht.
 
 ## vorher.js
 
@@ -96,7 +109,7 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 | `normalizeText` (ersetzt) | Normalisiert jede Zeile einzeln, damit ein `\n` erhalten bleibt. |
 | `wrapText` (ersetzt) | Bricht jeden Teil zwischen zwei `\n` für sich um. |
 | `fitCanvasToStage` (ersetzt) | Setzt die Höhe der Bühne auf `SCHALTER.reihen` Zellen (Zellgröße aus der Breite), dann wie bisher. |
-| `layoutGrid` (ersetzt) | Wie bisher, aber genau `SCHALTER.reihen` Reihen und oben bündig. |
+| `layoutGrid` (ersetzt) | Wie bisher, aber genau `SCHALTER.reihen` Reihen und oben bündig. Trägt `--labyrinth-links` und `--labyrinth-breite` an `#seite` ein; danach richten sich Zeitleiste, Fragefeld und Antwort im CSS. |
 | `seitenPlan` | Was beim Bau der aktuellen Seite gilt (Lage, feste Randreihe); lesen die ersetzten Funktionen aus `labyrinth.js`. |
 | `ersterEingang(block, random)` | Eingang der ersten Seite je Laufrichtung: links auf Höhe der Schrift, links auf Zufallshöhe, oben/unten oder zufällig wie Prototyp 6. |
 | `optionenDerLaufrichtung(settings)` | Ausgangsseite und Umwege je Laufrichtung. |
@@ -124,7 +137,7 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 |---|---|
 | `ZEITLEISTE` | Schalter: Laden echt/langsam/Fehler. |
 | `zeitleistenStand` | Ob geladen wird, die Daten da sind oder der Abruf gescheitert ist; ob aufgeklappt. |
-| `BESCHRIFTUNG_HOECHSTENS`, `BESCHRIFTUNG_LUFT`, `PIXEL_JE_JAHR_MINDESTENS`, `PLATZ_FUER_HEUTE`, `BAHN_HOEHE` | Größte Breite einer Beschriftung (220/160 px), Luft dazwischen, engster Maßstab (34/22 px je Jahr), Platz für „heute“, Höhe einer Bahn der Engagements. |
+| `BESCHRIFTUNG_HOECHSTENS`, `BESCHRIFTUNG_LUFT`, `PIXEL_JE_JAHR_MINDESTENS`, `PLATZ_FUER_HEUTE`, `ENGAGEMENT_HOEHE`, `ENGAGEMENT_MINDESTBREITE` | Größte Breite einer Beschriftung (220/160 px), Luft dazwischen, engster Maßstab (34/22 px je Jahr), Platz für „heute“, Höhe des Strichs eines Engagements (24 px), schmalste gekürzte Beschriftung (40 px). |
 | `istHandy()`, `profilDerZeitleiste()` | Ob das Geräteprofil „handy“ gilt; „handy“ oder „desktop“. |
 | `heuteAlsJahr()` | Das heutige Datum als Jahr mit Nachkommastellen. |
 | `jahrAus(teil, istEnde)` | „10/2020“, „2014“ oder „heute“ als Jahr; ein Ende ohne Monat liegt in der Jahresmitte. |
@@ -143,12 +156,12 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 | `element(tag, klasse, text)` | Legt ein Element an. |
 | `menueKnopfFuer(station, klasse, text)` | Ein Knopf mit `aria-expanded`, der das Stationsmenü öffnet. |
 | `stationsKnopf(station)` | Knopf mit Jahr, Organisation und Titel unter der Linie. |
-| `zeichneZeitleiste(mitAufbau)` | Laden, Fehler oder der Rahmen `‹ Inhalt › Klappknopf` mit aufgeklapptem oder zugeklapptem Inhalt. Pfeile und Ziehen nur, wenn der Inhalt breiter ist als der Platz; dann steht „heute“ rechts am Rand. |
-| `zeichneAufgeklappt(scroll, klappknopf, mitAufbau)` | Legt alles ins Dokument, misst die Beschriftungen, rechnet den Maßstab (der Beruf füllt die Breite, davor im selben Maßstab), verteilt die Engagements auf Bahnen über der Linie (bei Überschneidung eine höher) und stellt Linie, „heute“, Stationen und Klappknopf an ihren Platz. |
+| `zeichneZeitleiste(mitAufbau)` | Laden, Fehler oder der Rahmen `‹ Inhalt ›` mit dem Klappknopf als Fuß unter `›` (CSS-Raster) und aufgeklapptem oder zugeklapptem Inhalt. Pfeile und Ziehen nur, wenn der Inhalt breiter ist als der Platz; dann steht „heute“ rechts am Rand. |
+| `zeichneAufgeklappt(scroll, mitAufbau)` | Legt alles ins Dokument, misst die Beschriftungen, rechnet den Maßstab (der Beruf füllt die Breite, davor im selben Maßstab), setzt jedes Engagement mit seinem Strich an das Jahr seines Beginns und begrenzt seine Beschriftung bis kurz vor das nächste (das letzte bis zum Ende des Inhalts), dann Linie, „heute“ und Stationen. |
 | `zeichneZugeklappt(scroll)` | Eine Zeile „Jahr Name“ nach Beginn sortiert (bei gleichem Beginn der Beruf vorn), Engagements blasser, am Ende „heute“. |
-| `klappknopfFuer(aufgeklappt)` | „▴ zuklappen“ bzw. „▾ aufklappen“ mit `aria-expanded`; auf dem Handy nur der Pfeil. Behält nach dem Klick den Fokus. |
+| `klappknopfFuer(aufgeklappt)` | Der Fuß des L: nur ▴ (zuklappen) bzw. ▾ (aufklappen), Wortlaut in `aria-label`, dazu `aria-expanded`. Behält nach dem Klick den Fokus. |
 | `setzeZeitleisteAufgeklappt(aufgeklappt)` | Klappt um, zeichnet neu und blendet weich ein. Die Bühne bleibt, was darunter steht, rutscht mit. |
-| `pfeilKnopf(...)` | Knopf, der die Zeitleiste um 60 % ihrer Breite verschiebt (auf dem Handy ausgeblendet, dort wischt man). |
+| `pfeilKnopf(..., klasse)` | Knopf („frueher“ oder „spaeter“, legt den Platz im Raster fest), der die Zeitleiste um 60 % ihrer Breite verschiebt (auf dem Handy ausgeblendet, dort wischt man). |
 | `macheZiehbar(scroll)` | Ziehen mit der Maus; wer gezogen hat, öffnet dabei kein Menü. |
 | `zeigeAufbau(inhalt, mitAufbau)` | Startet das Ziehen der Linie und das Einblenden (bei reduzierter Bewegung sofort). |
 | `einstiegsfragen(station)` | „Was hat Chris bei <Firma> gemacht?“ und je Stichpunkt „Erzähl mir mehr über „…“ bei <Firma>.“ |
