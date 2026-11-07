@@ -39,8 +39,12 @@ Prototyp 11, der zum Vergleich stehen bleibt. Keine Tests (Prototyp).
 - **Zwei Durchläufe** statt drei.
 - **Gimmicks** (Herz, Smiley, Foto), ausgelöst über drei Knöpfe im Bedienfeld. Herz und Smiley
   zeichnet der Code der echten App (`bilder-der-app.js`). Jedes ist so groß, wie es auf die Bühne
-  passt. Mindestens braucht das Foto 10 Reihen, das Herz 15, der Smiley 22; passt es nicht,
-  schreibt der Lichtpunkt das Stichwort, und das Bedienfeld sagt, warum.
+  passt. Mindestens braucht das Foto 10 Reihen, das Herz 15, der Smiley 22. Hat die Bühne weniger,
+  bekommt **nur die Seite des Gimmicks ein feineres Raster** auf derselben Fläche (Smiley: Desktop
+  10 statt 16 px, Handy 6 statt 8 px); Wände, Spur und Leuchten werden dort im selben Verhältnis
+  dünner, der Lichtpunkt bleibt auf dem Bildschirm gleich schnell. Die Bühne behält ihre Höhe.
+  Beim Seitenwechsel läuft der Lichtpunkt auf derselben Höhe weiter. Das Bedienfeld sagt, in
+  welchem Raster das Gimmick steht.
 - Entfallen: Schalter Zeitleiste fest/verschiebbar, Nebenspur, Handy waagrecht/senkrecht, Handy-Menü.
 
 **Wie in Prototyp 11:** Der Lichtpunkt schreibt nur das Stichwort, die Antwort steht als Text
@@ -115,8 +119,9 @@ startet beim Laden sofort; `oberflaeche.js` baut die Begrüßung danach neu.
 - **Rand um Gimmicks**: oben und unten 1 Reihe frei statt 2 wie um einen Text. Mit 2 bräuchte das
   Herz 17 Reihen. Der Lichtpunkt kommt bei Laufrichtung „gerade“ ohnehin von der Seite, auf Höhe
   der untersten Reihe des Gimmicks.
-- **Passt ein Gimmick nicht**, schreibt der Lichtpunkt das Stichwort (in der App: den Antworttext,
-  den es auf der Bühne nicht mehr gibt).
+- **Eigenes Raster für ein Gimmick** gibt es in der App nicht; dort schreibt der Lichtpunkt den
+  Text, wenn das Bild nicht passt. Hier nur, wenn die Zellen dafür kleiner als 4 px würden: dann
+  das Stichwort.
 - **Foto**: Die Spalte wird gewürfelt wie in der App, senkrecht liegt es mittig (es gibt nur eine
   Reihe Spielraum).
 
@@ -184,8 +189,8 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 
 ## gimmicks.js
 
-Nach `buehne.js` geladen; ersetzt `buildAnswerPages`, `createAnswer` und `drawPage` noch einmal
-durch Zuweisung. Route und Seite sind aus `route-builder.ts` und `maze-page-generator.ts` der App
+Nach `buehne.js` geladen; ersetzt `buildAnswerPages`, `createAnswer`, `drawPage`,
+`prepareNextWallImage`, `scrollShifts` und `paceOf` noch einmal durch Zuweisung. Route und Seite sind aus `route-builder.ts` und `maze-page-generator.ts` der App
 übertragen, mit den Bausteinen aus Prototyp 6.
 
 | Name | Was es tut |
@@ -194,7 +199,7 @@ durch Zuweisung. Route und Seite sind aus `route-builder.ts` und `maze-page-gene
 | `reihenFuerBild(bild)` | Höhe des Bilds + 3 Reihen für An- und Ablauf + je 1 Reihe frei oben und unten. |
 | `platziereBild(name, cols, rows)` | Das breiteste Bild mit ungerader Breite, das passt (höchstens so breit wie die Bühne ohne je 3 Spalten Rand), waagrecht und senkrecht mittig. `null`, wenn selbst die kleinste Größe aus der App (Herz 11, Smiley 17) nicht passt. |
 | `platziereFoto(cols, rows, random)` | Das größte quadratische Foto, das samt Rahmen passt; Spalte gewürfelt, senkrecht mittig. `null` unter 6 Zellen. |
-| `mindestReihen(gimmick)` | Wie viele Reihen das Gimmick mindestens braucht (Foto 10, Herz 15, Smiley 22). |
+| `mindestReihen(gimmick)` | Wie viele Reihen das Gimmick mindestens braucht (Foto 10, Herz 15, Smiley 22). Danach richtet sich ein eigenes Raster. |
 | `setzeRouteZusammen(…)` | Wie `buildRoute` in Prototyp 6 bzw. `assemble` in der App: zwei Schritte außerhalb, Anlauf in Windungen zum linken Tor, die Mitte, Ablauf in Windungen vom rechten Tor zum Ausgang, zwei Schritte hinaus. |
 | `blockFuerBild(platz)` | Das Rechteck aus Bild und den 3 Reihen darunter; um ihn herum teilen sich Anlauf und Ablauf das Labyrinth. |
 | `routeFuerBild(…)` | Wie `buildPicture`: in der untersten Reihe des Blocks von links heran, senkrecht hinauf zum Anfang des Bilds, das Bild (Wegpunkte aus der App), eine Reihe unter das Bild und darin nach rechts hinaus. |
@@ -202,15 +207,24 @@ durch Zuweisung. Route und Seite sind aus `route-builder.ts` und `maze-page-gene
 | `routeFuerFoto(…)` | Wie `buildPhoto`: unten links an den Rahmen, dreimal herum (Schriftwege), unten nach rechts hinaus. Merkt am Foto in `rundenEnden`, wo jede Runde endet. |
 | `oeffneRaum(maze, foto)` | Nimmt alle Wände zwischen den Zellen unter dem Foto weg; die nach außen bleiben. |
 | `generiereGimmickSeite(plan, …)` | Wie `generatePage`: Ausgang, Route, freibrechen, beim Foto den Raum öffnen, den Rest wachsen lassen. Keine Zeilen. |
-| `planeGimmick(gimmick, random)` | `{bild}`, `{foto}` oder `null`, wenn es nicht passt. |
+| `rasterDerBuehne()` | Zellgröße, Versatz, Spalten und Reihen der Bühne, wie `layoutGrid` sie eingeteilt hat. |
+| `feineresRaster(reihen)` | Ein Raster auf derselben Fläche wie das der Bühne mit mindestens so vielen Reihen; Zellgröße auf ganze Geräte-Pixel abgerundet, Labyrinth mittig. `null` unter 4 px je Zelle. |
+| `ausgangImRaster(ausgang, raster)` | Rechnet einen Ausgang in ein anderes Raster um: dieselbe Stelle auf dem Bildschirm, in Zellen des neuen Rasters. Der Eingang der nächsten Seite liegt so auf derselben Höhe. |
+| `planeGimmick(gimmick, raster, random)` | `{bild}`, `{foto}` oder `null`, wenn es nicht in das Raster passt. |
+| `planeGimmickMitRaster(gimmick, random)` | Erst im Raster der Bühne, sonst in `feineresRaster(mindestReihen(…))`. Liefert Plan, Raster und ob es ein eigenes ist, oder `null`. |
 | `anlaufReiheVon(plan)` | Die unterste Reihe des Gimmicks; dort liegen bei Laufrichtung „gerade“ Ein- und Ausgang. |
 | `createAnswer` (ersetzt) | Wie bisher, trägt das vorgemerkte Gimmick an der Antwort ein. |
 | `zeigeAntwortMitGimmick(stichwort, frage, gimmick)` | Merkt das Gimmick vor und ruft `showAnswer`. |
-| `buildAnswerPages` (ersetzt) | Mit Gimmick, das passt: genau eine Seite damit, Eingang gegenüber dem vorigen Ausgang bzw. links auf Höhe der untersten Reihe. Sonst wie in `buehne.js` (Stichwort). Wiederholung und Stehenbleiben wie beim Stichwort. |
-| `zeigeGimmickHinweis(gimmick, passt)` | Schreibt ins Bedienfeld, ob es passt bzw. wie viele Reihen fehlen. |
+| `buildAnswerPages` (ersetzt) | Mit Gimmick: genau eine Seite damit, nötigenfalls im eigenen Raster (steht dann an Seite und Ausgang als `raster`); Eingang gegenüber dem vorigen Ausgang (umgerechnet) bzw. links auf Höhe der untersten Reihe. Sonst wie in `buehne.js` (Stichwort), mit umgerechnetem vorigen Ausgang. Wiederholung und Stehenbleiben wie beim Stichwort. |
+| `zeigeGimmickHinweis(gimmick, geplant)` | Schreibt ins Bedienfeld, ob es ins Raster der Bühne passt, welches eigene Raster es bekommt oder warum es nicht geht. |
 | `verkleinertesFoto(bloecke)` | Das Foto auf `bloecke` × `bloecke` Pixel verkleinert, je Größe einmal. |
 | `zeichneFoto(seite, settings)` | Wie `PhotoPainter`: Foto im Rahmen, um die halbe Wandbreite eingerückt; vor der ersten Runde Blöcke von 2 Zellen, dann 1, dann ½, nach der dritten scharf. |
-| `drawPage` (ersetzt) | Auf Seiten mit Foto: Wände, Foto, dann Spur und Lichtpunkt. |
+| `einstellungenFuerRaster(settings, raster)` | Wand, Spur, Leuchten und Überstrahlen im Verhältnis der Zellgrößen; je Einstellungen und Faktor einmal angelegt. |
+| `imRasterDer(seite, settings, zeichne)` | Setzt für die Dauer von `zeichne` Zellgröße und Versatz der Seite in `scene` (damit rechnet `seite.js` überall) und übergibt die passenden Einstellungen; danach wieder die der Bühne. |
+| `drawPage` (ersetzt) | Im Raster der Seite. Auf Seiten mit Foto: Wände, Foto, dann Spur und Lichtpunkt. |
+| `prepareNextWallImage` (ersetzt) | Zeichnet das Wandbild der nächsten Seite vorab in deren Raster. |
+| `scrollShifts` (ersetzt) | Wie weit geschoben wird, aus der Breite der aktuellen Seite in ihrem Raster. |
+| `paceOf` (ersetzt) | Teilt das Tempo durch das Verhältnis der Zellgrößen: In feineren Zellen läuft der Lichtpunkt mehr davon, auf dem Bildschirm gleich schnell. |
 
 ## bilder-der-app.js, baue-bilder-der-app.sh
 

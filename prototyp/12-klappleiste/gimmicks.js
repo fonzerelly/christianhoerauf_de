@@ -64,7 +64,7 @@ function platziereFoto(cols, rows, random) {
   return { left, top: Math.floor((rows - groesse) / 2), size: groesse };
 }
 
-// Wie viele Reihen ein Gimmick mindestens braucht (für den Hinweis im Bedienfeld).
+// Wie viele Reihen ein Gimmick mindestens braucht (für ein eigenes Raster und den Hinweis).
 function mindestReihen(gimmick) {
   if (gimmick === "foto") return KLEINSTES_FOTO + 2 * (RAND_REIHEN_UM_GIMMICK + 1);
   const name = BILD_NAMEN[gimmick];
@@ -173,14 +173,79 @@ function generiereGimmickSeite(plan, cols, rows, entrance, random, options) {
   return { maze, route, entrance, exit, lines: [], foto: plan.foto || null };
 }
 
-// Was für das Gimmick der Antwort auf die Bühne kommt: { bild } oder { foto } oder null.
-function planeGimmick(gimmick, random) {
+// ---------------------------------------------------------------------------
+// Ein eigenes Raster für die Gimmick-Seite
+// ---------------------------------------------------------------------------
+
+// Das Raster der Bühne, wie layoutGrid es eingeteilt hat.
+function rasterDerBuehne() {
+  const { cellSize, offsetX, offsetY, cols, rows } = scene;
+  return { cellSize, offsetX, offsetY, cols, rows };
+}
+
+// Kleiner zeichnet niemand ein Labyrinth: Darunter verschwimmen die Wände.
+const KLEINSTE_ZELLE = 4;
+
+// Ein feineres Raster auf derselben Fläche wie das der Bühne, mit mindestens `reihen` Reihen.
+// Die Zellgröße ist auf ganze Geräte-Pixel abgerundet wie in cellSizeFor (seite.js), damit alle
+// Wände gleich scharf werden. Das Labyrinth bleibt waagrecht und senkrecht mittig auf der Fläche.
+// null, wenn die Zellen kleiner als KLEINSTE_ZELLE würden.
+function feineresRaster(reihen) {
+  const buehne = rasterDerBuehne();
+  const breite = buehne.cols * buehne.cellSize;
+  const hoehe = buehne.rows * buehne.cellSize;
+  const pixelDichte = pixelRatioOf(currentSettings);
+  const zelle = Math.floor((hoehe * pixelDichte) / reihen) / pixelDichte;
+  if (zelle < KLEINSTE_ZELLE) return null;
+
+  const cols = Math.floor(breite / zelle);
+  const rows = Math.floor(hoehe / zelle);
+  return {
+    cellSize: zelle,
+    offsetX: buehne.offsetX + Math.floor((breite - cols * zelle) / 2),
+    offsetY: buehne.offsetY + Math.floor((hoehe - rows * zelle) / 2),
+    cols,
+    rows,
+  };
+}
+
+// Ein Ausgang, umgerechnet in ein anderes Raster: dieselbe Stelle auf dem Bildschirm, nur in den
+// Zellen des neuen Rasters. So läuft der Lichtpunkt beim Seitenwechsel auf derselben Höhe weiter.
+function ausgangImRaster(ausgang, raster) {
+  const von = ausgang.raster || rasterDerBuehne();
+  if (von.cellSize === raster.cellSize && von.offsetX === raster.offsetX && von.offsetY === raster.offsetY) return ausgang;
+  const umgerechnet = (zelle, versatzVon, versatzNach, anzahl) =>
+    begrenze(Math.floor((versatzVon + (zelle + 0.5) * von.cellSize - versatzNach) / raster.cellSize), 0, anzahl - 1);
+  return {
+    side: ausgang.side,
+    cell: {
+      x: umgerechnet(ausgang.cell.x, von.offsetX, raster.offsetX, raster.cols),
+      y: umgerechnet(ausgang.cell.y, von.offsetY, raster.offsetY, raster.rows),
+    },
+  };
+}
+
+// Was für das Gimmick der Antwort auf die Seite kommt: { bild } oder { foto } oder null, je nachdem,
+// ob es in das Raster passt.
+function planeGimmick(gimmick, raster, random) {
   if (gimmick === "foto") {
-    const foto = platziereFoto(scene.cols, scene.rows, random);
+    const foto = platziereFoto(raster.cols, raster.rows, random);
     return foto && { foto };
   }
-  const bild = platziereBild(BILD_NAMEN[gimmick], scene.cols, scene.rows);
+  const bild = platziereBild(BILD_NAMEN[gimmick], raster.cols, raster.rows);
   return bild && { bild };
+}
+
+// Plan und Raster für das Gimmick: im Raster der Bühne, wenn es dort passt, sonst in einem
+// feineren mit genau so vielen Reihen, wie es mindestens braucht. null, wenn auch das nicht geht.
+function planeGimmickMitRaster(gimmick, random) {
+  const buehne = rasterDerBuehne();
+  const plan = planeGimmick(gimmick, buehne, random);
+  if (plan) return { plan, raster: buehne, eigenesRaster: false };
+
+  const raster = feineresRaster(mindestReihen(gimmick));
+  const feinerPlan = raster && planeGimmick(gimmick, raster, random);
+  return feinerPlan ? { plan: feinerPlan, raster, eigenesRaster: true } : null;
 }
 
 // Die unterste Reihe des Gimmicks: Dort kommt der Lichtpunkt bei Laufrichtung „gerade“ herein.
@@ -205,29 +270,38 @@ function zeigeAntwortMitGimmick(stichwort, frage, gimmick) {
   showAnswer(stichwort, frage);
 }
 
-// Hat die Antwort ein Gimmick (answer.gimmick: "herz" | "smiley" | "foto") und passt es, gibt es
-// genau eine Seite damit. Sonst wie bisher (buehne.js): Der Lichtpunkt schreibt das Stichwort.
+// Hat die Antwort ein Gimmick (answer.gimmick: "herz" | "smiley" | "foto"), gibt es genau eine
+// Seite damit, nötigenfalls in einem feineren Raster. Sonst wie bisher (buehne.js): Der
+// Lichtpunkt schreibt das Stichwort. Kam der Lichtpunkt von einer Seite mit eigenem Raster, wird
+// deren Ausgang erst ins Raster der neuen Seite umgerechnet.
 const buildAnswerPagesOhneGimmick = buildAnswerPages;
 buildAnswerPages = function (answer, exitBefore, settings) {
-  if (!answer.gimmick) return buildAnswerPagesOhneGimmick(answer, exitBefore, settings);
+  const ohneGimmick = () =>
+    buildAnswerPagesOhneGimmick(answer, exitBefore && ausgangImRaster(exitBefore, rasterDerBuehne()), settings);
+  if (!answer.gimmick) return ohneGimmick();
   if (answer.lauf === undefined) answer.lauf = 0;
 
   const random = createRandom(settings.seed + answer.number + answer.lauf * 7919);
-  const plan = planeGimmick(answer.gimmick, random);
-  zeigeGimmickHinweis(answer.gimmick, plan !== null);
-  if (!plan) return buildAnswerPagesOhneGimmick(answer, exitBefore, settings);
+  const geplant = planeGimmickMitRaster(answer.gimmick, random);
+  zeigeGimmickHinweis(answer.gimmick, geplant);
+  if (!geplant) return ohneGimmick();
 
+  const { plan, raster } = geplant;
   const optionen = { ...settings, ...optionenDerLaufrichtung(settings) };
   const anlaufReihe = anlaufReiheVon(plan);
   const gerade = SCHALTER.laufrichtung === "gerade";
   seitenPlan = { lage: "mitte", randZeile: gerade ? anlaufReihe : null };
   let entrance;
-  if (exitBefore) entrance = entranceOppositeOf(exitBefore, scene.cols, scene.rows);
+  if (exitBefore) entrance = entranceOppositeOf(ausgangImRaster(exitBefore, raster), raster.cols, raster.rows);
   else if (gerade) entrance = { side: "left", cell: { x: 0, y: anlaufReihe } };
-  else entrance = ersterEingang(null, random); // die anderen Laufrichtungen brauchen den Block nicht
-  const seite = generiereGimmickSeite(plan, scene.cols, scene.rows, entrance, random, optionen);
+  else entrance = { side: "left", cell: { x: 0, y: randomBetween(1, raster.rows - 2, random) } };
+  const seite = generiereGimmickSeite(plan, raster.cols, raster.rows, entrance, random, optionen);
   seitenPlan = null;
 
+  if (geplant.eigenesRaster) {
+    seite.raster = raster;
+    seite.exit.raster = raster;
+  }
   seite.answer = answer;
   seite.numberInAnswer = 1;
   answer.pageCount = 1;
@@ -235,15 +309,25 @@ buildAnswerPages = function (answer, exitBefore, settings) {
   return [seite];
 };
 
-// Schreibt ins Bedienfeld, ob das Gimmick passt und wie viele Reihen es braucht.
-function zeigeGimmickHinweis(gimmick, passt) {
+// Schreibt ins Bedienfeld, ob das Gimmick passt, in welchem Raster, bzw. was fehlt.
+function zeigeGimmickHinweis(gimmick, geplant) {
   const hinweis = document.getElementById("p12GimmickHinweis");
   const name = { herz: "Herz", smiley: "Smiley", foto: "Foto" }[gimmick];
-  hinweis.textContent = passt
-    ? `${name}: passt (Bühne ${scene.cols} × ${scene.rows} Zellen).`
-    : `${name} passt nicht: braucht mindestens ${mindestReihen(gimmick)} Reihen, die Bühne hat ${scene.rows}. ` +
-      "Der Lichtpunkt schreibt stattdessen das Stichwort.";
+  const pixel = (wert) => String(Math.round(wert * 10) / 10).replace(".", ",") + " px";
+  if (!geplant) {
+    hinweis.textContent =
+      `${name} passt nicht: braucht ${mindestReihen(gimmick)} Reihen, dafür würden die Zellen kleiner als ` +
+      `${KLEINSTE_ZELLE} px. Der Lichtpunkt schreibt stattdessen das Stichwort.`;
+  } else if (geplant.eigenesRaster) {
+    const { cols, rows, cellSize } = geplant.raster;
+    hinweis.textContent =
+      `${name}: passt nicht in die ${scene.rows} Reihen der Bühne, bekommt deshalb ein eigenes Raster: ` +
+      `${cols} × ${rows} Zellen à ${pixel(cellSize)} statt ${pixel(scene.cellSize)}.`;
+  } else {
+    hinweis.textContent = `${name}: passt ins Raster der Bühne (${scene.cols} × ${scene.rows} Zellen).`;
+  }
 }
+
 
 // ---------------------------------------------------------------------------
 // Foto zeichnen
@@ -291,15 +375,81 @@ function zeichneFoto(seite, settings) {
   ctx.restore();
 }
 
-// Wie drawPage in seite.js, nur liegt auf einer Seite mit Foto das Foto über den Wänden und
-// unter der Spur.
-const drawPageOhneFoto = drawPage;
+// ---------------------------------------------------------------------------
+// Seiten mit eigenem Raster zeichnen
+// ---------------------------------------------------------------------------
+
+// Die Einstellungen für ein feineres Raster: Wände, Spur und Leuchten im selben Verhältnis
+// dünner wie die Zellen kleiner. Je Einstellungen und Faktor nur einmal angelegt, weil das in
+// jedem Bild gebraucht wird (und buehne.js seine Fassungen an diesem Objekt festmacht).
+const verkleinerteEinstellungen = { fuer: null, faktor: null, wert: null };
+function einstellungenFuerRaster(settings, raster) {
+  const faktor = raster.cellSize / scene.cellSize;
+  if (faktor === 1) return settings;
+  if (verkleinerteEinstellungen.fuer !== settings || verkleinerteEinstellungen.faktor !== faktor) {
+    verkleinerteEinstellungen.fuer = settings;
+    verkleinerteEinstellungen.faktor = faktor;
+    verkleinerteEinstellungen.wert = {
+      ...settings,
+      wallWidth: settings.wallWidth * faktor,
+      trailWidth: settings.trailWidth * faktor,
+      glow: settings.glow * faktor,
+      bloomRadius: settings.bloomRadius * faktor,
+    };
+  }
+  return verkleinerteEinstellungen.wert;
+}
+
+// Führt `zeichne` im Raster der Seite aus: seite.js rechnet überall mit scene.cellSize,
+// scene.offsetX und scene.offsetY. Für eine Seite mit eigenem Raster stehen dort so lange deren
+// Werte; danach wieder die der Bühne.
+function imRasterDer(seite, settings, zeichne) {
+  if (!seite || !seite.raster) return zeichne(settings);
+  const buehne = rasterDerBuehne();
+  const eigene = einstellungenFuerRaster(settings, seite.raster);
+  Object.assign(scene, { cellSize: seite.raster.cellSize, offsetX: seite.raster.offsetX, offsetY: seite.raster.offsetY });
+  try {
+    return zeichne(eigene);
+  } finally {
+    Object.assign(scene, { cellSize: buehne.cellSize, offsetX: buehne.offsetX, offsetY: buehne.offsetY });
+  }
+}
+
+// Wie drawPage in seite.js, im Raster der Seite. Auf einer Seite mit Foto liegt das Foto über
+// den Wänden und unter der Spur.
+const drawPageUrspruenglich = drawPage;
 drawPage = function (page, shift, settings) {
-  if (!page.foto) return drawPageOhneFoto(page, shift, settings);
-  ctx.save();
-  ctx.translate(shift.x, shift.y);
-  drawWalls(page, settings);
-  zeichneFoto(page, settings);
-  if (page === currentPage()) drawTrailAndDot(settings);
-  ctx.restore();
+  imRasterDer(page, settings, (eigene) => {
+    if (!page.foto) return drawPageUrspruenglich(page, shift, eigene);
+    ctx.save();
+    ctx.translate(shift.x, shift.y);
+    drawWalls(page, eigene);
+    zeichneFoto(page, eigene);
+    if (page === currentPage()) drawTrailAndDot(eigene);
+    ctx.restore();
+  });
+};
+
+// Das Wandbild der nächsten Seite vorab, in deren Raster (sonst wäre es beim ersten Bild falsch
+// und müsste neu gezeichnet werden).
+const prepareNextWallImageUrspruenglich = prepareNextWallImage;
+prepareNextWallImage = function (settings) {
+  if (!hasNextPage()) return;
+  const naechste = scene.pages[scene.pageIndex + 1];
+  imRasterDer(naechste, settings, (eigene) => prepareNextWallImageUrspruenglich(eigene));
+};
+
+// Wie weit beim Seitenwechsel geschoben wird, ergibt sich aus der Breite der aktuellen Seite in
+// ihrem Raster.
+const scrollShiftsUrspruenglich = scrollShifts;
+scrollShifts = function (settings) {
+  return imRasterDer(currentPage(), settings, (eigene) => scrollShiftsUrspruenglich(eigene));
+};
+
+// Das Tempo zählt in Zellen je Sekunde. In feineren Zellen läuft der Lichtpunkt entsprechend mehr
+// davon, damit er auf dem Bildschirm so schnell bleibt wie sonst.
+const paceOfImRasterDerBuehne = paceOf;
+paceOf = function (kind, page, settings) {
+  const faktor = page.raster ? page.raster.cellSize / scene.cellSize : 1;
+  return paceOfImRasterDerBuehne(kind, page, settings) / faktor;
 };
