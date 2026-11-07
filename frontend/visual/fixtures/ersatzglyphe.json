@@ -1,10 +1,16 @@
 {
-  "greeting": "A € B €€ C",
+  "greeting": "Wird nicht gebraucht: Die Begrüßung baut die Seite selbst.",
   "unknownAnswer": "Weiß ich nicht",
   "answers": [
     {
+      "matchTerms": ["zeige"],
+      "answer": "Die Antwort zum Stichwort.",
+      "keyword": "A€B-.?!"
+    },
+    {
       "matchTerms": ["hallo"],
-      "answer": "HALLO"
+      "answer": "Hallo zurück.",
+      "keyword": "HALLO"
     }
   ]
 }

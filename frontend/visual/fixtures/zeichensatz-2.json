@@ -1,10 +1,16 @@
 {
-  "greeting": "ÄÖÜ 0123 4567 89-.?!",
+  "greeting": "Wird nicht gebraucht: Die Begrüßung baut die Seite selbst.",
   "unknownAnswer": "Weiß ich nicht",
   "answers": [
     {
+      "matchTerms": ["zeige"],
+      "answer": "Die Antwort zum Stichwort.",
+      "keyword": "KLMNOPQRST"
+    },
+    {
       "matchTerms": ["hallo"],
-      "answer": "HALLO"
+      "answer": "Hallo zurück.",
+      "keyword": "HALLO"
     }
   ]
 }

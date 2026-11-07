@@ -15,6 +15,12 @@ import { TextNormalizer } from "../../src/domain/text/text-normalizer";
 import { SETTINGS } from "./soundness";
 import { renderSvg } from "./svg-diagram";
 
+/**
+ * Seit Schritt 12.5 schreibt der Lichtpunkt nur das Stichwort, eine Zeile je Seite. Diese Tests
+ * prüfen die Regeln einer Seite mit Text; sie erlauben deshalb so viele Zeilen, wie passen.
+ */
+const MANY_LINES = 99;
+
 const CELL_SIZE = 10;
 
 /** Zeichen und der Name der Datei, in der ihr Bild liegt. */
@@ -64,7 +70,7 @@ function sentencePages(sentence: string): readonly MazePage[] {
     (seed) => new Mulberry32(seed),
     { ...GRID_OF_SENTENCES, restingDistance: 2, maze: SETTINGS },
   );
-  return paginator.paginate(sentence, 1).pages;
+  return paginator.paginate({ keyword: sentence, maxLinesPerPage: MANY_LINES }, 1).pages;
 }
 
 describe("Schaubilder", () => {

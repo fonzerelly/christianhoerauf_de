@@ -1,10 +1,16 @@
 {
-  "greeting": "ABCDEFG HIJKLMN OPQRSTU VWXYZ",
+  "greeting": "Wird nicht gebraucht: Die Begrüßung baut die Seite selbst.",
   "unknownAnswer": "Weiß ich nicht",
   "answers": [
     {
+      "matchTerms": ["zeige"],
+      "answer": "Die Antwort zum Stichwort.",
+      "keyword": "ABCDEFGHIJ"
+    },
+    {
       "matchTerms": ["hallo"],
-      "answer": "HALLO"
+      "answer": "Hallo zurück.",
+      "keyword": "HALLO"
     }
   ]
 }

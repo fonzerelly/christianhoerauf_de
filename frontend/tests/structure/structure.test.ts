@@ -13,6 +13,12 @@ import { TextNormalizer } from "../../src/domain/text/text-normalizer";
 import { checkPageSequence } from "./route-checks";
 import { expectPageIsSound, SETTINGS } from "./soundness";
 
+/**
+ * Seit Schritt 12.5 schreibt der Lichtpunkt nur das Stichwort, eine Zeile je Seite. Diese Tests
+ * prüfen die Regeln einer Seite mit Text; sie erlauben deshalb so viele Zeilen, wie passen.
+ */
+const MANY_LINES = 99;
+
 const CHARACTERS = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789-.?!+█");
 
 /** Ein Raster, in das ein einzelnes Zeichen gerade passt (mit Platz für An- und Ablauf). */
@@ -67,7 +73,10 @@ describe("Struktur der Labyrinth-Seiten", () => {
         },
       );
 
-      const { pages } = paginator.paginate(sentence, seed);
+      const { pages } = paginator.paginate(
+        { keyword: sentence, maxLinesPerPage: MANY_LINES },
+        seed,
+      );
 
       pages.forEach(expectPageIsSound);
       expect(checkPageSequence(pages)).toEqual([]);

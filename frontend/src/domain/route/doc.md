@@ -37,12 +37,12 @@ außerhalb des Rasters), eine Art (`letter`, `connector`, `silent`) und `isDot`.
 
 ## text-block-layout
 
-| Funktion                                      | Was sie konkret tut                                                                                               |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `lineAdvanceOf(returnBandRows)`               | Rasterzeilen je Textzeile: 5 Glyphenzeilen, 1 Grundlinie und das Band.                                            |
-| `lineWidthOf(line)`                           | Breite einer Zeile: 4 Zellen je Zeichenbreite (die Ersatzglyphe belegt zwei), minus die Lücke hinter der letzten. |
-| `lineLeftOf(line, columns)`                   | Erste Spalte der Zeile, wenn sie mittig steht (abgerundet).                                                       |
-| `layoutTextBlock(lines, columns, rows, band)` | Zentriert den Textblock aus allen Zeilen im Raster und liefert seine äußersten Zellen (`Rectangle`).              |
+| Funktion                                                  | Was sie konkret tut                                                                                                                                                                                        |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lineAdvanceOf(returnBandRows)`                           | Rasterzeilen je Textzeile: 5 Glyphenzeilen, 1 Grundlinie und das Band.                                                                                                                                     |
+| `lineWidthOf(line)`                                       | Breite einer Zeile: 4 Zellen je Zeichenbreite (die Ersatzglyphe belegt zwei), minus die Lücke hinter der letzten.                                                                                          |
+| `lineLeftIn(block, line, alignment)`                      | Erste Spalte der Zeile im Block: bündig links, bündig rechts oder mittig (abgerundet).                                                                                                                     |
+| `layoutTextBlock(lines, columns, rows, band, alignment?)` | Textblock aus allen Zeilen: senkrecht mittig; waagrecht mittig, oder links/rechts mit 8 % der Breite Abstand zum Rand (mindestens 4 Spalten, nie näher als 3). Liefert die äußersten Zellen (`Rectangle`). |
 
 ## gate
 
@@ -91,9 +91,13 @@ bekommt das Wegstück `isDot`.
 
 ## RouteBuilder
 
+`buildPath(entrance, exit)` (seit Schritt 12.5): für eine Antwort ohne Stichwort ein gewundener
+Weg durch das ganze Raster vom Eingang zum Ausgang, nur Verbindungswege, mit je zwei Schritten
+außerhalb; `lastGlyphEnd` ist die Ausgangszelle.
+
 | Methode                                                     | Was sie konkret tut                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `build(lines, block, columns, entrance, exit)`              | Sucht Anlauf und Ablauf in ihren Revieren, setzt die Route aus Außenschritten, Anlauf, Text, Ablauf und Außenschritten zusammen und liefert sie samt Index des Endes der letzten Glyphe. Wirft, wenn der Text keine Glyphe enthält.                                                                                                                                                                                                                            |
+| `build(lines, block, columns, entrance, exit, alignment?)`  | Sucht Anlauf und Ablauf in ihren Revieren, setzt die Route aus Außenschritten, Anlauf, Text, Ablauf und Außenschritten zusammen und liefert sie samt Index des Endes der letzten Glyphe. Wirft, wenn der Text keine Glyphe enthält.                                                                                                                                                                                                                            | Die Zeilen stehen im Block nach `alignment`. |
 | `buildPicture(picture, left, top, columns, entrance, exit)` | Wie `build`, aber statt des Texts ein Bild, dessen Feld bei (`left`, `top`) beginnt. Zum Bild gehören `ROWS_BELOW_PICTURE` (3) Zeilen darunter: In der untersten kommt der Lichtpunkt von links bis unter den Anfang des Bilds und steigt senkrecht hinauf (er kommt also von unten an die Spitze bzw. ans Kinn), zeichnet das Bild mit Schriftwegen, geht eine Zelle hinunter und in dieser Zeile rechts hinaus zum Ablauf.                                   |
 | `buildPhoto(frame, laps, columns, entrance, exit)`          | Wie `build`, aber der Lichtpunkt umrundet ein Foto: `frame` ist der Ring von Zellen direkt ums Foto. Er kommt von links in der untersten Zeile des Rahmens an, läuft `laps`-mal herum (hinauf, nach rechts, hinunter, zurück nach links), mit Schriftwegen, und dann unten am Rahmen entlang rechts hinaus. Liefert dazu `lapEnds`: das Wegstück, auf dem jede Runde endet. Das Ende der letzten Runde ist das Ende der letzten „Glyphe“ (für den Haltepunkt). |
 | `assemble` (privat)                                         | Gemeinsamer Teil von `build`, `buildPicture` und `buildPhoto`: legt die Reviere um den Block, sucht Anlauf (vom Eingang zum Tor links) und Ablauf (vom Tor rechts zum Ausgang), in dieser Reihenfolge der Zufallszüge, und setzt Außenschritte, Anlauf, Mitte (`appendMiddle`), Ablauf und Außenschritte zusammen. Wirft, wenn die Mitte keine Glyphe markiert hat.                                                                                            |

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { createDefaultFont } from "../font/font";
 import { Mulberry32 } from "../random/mulberry32";
 import type { Gate } from "../route/gate";
+import { GLYPH_HEIGHT } from "../font/glyph";
+import { layoutTextBlock } from "../route/text-block-layout";
 import { MazePageGenerator } from "./maze-page-generator";
 import type { MazeSettings } from "./maze-page-generator";
 import { placePicture } from "./picture-layout";
@@ -23,7 +25,7 @@ function createGenerator(seed: number): MazePageGenerator {
   return new MazePageGenerator(COLUMNS, ROWS, new Mulberry32(seed), createDefaultFont(), SETTINGS);
 }
 
-function generate(lines: string[], seed = 1, entrance = ENTRANCE) {
+function generate(lines: string[], seed = 1, entrance: Gate = ENTRANCE) {
   return createGenerator(seed).generate(lines, entrance);
 }
 
@@ -35,18 +37,42 @@ describe("MazePageGenerator", () => {
     expect(page.entrance).toEqual(ENTRANCE);
   });
 
-  it("wählt einen Ausgang auf einem Rand des Rasters", () => {
-    for (let seed = 1; seed <= 10; seed++) {
-      const { exit } = generate(["HALLO"], seed);
+  // Laufrichtung „gerade“ (ADR 0007): links herein, rechts hinaus, auf Höhe der Schrift.
+  it("legt den Ausgang rechts auf die Höhe der letzten Grundlinie", () => {
+    const block = layoutTextBlock(["HALLO", "WELT"], COLUMNS, ROWS, SETTINGS.returnBandRows);
 
-      const onBorder =
-        exit.cell.x === 0 ||
-        exit.cell.x === COLUMNS - 1 ||
-        exit.cell.y === 0 ||
-        exit.cell.y === ROWS - 1;
-      expect(onBorder).toBe(true);
-      expect(["right", "top", "bottom"]).toContain(exit.side);
+    for (let seed = 1; seed <= 5; seed++) {
+      expect(generate(["HALLO", "WELT"], seed).exit).toEqual({
+        cell: { x: COLUMNS - 1, y: block.bottom },
+        side: "right",
+      });
     }
+  });
+
+  it("legt ohne vorige Seite den Eingang links auf die Höhe der ersten Grundlinie", () => {
+    const block = layoutTextBlock(["HALLO", "WELT"], COLUMNS, ROWS, SETTINGS.returnBandRows);
+
+    expect(createGenerator(1).generate(["HALLO", "WELT"], undefined).entrance).toEqual({
+      cell: { x: 0, y: block.top + GLYPH_HEIGHT },
+      side: "left",
+    });
+  });
+
+  it("setzt den Text links, mittig oder rechts", () => {
+    const at = (alignment: "left" | "center" | "right") =>
+      layoutTextBlock(["HALLO"], COLUMNS, ROWS, SETTINGS.returnBandRows, alignment).left;
+    const firstLetter = (alignment: "left" | "center" | "right") =>
+      Math.min(
+        ...createGenerator(1)
+          .generate(["HALLO"], ENTRANCE, alignment)
+          .route.filter((step) => step.kind === "letter")
+          .map((step) => step.x),
+      );
+
+    expect(createGenerator(1).generate(["HALLO"], ENTRANCE, "right").alignment).toBe("right");
+    expect(firstLetter("left")).toBe(at("left"));
+    expect(firstLetter("right")).toBe(at("right"));
+    expect(firstLetter("center")).toBe(at("center"));
   });
 
   it("erschließt jede Zelle des Rasters", () => {
@@ -210,6 +236,39 @@ describe("MazePageGenerator", () => {
 
       expect(pauses).toBe(2);
       expect(step.value).toEqual(createGenerator(4).generatePhoto(PLACED, ENTRANCE));
+    });
+  });
+
+  describe("generatePath (Antwort ohne Stichwort)", () => {
+    it("zieht ohne vorige Seite einen Pfad von links nach rechts auf halber Höhe", () => {
+      const page = createGenerator(1).generatePath(undefined);
+      const middle = Math.floor(ROWS / 2);
+
+      expect(page.entrance).toEqual({ cell: { x: 0, y: middle }, side: "left" });
+      expect(page.exit).toEqual({ cell: { x: COLUMNS - 1, y: middle }, side: "right" });
+      expect(page.lines).toEqual([]);
+      expect(page.route.every((step) => step.kind === "connector")).toBe(true);
+    });
+
+    it("bleibt auf der Höhe, auf der der Lichtpunkt hereinkommt", () => {
+      const page = createGenerator(1).generatePath(ENTRANCE);
+
+      expect(page.exit).toEqual({ cell: { x: COLUMNS - 1, y: 20 }, side: "right" });
+    });
+
+    it("geht auf halber Höhe hinaus, wenn er oben oder unten hereinkam (Bild oder Foto davor)", () => {
+      const fromTop: Gate = { cell: { x: 5, y: 0 }, side: "top" };
+
+      expect(createGenerator(1).generatePath(fromTop).exit).toEqual({
+        cell: { x: COLUMNS - 1, y: Math.floor(ROWS / 2) },
+        side: "right",
+      });
+    });
+
+    it("erschließt jede Zelle", () => {
+      expect(createGenerator(1).generatePath(ENTRANCE).grid.touchedCells()).toHaveLength(
+        COLUMNS * ROWS,
+      );
     });
   });
 });

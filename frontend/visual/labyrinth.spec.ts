@@ -2,8 +2,10 @@
 // mit einer Uhr, die nur auf Befehl weiterläuft, und festem Startwert für Flimmern und
 // Bildstörung. So zeigt jedes Bild genau denselben Augenblick der Animation.
 //
-// Die Antworten liefert Playwright aus den Dateien unter `fixtures/` (statt `content.json`).
-// Jede Begrüßung passt auf eine Labyrinth-Seite, außer in `mehrere-seiten`.
+// Die Antworten liefert Playwright aus den Dateien unter `fixtures/` (statt `content.json`). Die
+// Begrüßung baut die Seite selbst (ohne persönlichen Link: „HALLO“). Die Tests fragen „zeige“; die
+// Antwort darauf hat ein Stichwort, das auf eine Labyrinth-Seite passt (höchstens 10 Zeichen, so
+// viele wie am Handy in eine Zeile passen), außer in `mehrere-seiten`.
 
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
@@ -107,27 +109,46 @@ async function advanceUntil(page: Page, phase: Phase): Promise<void> {
   expect(reached, `Abschnitt ${phase} wurde nicht erreicht`).toBe(true);
 }
 
-const SINGLE_PAGE_FIXTURES = ["zeichensatz-1", "zeichensatz-2", "ersatzglyphe"];
-
 /**
- * Bis Schritt 12.5 schreibt der Lichtpunkt noch den ganzen Text, nicht nur das Stichwort. Damit ein
- * Zeichensatz auf eine Seite passt, ist die Bühne in diesen Tests höher als die 15 bzw. 18 Reihen
- * der Seite (am Handy bis zu vier Zeilen zu 10 Zeichen). Mit dem Stichwort entfällt das.
+ * Stellt die Frage „zeige“ und wartet, bis der Lichtpunkt das Stichwort der Antwort zu schreiben
+ * beginnt (nach dem Weiterschieben von der Begrüßung).
  */
-const TALL_STAGE = { stageRows: 34 };
+async function askToShow(page: Page): Promise<void> {
+  await page.fill("#question", "zeige");
+  await page.press("#question", "Enter");
+  // Die Antwort kommt über das Netz. Zwischen zwei Prüfungen bekommt der Browser Luft dafür
+  // (anders als in `advanceUntil`, das in einem Zug läuft); die Uhr läuft dabei in Schritten weiter.
+  await page.waitForFunction(() => {
+    const hooks = (window as unknown as { labyrinthTestHooks: PageHooks }).labyrinthTestHooks;
+    hooks.advance(0.1);
+    return document.getElementById("stage")?.dataset.phase === "scrolling";
+  });
+  await advanceUntil(page, "writing");
+}
+
+/** Der Zeichensatz in Stücken zu höchstens 10 Zeichen, dazu die Ersatzglyphe. */
+const SINGLE_PAGE_FIXTURES = [
+  "zeichensatz-1",
+  "zeichensatz-2",
+  "zeichensatz-3",
+  "zeichensatz-4",
+  "ersatzglyphe",
+];
 
 for (const fixture of SINGLE_PAGE_FIXTURES) {
   test.describe(fixture, () => {
     test("mitten im Schreiben", async ({ page }) => {
-      await open(page, fixture, TALL_STAGE);
+      await open(page, fixture);
+      await askToShow(page);
 
-      await advance(page, 3);
+      await advance(page, 1);
 
       await expect(page).toHaveScreenshot(`${fixture}-schreiben.png`);
     });
 
     test("am Haltepunkt, die Spur bleibt stehen", async ({ page }) => {
-      await open(page, fixture, { ...LASTING_TRAIL, ...TALL_STAGE });
+      await open(page, fixture, LASTING_TRAIL);
+      await askToShow(page);
 
       await advanceUntil(page, "resting");
       await advance(page, 0.8);
@@ -140,14 +161,16 @@ for (const fixture of SINGLE_PAGE_FIXTURES) {
 test.describe("mehrere-seiten", () => {
   test("mitten im Schreiben der ersten Seite", async ({ page }) => {
     await open(page, "mehrere-seiten");
+    await askToShow(page);
 
-    await advance(page, 3);
+    await advance(page, 1);
 
     await expect(page).toHaveScreenshot("mehrere-seiten-schreiben.png");
   });
 
   test("beim Weiterschieben zur zweiten Seite", async ({ page }) => {
     await open(page, "mehrere-seiten");
+    await askToShow(page);
 
     await advanceUntil(page, "scrolling");
     await advance(page, 0.6);
@@ -158,6 +181,7 @@ test.describe("mehrere-seiten", () => {
   test("am Haltepunkt der zweiten Seite, die Spur bleibt stehen", async ({ page }) => {
     test.setTimeout(90_000); // das Verglimmen der ersten Seite sind mehrere hundert Bilder
     await open(page, "mehrere-seiten", LONG_TRAIL);
+    await askToShow(page);
 
     await advanceUntil(page, "resting");
     await advance(page, 0.8);
@@ -197,7 +221,8 @@ test.describe("weniger Bewegung gewünscht", () => {
   test("der Lichtpunkt leuchtet am Haltepunkt ruhig, ohne Flimmern und Bildstörung", async ({
     page,
   }) => {
-    await open(page, "zeichensatz-1", { ...LASTING_TRAIL, ...TALL_STAGE });
+    await open(page, "zeichensatz-1", LASTING_TRAIL);
+    await askToShow(page);
 
     await advanceUntil(page, "resting");
     await advance(page, 0.8);

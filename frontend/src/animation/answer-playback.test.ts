@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { FakePageSource } from "../test-support/fake-page-source";
+import type { AnswerContent } from "../domain/pages/answer-content";
+import { FakePageSource, written } from "../test-support/fake-page-source";
 import { AnswerPlayback } from "./answer-playback";
 import type { PlaybackSettings } from "./playback-settings";
 
@@ -29,10 +30,15 @@ async function settle(): Promise<void> {
 }
 
 /** Ein Versprechen, das der Test selbst einlöst - so lässt sich bestimmen, wann die Antwort "kommt". */
-function deferredAnswer(): { promise: Promise<string>; resolve: (text: string) => void } {
-  let resolve: (text: string) => void = () => undefined;
-  const promise = new Promise<string>((resolver) => {
-    resolve = resolver;
+function deferredAnswer(): {
+  promise: Promise<AnswerContent>;
+  resolve: (keyword: string) => void;
+} {
+  let resolve: (keyword: string) => void = () => undefined;
+  const promise = new Promise<AnswerContent>((resolver) => {
+    resolve = (keyword) => {
+      resolver(written(keyword));
+    };
   });
   return { promise, resolve };
 }
@@ -40,7 +46,7 @@ function deferredAnswer(): { promise: Promise<string>; resolve: (text: string) =
 async function playbackWithGreeting(text = "A", settings = SETTINGS) {
   const source = new FakePageSource();
   const playback = new AnswerPlayback(source, settings);
-  playback.request(Promise.resolve(text));
+  playback.request(Promise.resolve(written(text)));
   await settle();
   return { source, playback };
 }
@@ -92,7 +98,7 @@ describe("AnswerPlayback", () => {
       const source = new FakePageSource();
       const playback = new AnswerPlayback(source, SETTINGS);
 
-      playback.request(Promise.resolve({ picture: "heart", text: "<3" }));
+      playback.request(Promise.resolve({ picture: "heart", keyword: "<3" }));
       await settle();
 
       expect(source.requests).toEqual([
@@ -181,7 +187,7 @@ describe("AnswerPlayback", () => {
       const { playback, source } = await restingPlayback();
       const firstPage = playback.currentPage;
 
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       expect(playback.phase).toBe("writing");
       expect(source.requests[1]).toEqual({ text: "B", seed: 101, exitBefore: firstPage?.exit });
@@ -224,7 +230,7 @@ describe("AnswerPlayback", () => {
 
     it("läuft nach der Frage nicht schneller", async () => {
       const { playback } = await restingPlayback();
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
 
       playback.advance(STEP);
@@ -236,7 +242,7 @@ describe("AnswerPlayback", () => {
       const { playback } = await restingPlayback();
       expect(playback.answersWritten).toBe(1);
 
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       expect(playback.answersWritten).toBe(1);
       await settle();
 
@@ -246,13 +252,13 @@ describe("AnswerPlayback", () => {
     it("zählt den Startwert bei jeder Antwort um eins hoch", async () => {
       const { playback, source } = await restingPlayback();
 
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(RESTING_TO_END);
       playback.advance(TRAIL_LIFETIME);
       playback.advance(SETTINGS.scrollSeconds);
       playback.advance(TO_RESTING);
-      playback.request(Promise.resolve("C"));
+      playback.request(Promise.resolve(written("C")));
       await settle();
 
       expect(source.requests.map(({ seed }) => seed)).toEqual([100, 101, 102]);
@@ -284,7 +290,7 @@ describe("AnswerPlayback", () => {
       source.holdResults();
       const playback = new AnswerPlayback(source, SETTINGS);
 
-      playback.request(Promise.resolve("A"));
+      playback.request(Promise.resolve(written("A")));
       await settle();
       expect(source.requests).toHaveLength(1);
       expect(playback.phase).toBe("waiting");
@@ -300,7 +306,7 @@ describe("AnswerPlayback", () => {
       const source = new FakePageSource();
       source.holdResults();
       const playback = new AnswerPlayback(source, SETTINGS);
-      playback.request(Promise.resolve("A"));
+      playback.request(Promise.resolve(written("A")));
       await settle();
       expect(playback.answersWritten).toBe(0);
 
@@ -314,7 +320,7 @@ describe("AnswerPlayback", () => {
       const { playback, source } = await restingPlayback();
       source.holdResults();
 
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(5);
       expect(playback.phase).toBe("resting");
@@ -328,9 +334,9 @@ describe("AnswerPlayback", () => {
       const { playback, source } = await restingPlayback();
       source.holdResults();
 
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
-      playback.request(Promise.resolve("CC"));
+      playback.request(Promise.resolve(written("CC")));
       await settle();
       source.releaseResults();
       await settle();
@@ -399,7 +405,7 @@ describe("AnswerPlayback", () => {
       const secondPageOfOldAnswer = playback.nextPage;
       expect(secondPageOfOldAnswer).toBeDefined();
 
-      playback.request(Promise.resolve("C"));
+      playback.request(Promise.resolve(written("C")));
       await settle();
 
       // Die zweite Seite von "AB" ist weg: Die neue Antwort schließt an die erste an.
@@ -423,7 +429,7 @@ describe("AnswerPlayback", () => {
       const { playback } = await playbackWithGreeting();
       playback.advance(2 * STEP);
 
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(5 * RUSH_STEP);
       expect(playback.phase).toBe("writing");
@@ -438,7 +444,7 @@ describe("AnswerPlayback", () => {
 
     it("läuft nur auf der alten Seite schnell, nicht auf den Seiten der neuen Antwort", async () => {
       const { playback } = await playbackWithGreeting();
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(11 * RUSH_STEP);
       playback.advance(RUSH_STEP);
@@ -457,7 +463,7 @@ describe("AnswerPlayback", () => {
       expect(playback.phase).toBe("scrolling");
       const secondPage = playback.nextPage;
 
-      playback.request(Promise.resolve("C"));
+      playback.request(Promise.resolve(written("C")));
       await settle();
       expect(source.requests[1]?.exitBefore).toBe(secondPage?.exit);
       playback.advance(SETTINGS.scrollSeconds);
@@ -470,7 +476,7 @@ describe("AnswerPlayback", () => {
 
     it("wartet ohne Lichtpunkt, wenn die Spur schon verglimmt und noch keine Antwort da ist", async () => {
       const { playback } = await restingPlayback();
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(RESTING_TO_END);
       expect(playback.phase).toBe("fading");
@@ -499,7 +505,7 @@ describe("AnswerPlayback", () => {
 
     it("steigt beim Weiterschieben sanft von 0 auf 1", async () => {
       const { playback } = await restingPlayback();
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(RESTING_TO_END);
       playback.advance(TRAIL_LIFETIME);
@@ -518,7 +524,7 @@ describe("AnswerPlayback", () => {
       const settings = { ...SETTINGS, scrollSeconds: 0 };
       const { playback } = await playbackWithGreeting("A", settings);
       playback.advance(TO_RESTING);
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(RESTING_TO_END);
       playback.advance(TRAIL_LIFETIME);
@@ -545,7 +551,7 @@ describe("AnswerPlayback", () => {
 
     it("vergisst die Spur beim Wechsel auf die nächste Seite", async () => {
       const { playback } = await restingPlayback();
-      playback.request(Promise.resolve("B"));
+      playback.request(Promise.resolve(written("B")));
       await settle();
       playback.advance(RESTING_TO_END);
       playback.advance(TRAIL_LIFETIME);

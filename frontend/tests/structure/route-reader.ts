@@ -65,20 +65,45 @@ export function readGlyphs(page: MazePage, returnBandRows: number): string[][] {
   return lines;
 }
 
+/** Breite einer Zeile in Zellen: Felder samt je einer Zelle Lücke dazwischen. */
+function lineWidthOfFields(line: string): number {
+  return Array.from(line)
+    .map(widthOfField)
+    .reduce((sum, width) => sum + width + 1, -1);
+}
+
+/**
+ * Wo der Textblock waagrecht beginnt (ADR 0007): mittig, oder links bzw. rechts mit 8 % der Breite
+ * Abstand zum Rand, mindestens 4 Spalten, aber nie näher als 3 Spalten.
+ */
+function blockLeftOf(page: MazePage, blockWidth: number): number {
+  const columns = page.grid.columns;
+  if (page.alignment === undefined || page.alignment === "center") {
+    return Math.floor((columns - blockWidth) / 2);
+  }
+  const edge = Math.max(4, Math.round(columns * 0.08));
+  const wish = page.alignment === "left" ? edge : columns - edge - blockWidth;
+  return Math.min(Math.max(wish, 3), columns - 3 - blockWidth);
+}
+
 /**
  * Die Felder aller Zeichen einer Seite (3 x 5 Zellen, die Ersatzglyphe 7 x 5), Zeile für Zeile.
- * Der Textblock steht mittig im Raster, jede Zeile mittig im Textblock.
+ * Der Textblock steht senkrecht mittig, waagrecht nach der Lage der Seite; jede Zeile steht im
+ * Block links- oder rechtsbündig oder mittig, wie der Block.
  */
 export function glyphFieldsOf(page: MazePage, returnBandRows: number): Box[][] {
   const lineAdvance = GLYPH_HEIGHT + BASELINE_HEIGHT + returnBandRows;
   const blockHeight = page.lines.length * lineAdvance - returnBandRows;
   const blockTop = Math.floor((page.grid.rows - blockHeight) / 2);
+  const blockWidth = Math.max(...page.lines.map(lineWidthOfFields));
+  const blockLeft = blockLeftOf(page, blockWidth);
 
   return page.lines.map((line, lineIndex) => {
-    const characters = Array.from(line);
-    const widths = characters.map(widthOfField);
-    const lineWidth = widths.reduce((sum, width) => sum + width + 1, -1);
-    let left = Math.floor((page.grid.columns - lineWidth) / 2);
+    const widths = Array.from(line).map(widthOfField);
+    const free = blockWidth - lineWidthOfFields(line);
+    let left = blockLeft;
+    if (page.alignment === "right") left += free;
+    else if (page.alignment !== "left") left += Math.floor(free / 2);
     return widths.map((width) => {
       const field = { left, top: blockTop + lineIndex * lineAdvance, width };
       left += width + 1;

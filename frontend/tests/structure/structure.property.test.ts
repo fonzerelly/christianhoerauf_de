@@ -11,6 +11,12 @@ import { TextNormalizer } from "../../src/domain/text/text-normalizer";
 import { checkPageSequence } from "./route-checks";
 import { expectPageIsSound, SETTINGS } from "./soundness";
 
+/**
+ * Seit Schritt 12.5 schreibt der Lichtpunkt nur das Stichwort, eine Zeile je Seite. Diese Tests
+ * prüfen die Regeln einer Seite mit Text; sie erlauben deshalb so viele Zeilen, wie passen.
+ */
+const MANY_LINES = 99;
+
 const answer = fc
   .array(
     fc.constantFrom(...Array.from("abcdefghijklmnopqrstuvwxyzäöüßé0123456789-.?!,:;    ||€日")),
@@ -19,7 +25,9 @@ const answer = fc
       maxLength: 120,
     },
   )
-  .map((characters) => characters.join(""));
+  .map((characters) => characters.join(""))
+  // Nur Leerraum wäre eine Antwort ohne Stichwort: Dafür zieht der Lichtpunkt nur einen Pfad.
+  .filter((text) => text.trim() !== "");
 
 // Mindestens 13 Spalten: Erst dann passen zwei Zeichenbreiten in eine Zeile, und die breite
 // Ersatzglyphe (7 Zellen) hat Platz. In einem schmaleren Raster läuft sie über den Rand hinaus.
@@ -41,7 +49,10 @@ describe("Struktur der Labyrinth-Seiten (breit gestreut)", () => {
           maze: SETTINGS,
         });
 
-        const { pages, restingStepIndex } = paginator.paginate(text, seed);
+        const { pages, restingStepIndex } = paginator.paginate(
+          { keyword: text, maxLinesPerPage: MANY_LINES },
+          seed,
+        );
 
         pages.forEach(expectPageIsSound);
         expect(checkPageSequence(pages)).toEqual([]);

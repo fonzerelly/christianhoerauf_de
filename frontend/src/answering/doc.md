@@ -16,16 +16,20 @@ Woher die Antworten kommen. Aus der statischen Datei `public/content.json` oder,
 
 ## AnswerSource
 
-`answer(question)` liefert die Antwort auf die Frage. Eine **leere Frage liefert die Begrüßung**. Das
+`answer(question)` liefert die Antwort auf die Frage. Eine leere Frage liefert die Begrüßung aus
+`content.json`; seit Schritt 12.5 fragt die Seite so aber nicht mehr (die Begrüßung baut `main.ts`
+aus dem persönlichen Link). Das
 Versprechen wird immer eingelöst: Kann die Quelle nicht antworten, liefert sie eine Antwort, die das sagt.
 Was aus einem `gimmick` wird, entscheidet `contentOf`.
 
 ## contentOf
 
-`contentOf(answer)` macht aus einer `Answer` den Inhalt für die Bühne (`AnswerContent`): Gimmick
+`contentOf(answer, maxLinesPerPage = 1)` macht aus einer `Answer` den Inhalt für die Bühne
+(`AnswerContent`): das Stichwort (ohne Stichwort nur einen Pfad), höchstens `maxLinesPerPage`
+Zeilen je Seite (die Begrüßung 2). Gimmick
 `heart` → das Herz, `face_with_hand_over_mouth` → der Smiley, `photo` → das Foto von Chris,
-jeweils samt Text. Ohne Gimmick oder mit einem unbekannten (auch `toString`, die Tabellen sind
-`Map`s) bleibt es beim Text.
+jeweils samt Stichwort (falls es nicht passt). Ohne Gimmick oder mit einem unbekannten (auch
+`toString`, die Tabellen sind `Map`s) bleibt es beim Stichwort.
 
 ## parseContent
 

@@ -13,7 +13,9 @@ import type { AnswerSource } from "./answering/answer-source";
 import { HttpAnswerSource } from "./answering/http-answer-source";
 import { StaticContentAnswerSource } from "./answering/static-content-answer-source";
 import { TUNING } from "./config/tuning";
-import { createDefaultFont } from "./domain/font/font";
+import { createDefaultFont, REPLACEMENT_CHARACTER } from "./domain/font/font";
+import { greetingKeyword, greetingParagraphs } from "./domain/greeting/greeting";
+import { readPersonalLink } from "./domain/greeting/personal-link";
 import { AnswerPaginator } from "./domain/pages/answer-paginator";
 import { Mulberry32 } from "./domain/random/mulberry32";
 import { TextNormalizer } from "./domain/text/text-normalizer";
@@ -221,5 +223,13 @@ canvas.addEventListener("contextrestored", () => {
   stage.refresh();
 });
 
-conversation.start();
+// Die Begrüßung aus dem persönlichen Link hinter „#“ (Schritt 12.2); der Name bleibt im Browser.
+const personalLink = readPersonalLink(window.location.hash);
+conversation.start({
+  text: greetingParagraphs(personalLink).join(" "),
+  keyword: greetingKeyword(personalLink, {
+    withHello: profile === "desktop",
+    canWrite: (text) => !normalizer.normalize(text).includes(REPLACEMENT_CHARACTER),
+  }),
+});
 loop.start();

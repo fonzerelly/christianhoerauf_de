@@ -50,50 +50,52 @@ function setup() {
 
 describe("Conversation", () => {
   describe("start", () => {
-    it("holt die Begrüßung mit einer leeren Frage und zeigt ihren Text", async () => {
+    it("schreibt das Stichwort der Begrüßung mit bis zu zwei Zeilen je Seite, ohne die Quelle zu fragen", async () => {
       const { conversation, source, shown, spoken } = setup();
 
-      conversation.start();
-      source.respond(0, { text: "Willkommen" });
+      conversation.start({ text: "Hallo Frau Muster, schön …", keyword: "Hallo\nFrau Muster" });
       await settle();
 
-      expect(source.questions).toEqual([""]);
-      await expect(shown[0]).resolves.toBe("Willkommen");
-      expect(spoken).toEqual(["Willkommen"]);
+      expect(source.questions).toEqual([]);
+      await expect(shown[0]).resolves.toEqual({
+        keyword: "Hallo\nFrau Muster",
+        maxLinesPerPage: 2,
+      });
+      expect(spoken).toEqual(["Hallo Frau Muster, schön …"]);
     });
   });
 
   describe("ask", () => {
-    it("schickt die Frage an die Quelle und zeigt den Text der Antwort", async () => {
+    it("schickt die Frage an die Quelle, schreibt das Stichwort und liest den Text vor", async () => {
       const { conversation, source, shown, spoken } = setup();
 
       conversation.ask("Wer bist du?");
-      source.respond(0, { text: "Christian" });
+      source.respond(0, { text: "Christian Hörauf.", keyword: "CHRIS" });
       await settle();
 
       expect(source.questions).toEqual(["Wer bist du?"]);
-      await expect(shown[0]).resolves.toBe("Christian");
-      expect(spoken).toEqual(["Christian"]);
+      await expect(shown[0]).resolves.toEqual({ keyword: "CHRIS", maxLinesPerPage: 1 });
+      expect(spoken).toEqual(["Christian Hörauf."]);
     });
 
-    it("zeigt nur den Text und ignoriert ein Gimmick, das das Frontend noch nicht darstellt", async () => {
+    it("ignoriert ein Gimmick, das das Frontend noch nicht darstellt", async () => {
       const { conversation, source, shown } = setup();
 
       conversation.ask("Wetter?");
       source.respond(0, { text: "14 Grad", gimmick: { type: "weather", temperature: 14 } });
       await settle();
 
-      await expect(shown[0]).resolves.toBe("14 Grad");
+      await expect(shown[0]).resolves.toEqual({ maxLinesPerPage: 1 });
     });
 
     it("zeichnet zum Herz-Gimmick ein Herz und liest den Text vor", async () => {
       const { conversation, source, shown, spoken } = setup();
 
       conversation.ask("Ich liebe dich, Bot");
-      source.respond(0, { text: "<3", gimmick: { type: "heart" } });
+      source.respond(0, { text: "<3", keyword: "HERZ", gimmick: { type: "heart" } });
       await settle();
 
-      await expect(shown[0]).resolves.toEqual({ picture: "heart", text: "<3" });
+      await expect(shown[0]).resolves.toEqual({ picture: "heart", keyword: "HERZ" });
       expect(spoken).toEqual(["<3"]);
     });
 

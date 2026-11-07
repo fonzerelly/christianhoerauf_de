@@ -10,6 +10,7 @@ import { LineChangePlanner } from "./line-change-planner";
 import type { Picture } from "../picture/picture";
 import { ROWS_BELOW_PICTURE, RouteBuilder } from "./route-builder";
 import { layoutTextBlock } from "./text-block-layout";
+import type { TextAlignment } from "./text-block-layout";
 
 const COLUMNS = 34;
 const ROWS = 60;
@@ -28,9 +29,22 @@ function createBuilder(seed: number): RouteBuilder {
   );
 }
 
-function build(lines: string[], seed = 1) {
-  const block = layoutTextBlock(lines, COLUMNS, ROWS, SETTINGS.returnBandRows);
-  return createBuilder(seed).build(lines, block, COLUMNS, ENTRANCE, EXIT);
+function build(lines: string[], seed = 1, alignment: TextAlignment = "center") {
+  const block = layoutTextBlock(lines, COLUMNS, ROWS, SETTINGS.returnBandRows, alignment);
+  return createBuilder(seed).build(lines, block, COLUMNS, ENTRANCE, EXIT, alignment);
+}
+
+/** Die Spalte, in der der Lichtpunkt eine Zeile zu schreiben beginnt: links unten am ersten Zeichen. */
+function firstLetterColumns(lines: string[], alignment: TextAlignment): number[] {
+  const { steps } = build(lines, 1, alignment);
+  const block = layoutTextBlock(lines, COLUMNS, ROWS, SETTINGS.returnBandRows, alignment);
+  return lines.map((_line, index) => {
+    const glyphRows = { top: block.top + index * 8, bottom: block.top + index * 8 + 4 };
+    const letters = steps.filter(
+      (step) => step.kind === "letter" && step.y >= glyphRows.top && step.y <= glyphRows.bottom,
+    );
+    return Math.min(...letters.map((step) => step.x));
+  });
 }
 
 /** Ein kleines Bild: ein Quadrat aus 3 × 3 Zellen, vom unteren Rand in der Mitte aus gezeichnet. */
@@ -56,6 +70,15 @@ function buildSquare(seed = 1) {
 const key = ({ x, y }: { x: number; y: number }): string => `${String(x)},${String(y)}`;
 
 describe("RouteBuilder", () => {
+  it("setzt die Zeilen bündig in den Block: links, rechts oder mittig (ADR 0007)", () => {
+    // Block für HALLO/WELT ist 19 Spalten breit; WELT ist 15 breit
+    const left = layoutTextBlock(["HALLO", "WELT"], COLUMNS, ROWS, 2, "left").left;
+    const right = layoutTextBlock(["HALLO", "WELT"], COLUMNS, ROWS, 2, "right").left;
+
+    expect(firstLetterColumns(["HALLO", "WELT"], "left")).toEqual([left, left]);
+    expect(firstLetterColumns(["HALLO", "WELT"], "right")).toEqual([right, right + 4]);
+  });
+
   it("beginnt zwei Zellen vor dem Eingang und endet zwei Zellen hinter dem Ausgang", () => {
     const { steps } = build(["L"]);
 
@@ -258,6 +281,26 @@ describe("RouteBuilder", () => {
         "17,25",
       ]);
       expect(steps[lastGlyphEnd + 1]?.kind).toBe("connector");
+    });
+  });
+
+  describe("buildPath (Antwort ohne Stichwort)", () => {
+    it("läuft in Windungen vom Eingang zum Ausgang, nur auf Verbindungswegen", () => {
+      const { steps } = createBuilder(1).buildPath(ENTRANCE, EXIT);
+
+      expect(steps.slice(0, 3).map(key)).toEqual(["-2,30", "-1,30", "0,30"]);
+      expect(steps.slice(-3).map(key)).toEqual(["33,30", "34,30", "35,30"]);
+      expect(steps.every((step) => step.kind === "connector")).toBe(true);
+      steps.slice(1).forEach((step, index) => {
+        const before = steps[index] ?? step;
+        expect(Math.abs(step.x - before.x) + Math.abs(step.y - before.y)).toBe(1);
+      });
+    });
+
+    it("hat sein Ende am Ausgang, danach geht der Lichtpunkt hinaus", () => {
+      const { steps, lastGlyphEnd } = createBuilder(1).buildPath(ENTRANCE, EXIT);
+
+      expect(key(steps[lastGlyphEnd] ?? { x: -1, y: -1 })).toBe("33,30");
     });
   });
 });

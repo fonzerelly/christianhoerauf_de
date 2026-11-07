@@ -140,7 +140,7 @@ function mazePages(variant: Variant): string[] {
     (seed) => new Mulberry32(seed),
     { columns: 34, rows: 60, restingDistance: 2, maze: SETTINGS },
   );
-  const { pages } = paginator.paginate(SENTENCE, 1);
+  const { pages } = paginator.paginate({ keyword: SENTENCE, maxLinesPerPage: 99 }, 1);
   return pages.map((page, index) => {
     const problems = checkRoute(page, SETTINGS.returnBandRows);
     if (problems.length > 0) {

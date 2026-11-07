@@ -3,7 +3,13 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { FakePageSource, RESTING_STEP, ROUTE_LENGTH } from "../test-support/fake-page-source";
+import type { AnswerContent } from "../domain/pages/answer-content";
+import {
+  FakePageSource,
+  RESTING_STEP,
+  ROUTE_LENGTH,
+  written,
+} from "../test-support/fake-page-source";
 import { AnswerPlayback } from "./answer-playback";
 import { BRIGHTNESS_LEVELS } from "./trail";
 
@@ -48,14 +54,14 @@ describe("AnswerPlayback (breit gestreut)", () => {
           newestQuestion = text;
           if (arrivesLater) {
             playback.request(
-              new Promise<string>((resolve) => {
+              new Promise<AnswerContent>((resolve) => {
                 arrivals.push(() => {
-                  resolve(text);
+                  resolve(written(text));
                 });
               }),
             );
           } else {
-            playback.request(Promise.resolve(text));
+            playback.request(Promise.resolve(written(text)));
           }
         }
 

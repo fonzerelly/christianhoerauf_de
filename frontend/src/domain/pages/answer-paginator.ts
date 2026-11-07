@@ -6,6 +6,8 @@ import type { Steps } from "../steps";
 import { BorderCellPicker } from "../route/border-cell-picker";
 import { entranceOppositeOf } from "../route/gate";
 import type { Gate } from "../route/gate";
+import { pickOne } from "../random/random-choices";
+import type { TextAlignment } from "../route/text-block-layout";
 import { LineWrapper } from "../text/line-wrapper";
 import type { TextNormalizer } from "../text/text-normalizer";
 import { MazePageGenerator } from "./maze-page-generator";
@@ -90,10 +92,12 @@ export class AnswerPaginator {
   ): Steps<PaginatedAnswer> {
     const { columns, rows, maze } = this.settings;
     const random = this.createRandom(seed);
+    // Die Lage des Worts zieht als Erstes: links, mittig oder rechts, für alle Seiten der Antwort.
+    const alignment = pickOne<TextAlignment>(["left", "center", "right"], random);
     const borderCellPicker = new BorderCellPicker(random);
     const generator = new MazePageGenerator(columns, rows, random, this.font, maze);
 
-    if (typeof answer !== "string" && "picture" in answer) {
+    if ("picture" in answer) {
       const placed = placePicture(answer.picture, columns, rows);
       if (placed !== undefined) {
         const entrance = previousExitOrFirst(exitBefore, borderCellPicker, columns, rows);
@@ -102,7 +106,7 @@ export class AnswerPaginator {
       }
     }
 
-    if (typeof answer !== "string" && "photo" in answer) {
+    if ("photo" in answer) {
       const placed = placePhoto(answer.photo, columns, rows, random);
       if (placed !== undefined) {
         const entrance = previousExitOrFirst(exitBefore, borderCellPicker, columns, rows);
@@ -111,20 +115,33 @@ export class AnswerPaginator {
       }
     }
 
-    const text = typeof answer === "string" ? answer : answer.text;
+    const firstEntrance =
+      exitBefore === undefined ? undefined : entranceOppositeOf(exitBefore, columns, rows);
+    const keyword = answer.keyword?.trim() ?? "";
+    if (keyword === "") {
+      const page = yield* generator.generatePathInSteps(firstEntrance);
+      return { pages: [page], restingStepIndex: this.restingStepOf(page) };
+    }
+
     const capacity = textCapacityOf(columns, rows, maze.returnBandRows);
-    const lines = new LineWrapper(capacity.charsPerLine).wrap(this.normalizer.normalize(text));
+    const wrapper = new LineWrapper(capacity.charsPerLine);
+    // Jeder Teil zwischen zwei „\n“ wird für sich aufbereitet und umgebrochen (erzwungener Umbruch).
+    const lines = keyword
+      .split("\n")
+      .flatMap((part) => wrapper.wrap(this.normalizer.normalize(part)));
+    const maxLines = "maxLinesPerPage" in answer ? answer.maxLinesPerPage : 1;
+    const linesPerPage = Math.max(1, Math.min(capacity.linesPerPage, maxLines));
 
     const pages: MazePage[] = [];
-    let previousExit = exitBefore;
-    for (let first = 0; first < lines.length; first += capacity.linesPerPage) {
-      const entrance = previousExitOrFirst(previousExit, borderCellPicker, columns, rows);
+    let entrance = firstEntrance;
+    for (let first = 0; first < lines.length; first += linesPerPage) {
       const page = yield* generator.generateInSteps(
-        lines.slice(first, first + capacity.linesPerPage),
+        lines.slice(first, first + linesPerPage),
         entrance,
+        alignment,
       );
       pages.push(page);
-      previousExit = page.exit;
+      entrance = entranceOppositeOf(page.exit, columns, rows);
     }
 
     return { pages, restingStepIndex: this.restingStepOf(lastOf(pages)) };

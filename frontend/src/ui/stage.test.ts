@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { Phase, Playback } from "../animation/playback-view";
 import { lastOf } from "../domain/lists";
 import type { Steps } from "../domain/steps";
+import type { AnswerContent } from "../domain/pages/answer-content";
 import type { MazePage } from "../domain/pages/maze-page-generator";
 import type { Renderer } from "../rendering/renderer";
 import type { StageLayout } from "../rendering/stage-layout";
 import { playbackView } from "../test-support/fake-playback-view";
 import { ManualTaskQueue } from "../test-support/manual-task-queue";
+import { written } from "../test-support/fake-page-source";
 import { mazePage } from "../test-support/maze-page-builder";
 import { Stage } from "./stage";
 
@@ -23,7 +25,7 @@ const LAYOUT: StageLayout = {
 
 /** Ein Ablauf, der Aufrufe festhält und dessen Zustand der Test von Hand setzt. */
 class FakePlayback implements Playback {
-  public readonly requests: Promise<string>[] = [];
+  public readonly requests: Promise<AnswerContent>[] = [];
   public readonly advances: number[] = [];
   public phase: Phase = "waiting";
   public isAnimating = false;
@@ -37,7 +39,7 @@ class FakePlayback implements Playback {
     public readonly firstSeed: number,
   ) {}
 
-  public request(reply: Promise<string>): void {
+  public request(reply: Promise<AnswerContent>): void {
     this.requests.push(reply);
   }
 
@@ -306,7 +308,7 @@ describe("Stage", () => {
   describe("show", () => {
     it("gibt die Frage mit dem Versprechen der Antwort an den Ablauf weiter", () => {
       const { stage, current } = setup();
-      const reply = Promise.resolve("HALLO");
+      const reply = Promise.resolve(written("HALLO"));
 
       stage.show(reply);
 
@@ -359,7 +361,7 @@ describe("Stage", () => {
 
     it("schreibt die Antwort, auf die noch gewartet wird, im neuen Ablauf, mit der Nummer, die sie bekommen hätte", () => {
       const { stage, playbacks, current, resizeTo } = setup(100);
-      const pending = new Promise<string>(() => undefined);
+      const pending = new Promise<AnswerContent>(() => undefined);
       stage.show(pending);
       current().answersWritten = 3; // Begrüßung + zwei Antworten sind angekommen
       resizeTo(WIDER);
@@ -372,7 +374,7 @@ describe("Stage", () => {
 
     it("schreibt die letzte Antwort neu, mit demselben Startwert wie zuvor", async () => {
       const { stage, playbacks, current, resizeTo } = setup(100);
-      stage.show(Promise.resolve("LETZTE ANTWORT"));
+      stage.show(Promise.resolve(written("LETZTE ANTWORT")));
       await settle();
       current().answersWritten = 3;
       resizeTo(WIDER);
@@ -380,12 +382,12 @@ describe("Stage", () => {
       stage.rebuild();
 
       expect(playbacks[1]?.firstSeed).toBe(102);
-      await expect(playbacks[1]?.requests[0]).resolves.toBe("LETZTE ANTWORT");
+      await expect(playbacks[1]?.requests[0]).resolves.toEqual(written("LETZTE ANTWORT"));
     });
 
     it("beginnt wieder beim Grundstartwert, wenn noch keine Antwort angekommen ist", async () => {
       const { stage, playbacks, resizeTo } = setup(100);
-      stage.show(Promise.resolve("BEGRÜSSUNG"));
+      stage.show(Promise.resolve(written("BEGRÜSSUNG")));
       await settle();
       resizeTo(WIDER);
 
@@ -405,8 +407,8 @@ describe("Stage", () => {
 
     it("kennt nach einer überholten Frage nur die neueste", async () => {
       const { stage, playbacks, resizeTo } = setup(100);
-      const older = Promise.resolve("ÄLTER");
-      const newer = Promise.resolve("NEUER");
+      const older = Promise.resolve(written("ÄLTER"));
+      const newer = Promise.resolve(written("NEUER"));
       stage.show(older);
       stage.show(newer);
       await settle();
@@ -414,7 +416,7 @@ describe("Stage", () => {
 
       stage.rebuild();
 
-      await expect(playbacks[1]?.requests[0]).resolves.toBe("NEUER");
+      await expect(playbacks[1]?.requests[0]).resolves.toEqual(written("NEUER"));
     });
   });
 });

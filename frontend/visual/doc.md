@@ -40,7 +40,7 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 
 | Test                            | Was das Bild zeigt                                                                                               |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `<Zeichensatz>-schreiben`       | Drei Sekunden nach Beginn: Lichtpunkt mitten im Text, die Leuchtspur dahinter.                                   |
+| `<Zeichensatz>-schreiben`       | Eine Sekunde, nachdem das Stichwort begonnen hat: Lichtpunkt mitten im Wort, die Leuchtspur dahinter.            |
 | `<Zeichensatz>-haltepunkt`      | Der Lichtpunkt pulsiert am Haltepunkt, die Spur ist nicht verglommen (Test-Abstimmung): der ganze Text steht da. |
 | `mehrere-seiten-weiterschieben` | Mitten im Weiterschieben zur zweiten Seite.                                                                      |
 | `mehrere-seiten-haltepunkt`     | Haltepunkt der zweiten Seite.                                                                                    |
@@ -48,5 +48,10 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 | `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                       |
 | `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                |
 
-Seit Schritt 12.3: Bühne fester Höhe, kein Ton-Knopf; die Zeichensatz-Tests nehmen bis 12.5 eine höhere Bühne (34 Reihen), weil der Punkt noch den ganzen Text schreibt. Zeichensätze: `zeichensatz-1` (A–Z), `zeichensatz-2` (ÄÖÜ, 0–9, `-.?!`), `ersatzglyphe` (`A € B €€ C`).
-Jede Begrüßung ist so geschnitten, dass sie auf Handy und Desktop auf eine Labyrinth-Seite passt.
+Seit Schritt 12.5 schreibt der Lichtpunkt nur das Stichwort. Die Begrüßung baut die Seite selbst
+(ohne persönlichen Link „HALLO“); jeder Test fragt deshalb „zeige“ (`askToShow`) und fotografiert
+das Stichwort der Antwort. Die Stichwörter haben höchstens 10 Zeichen, damit sie auch am Handy auf
+eine Seite passen: `zeichensatz-1` (A–J), `zeichensatz-2` (K–T), `zeichensatz-3` (U–Z, ÄÖÜ),
+`zeichensatz-4` (0–9), `ersatzglyphe` (`A€B-.?!`); `mehrere-seiten` hat ein langes Stichwort.
+`askToShow` wartet mit `waitForFunction` auf das Weiterschieben, weil die Antwort über das Netz
+kommt und `advanceUntil` dem Browser dafür keine Luft lässt.

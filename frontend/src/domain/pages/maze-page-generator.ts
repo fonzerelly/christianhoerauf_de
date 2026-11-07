@@ -1,4 +1,5 @@
 import type { Font } from "../font/font";
+import { GLYPH_HEIGHT } from "../font/glyph";
 import { itemAt } from "../lists";
 import { MazeGrower } from "../maze/maze-grower";
 import { PathFinder } from "../maze/path-finder";
@@ -15,6 +16,7 @@ import { RouteBuilder } from "../route/route-builder";
 import type { RouteSettings } from "../route/route-builder";
 import type { RouteStep } from "../route/route-step";
 import { layoutTextBlock } from "../route/text-block-layout";
+import type { TextAlignment } from "../route/text-block-layout";
 import { WallBreaker } from "../route/wall-breaker";
 import type { PlacedPhoto } from "./photo-layout";
 import type { PlacedPicture } from "./picture-layout";
@@ -45,6 +47,8 @@ export interface MazePage {
   readonly lastGlyphEnd: number;
   /** Das Foto, das auf der Seite liegt; die meisten Seiten haben keins. */
   readonly photo?: PagePhoto;
+  /** Wo der Text waagrecht steht (Seiten mit Text). */
+  readonly alignment?: TextAlignment;
 }
 
 /**
@@ -88,8 +92,12 @@ export class MazePageGenerator {
    * unterbrechen, den Rest wachsen lassen. Die Zeilen müssen mindestens ein darstellbares Zeichen
    * enthalten.
    */
-  public generate(lines: readonly string[], entrance: Gate): MazePage {
-    return runToEnd(this.generateInSteps(lines, entrance));
+  public generate(
+    lines: readonly string[],
+    entrance: Gate | undefined,
+    alignment: TextAlignment = "center",
+  ): MazePage {
+    return runToEnd(this.generateInSteps(lines, entrance, alignment));
   }
 
   /**
@@ -97,15 +105,32 @@ export class MazePageGenerator {
    * kann: erst Ausgang und Route, dann Freibrechen und Wände unterbrechen, zuletzt das Wachsen.
    * Die Reihenfolge der Zufallszüge ist dieselbe wie bei `generate`.
    */
-  public *generateInSteps(lines: readonly string[], entrance: Gate): Steps<MazePage> {
-    const exit = this.borderCellPicker.pickExit(entrance, this.columns, this.rows);
-    const block = layoutTextBlock(lines, this.columns, this.rows, this.settings.returnBandRows);
+  public *generateInSteps(
+    lines: readonly string[],
+    givenEntrance: Gate | undefined,
+    alignment: TextAlignment = "center",
+  ): Steps<MazePage> {
+    const block = layoutTextBlock(
+      lines,
+      this.columns,
+      this.rows,
+      this.settings.returnBandRows,
+      alignment,
+    );
+    // Laufrichtung „gerade“ (ADR 0007): links herein auf Höhe der ersten Grundlinie, rechts
+    // hinaus auf Höhe der letzten.
+    const entrance: Gate = givenEntrance ?? {
+      cell: { x: 0, y: block.top + GLYPH_HEIGHT },
+      side: "left",
+    };
+    const exit: Gate = { cell: { x: this.columns - 1, y: block.bottom }, side: "right" };
     const { steps: route, lastGlyphEnd } = this.routeBuilder.build(
       lines,
       block,
       this.columns,
       entrance,
       exit,
+      alignment,
     );
     yield;
 
@@ -115,7 +140,31 @@ export class MazePageGenerator {
     yield;
 
     this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
-    return { grid, route, entrance, exit, lines, lastGlyphEnd };
+    return { grid, route, entrance, exit, lines, lastGlyphEnd, alignment };
+  }
+
+  /** Erzeugt eine Seite ohne Text. Führt `generatePathInSteps` ohne Pause aus. */
+  public generatePath(entrance: Gate | undefined): MazePage {
+    return runToEnd(this.generatePathInSteps(entrance));
+  }
+
+  /**
+   * Eine Seite für eine Antwort ohne Stichwort: Der Lichtpunkt zieht nur einen Pfad von links nach
+   * rechts. Ohne vorige Seite kommt er auf halber Höhe herein; er geht auf der Höhe hinaus, auf
+   * der er hereinkam (kam er oben oder unten herein: auf halber Höhe). Keine Zeilen.
+   */
+  public *generatePathInSteps(givenEntrance: Gate | undefined): Steps<MazePage> {
+    const middle = Math.floor(this.rows / 2);
+    const entrance: Gate = givenEntrance ?? { cell: { x: 0, y: middle }, side: "left" };
+    const exitRow = entrance.side === "left" ? entrance.cell.y : middle;
+    const exit: Gate = { cell: { x: this.columns - 1, y: exitRow }, side: "right" };
+    const { steps: route, lastGlyphEnd } = this.routeBuilder.buildPath(entrance, exit);
+    yield;
+
+    const grid = new RectangularGrid(this.columns, this.rows);
+    this.carveRoute(grid, route);
+    this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
+    return { grid, route, entrance, exit, lines: [], lastGlyphEnd };
   }
 
   /**

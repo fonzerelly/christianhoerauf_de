@@ -1,10 +1,16 @@
 {
-  "greeting": "Das ist ein langer Platzhalter-Text zum Ausprobieren mehrerer Seiten",
+  "greeting": "Wird nicht gebraucht: Die Begrüßung baut die Seite selbst.",
   "unknownAnswer": "Weiß ich nicht",
   "answers": [
     {
+      "matchTerms": ["zeige"],
+      "answer": "Die Antwort zum Stichwort.",
+      "keyword": "Das ist ein langes Stichwort"
+    },
+    {
       "matchTerms": ["hallo"],
-      "answer": "HALLO"
+      "answer": "Hallo zurück.",
+      "keyword": "HALLO"
     }
   ]
 }

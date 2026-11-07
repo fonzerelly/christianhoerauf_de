@@ -1,0 +1,16 @@
+{
+  "greeting": "Wird nicht gebraucht: Die Begrüßung baut die Seite selbst.",
+  "unknownAnswer": "Weiß ich nicht",
+  "answers": [
+    {
+      "matchTerms": ["zeige"],
+      "answer": "Die Antwort zum Stichwort.",
+      "keyword": "0123456789"
+    },
+    {
+      "matchTerms": ["hallo"],
+      "answer": "Hallo zurück.",
+      "keyword": "HALLO"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import type { Gate } from "../domain/route/gate";
 import type { Steps } from "../domain/steps";
 import { ManualTaskQueue } from "../test-support/manual-task-queue";
 import { mazePage } from "../test-support/maze-page-builder";
+import { written } from "../test-support/fake-page-source";
 import { PreparedPageSource } from "./prepared-page-source";
 
 const EXIT: Gate = { cell: { x: 1, y: 1 }, side: "right" };
@@ -63,16 +64,16 @@ describe("PreparedPageSource", () => {
   it("gibt Text, Startwert und Anschluss an die Erzeugung der Seiten weiter", async () => {
     const { source, requests, queue } = setup(1);
 
-    void source.paginate("Hallo", 7, EXIT);
+    void source.paginate(written("Hallo"), 7, EXIT);
     await runUntilIdle(queue);
 
-    expect(requests).toEqual([{ answer: "Hallo", seed: 7, exitBefore: EXIT }]);
+    expect(requests).toEqual([{ answer: written("Hallo"), seed: 7, exitBefore: EXIT }]);
   });
 
   it("rechnet nichts, bevor der Browser die erste Aufgabe ausführt", () => {
     const { source, log, queue } = setup(1);
 
-    void source.paginate("Hallo", 7);
+    void source.paginate(written("Hallo"), 7);
 
     expect(log).toEqual([]);
     expect(queue.waiting).toBe(1);
@@ -81,7 +82,7 @@ describe("PreparedPageSource", () => {
   it("liefert die Seiten erst, wenn sie erzeugt und die erste vorab gezeichnet ist", async () => {
     const { source, log, pages, produced, queue } = setup(2);
 
-    const result = source.paginate("Hallo", 7).then((answer) => {
+    const result = source.paginate(written("Hallo"), 7).then((answer) => {
       log.push("geliefert");
       return answer;
     });
@@ -95,7 +96,7 @@ describe("PreparedPageSource", () => {
   it("zeichnet nur die erste Seite vorab; die weiteren Seiten bereitet die Bühne vor, wenn sie an die Reihe kommen", async () => {
     const { source, log, queue } = setup(3);
 
-    void source.paginate("Hallo", 7);
+    void source.paginate(written("Hallo"), 7);
     await runUntilIdle(queue);
 
     expect(log.filter((entry) => entry.startsWith("vorbereiten"))).toEqual(["vorbereiten 1 1"]);

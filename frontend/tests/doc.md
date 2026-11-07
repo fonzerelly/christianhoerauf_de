@@ -5,7 +5,7 @@ neben dem Code unter `src/`.
 
 | Ordner / Datei     | Was sie prüft                                                                                                                                                                                |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `golden-master/`   | Der Neubau erzeugt bei gleichen Eingaben dasselbe wie der Prototyp.                                                                                                                          |
+| `golden-master/`   | Schrift, Textumbruch und Abstimmungswerte wie im Prototyp (das Labyrinth selbst seit Schritt 12.5 nicht mehr).                                                                               |
 | `pages/`           | Hinweis am Fragefeld, Fragefeld (500 Zeichen, Rechtschreibprüfung, kein „Nochmal“), Impressum, Datenschutzerklärung, `CNAME` und Workflow zum Ausrollen: der Text steht, wie er stehen muss. |
 | `visual-fixtures/` | Die Inhalte der Bildtests (`visual/fixtures/*.json`) haben das Format von `content.json` (`parseContent` wirft nicht). Sonst scheitern alle Bildtests an „Das klappt gerade nicht“.          |
 | `structure/`       | Labyrinth-Seiten von außen: Der Leser liest den Text aus der Route, die Route hält die Regeln ein.                                                                                           |
@@ -16,15 +16,16 @@ Der Prototyp (`prototyp/06-frage-antwort`) besteht aus schlichten Browser-Skript
 lädt sie nacheinander in einen eigenen `vm`-Kontext, so wie der Browser sie lädt, und holt
 Ergebnisse als JSON heraus.
 
-| Datei                   | Was sie tut                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `prototype.ts`          | `loadPrototype()`: `evaluate(code)` und `call(name, ...args)` führen Code des Prototyps aus.               |
-| `maze-pages.ts`         | Erzeugt Seiten mit dem Prototyp und mit dem Neubau und bringt beide in dieselbe Form.                      |
-| `text.test.ts`          | Glyphen, Aufbereitung, Silbentrennung und Zeilenumbruch gleich wie im Prototyp (Zeilenbreiten 1 bis 40).   |
-| `maze.test.ts`          | Wände, Route, Eingang, Ausgang und Zeilen gleich, für mehrere Startwerte, Raster, Texte und Einstellungen. |
-| `maze.property.test.ts` | Dasselbe für zufällige Startwerte, Raster, Texte und Einstellungen (`npm run test:properties`).            |
+| Datei            | Was sie tut                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| `prototype.ts`   | `loadPrototype()`: `evaluate(code)` und `call(name, ...args)` führen Code des Prototyps aus.             |
+| `text.test.ts`   | Glyphen, Aufbereitung, Silbentrennung und Zeilenumbruch gleich wie im Prototyp (Zeilenbreiten 1 bis 40). |
+| `tuning.test.ts` | Abstimmungswerte wie `config.js` des Prototyps, ohne die mit ADR 0007 bewusst geänderten.                |
 
-Nicht verglichen werden das Zeichen `!` und die Ersatzglyphe; der Prototyp kennt sie nicht. Für alle Texte ohne sie bleibt der Vergleich bitgleich.
+Der Vergleich des Labyrinths (Wände, Route, Eingang, Ausgang bitgleich mit Prototyp 6) ist mit
+Schritt 12.5 entfallen (ADR 0003, Folgen; ADR 0007): Der Lichtpunkt schreibt nur noch das
+Stichwort, links, mittig oder rechts, mit Ein- und Ausgang auf Höhe der Schrift. Das Aussehen
+halten seitdem die Strukturtests, die Schaubilder und die Bildtests fest.
 
 ## structure
 

@@ -12,8 +12,8 @@ import type { LineChangePlanner } from "./line-change-planner";
 import type { RouteStep } from "./route-step";
 import { RouteTrace } from "./route-trace";
 import { Territories } from "./territories";
-import { lineAdvanceOf, lineLeftOf } from "./text-block-layout";
-import type { Rectangle, TextBlock } from "./text-block-layout";
+import { lineAdvanceOf, lineLeftIn } from "./text-block-layout";
+import type { Rectangle, TextAlignment, TextBlock } from "./text-block-layout";
 
 /** Wie viele Zellen der Lichtpunkt vor dem Eingang startet und hinter dem Ausgang verschwindet. */
 const STEPS_OUTSIDE = 2;
@@ -71,11 +71,12 @@ export class RouteBuilder {
     columns: number,
     entrance: Gate,
     exit: Gate,
+    alignment: TextAlignment = "center",
   ): BuiltRoute {
     const gateIn = { x: block.left - 2, y: block.top + GLYPH_HEIGHT };
     const gateOut = { x: block.right + 2, y: block.bottom };
     return this.assemble(block, columns, entrance, exit, gateIn, gateOut, (trace) => {
-      this.appendTextRoute(trace, lines, columns, block);
+      this.appendTextRoute(trace, lines, block, alignment);
     });
   }
 
@@ -152,6 +153,32 @@ export class RouteBuilder {
   }
 
   /**
+   * Für eine Antwort ohne Stichwort: Der Lichtpunkt zieht nur einen Pfad, in Windungen durch das
+   * ganze Raster vom Eingang zum Ausgang, ohne Schrift. Das Ende (`lastGlyphEnd`) liegt am
+   * Ausgang; danach geht der Lichtpunkt hinaus.
+   */
+  public buildPath(entrance: Gate, exit: Gate): BuiltRoute {
+    const path = this.areaPathFinder.find(
+      () => true,
+      entrance.cell,
+      exit.cell,
+      this.settings.detour,
+    );
+    const trace = new RouteTrace();
+    for (let distance = STEPS_OUTSIDE; distance >= 1; distance--) {
+      trace.addStep(cellOutside(entrance, distance), "connector");
+    }
+    path.forEach((cell) => {
+      trace.addStep(cell, "connector");
+    });
+    const atExit = trace.steps.length - 1;
+    for (let distance = 1; distance <= STEPS_OUTSIDE; distance++) {
+      trace.addStep(cellOutside(exit, distance), "connector");
+    }
+    return { steps: trace.steps, lastGlyphEnd: atExit };
+  }
+
+  /**
    * Setzt eine Route aus Außenschritten, Anlauf, Mitte, Ablauf und Außenschritten zusammen. Anlauf
    * und Ablauf suchen sich ihren Weg in ihren Revieren rund um `block`: der Anlauf vom Eingang zum
    * Tor `gateIn` links des Blocks, der Ablauf vom Tor `gateOut` rechts des Blocks zum Ausgang.
@@ -215,8 +242,8 @@ export class RouteBuilder {
   private appendTextRoute(
     trace: RouteTrace,
     lines: readonly string[],
-    columns: number,
     block: TextBlock,
+    alignment: TextAlignment,
   ): void {
     const { returnBandRows, returnWindiness } = this.settings;
     const lineAdvance = lineAdvanceOf(returnBandRows);
@@ -224,7 +251,7 @@ export class RouteBuilder {
       block.top + lineIndex * lineAdvance + GLYPH_HEIGHT;
 
     lines.forEach((line, lineIndex) => {
-      const lineLeft = lineLeftOf(line, columns);
+      const lineLeft = lineLeftIn(block, line, alignment);
       const baselineRow = baselineRowOf(lineIndex);
 
       if (lineIndex > 0) {
