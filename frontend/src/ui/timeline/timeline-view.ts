@@ -1,5 +1,5 @@
 import type { Station, Stations } from "../../domain/cv/stations";
-import { engagementLabel, yearLabel } from "../../domain/cv/stations";
+import { engagementLabel, shortName, yearLabel } from "../../domain/cv/stations";
 import { itemAt } from "../../domain/lists";
 import { layOutExpanded } from "../../domain/timeline/scale";
 import type { ElementFactory, ElementLike } from "../dom-like";
@@ -35,6 +35,12 @@ export interface TimelineViewParts<Element extends ElementLike<Element>> {
   readonly today: number;
   /** Verbindet Pfeile, Bildlaufleiste und Ziehen mit dem verschiebbaren Bereich (`ScrollControls`). */
   readonly connectScrolling: (elements: ScrollingElements<Element>) => void;
+}
+
+/** Aufgeklappt oder zugeklappt, und was ein Klick auf den Klappknopf tut. */
+export interface TimelineDisplayState {
+  readonly expanded: boolean;
+  readonly onToggle: () => void;
 }
 
 /** Die Elemente, mit denen sich die Zeitleiste verschieben lässt. */
@@ -79,23 +85,16 @@ export class TimelineView<Element extends ElementLike<Element>> {
     this.show(status);
   }
 
-  public showStations(stations: Stations): void {
-    const { measureWidth, measureHeight, visibleWidth, scrollWidth } = this.parts;
-    const content = this.element("div", "timeline-content");
-    const axis = this.element("div", "timeline-axis");
-    const today = this.element("span", "timeline-today", "heute");
-    const stationBlocks = stations.mainTrack.map((station) => this.stationBlock(station));
-    const engagementBlocks = stations.engagements.map((station) => this.engagementBlock(station));
-    content.append(
-      axis,
-      ...stationBlocks.map(({ block }) => block),
-      ...engagementBlocks.map(({ block }) => block),
-      today,
-    );
+  /**
+   * Zeigt die Stationen aufgeklappt oder zugeklappt, im selben Rahmen: links „‹“, rechts „›“,
+   * darunter die Bahn der Bildlaufleiste und der Klappknopf als Fuß unter „›“ (zusammen ein
+   * gespiegeltes L, Q42). Zuletzt steht „heute“ am rechten Rand, und die Elemente zum Verschieben
+   * gehen an `connectScrolling`.
+   */
+  public showStations(stations: Stations, display: TimelineDisplayState): void {
     // Rahmen (Raster im CSS):  [‹] [verschiebbarer Inhalt] [›]
-    //                              [Bahn mit Griff        ]
+    //                              [Bahn mit Griff ][Klapp ]
     const scroll = this.element("div", "timeline-scroll");
-    scroll.append(content);
     const earlier = this.arrow("earlier", "‹", "Früher");
     const later = this.arrow("later", "›", "Später");
     const thumb = this.element("div", "timeline-thumb");
@@ -104,10 +103,39 @@ export class TimelineView<Element extends ElementLike<Element>> {
     track.setAttribute("aria-hidden", "true");
     track.append(thumb);
     const bottomRow = this.element("div", "timeline-bottom");
-    bottomRow.append(track);
-    const frame = this.element("div", "timeline-frame");
+    bottomRow.append(track, this.foldButton(display));
+    const frame = this.element(
+      "div",
+      `timeline-frame ${display.expanded ? "expanded" : "collapsed"}`,
+    );
     frame.append(earlier, scroll, later, bottomRow);
     this.show(frame);
+
+    if (display.expanded) this.showExpanded(stations, scroll);
+    else this.showCollapsed(stations, scroll);
+    scroll.scrollLeft = this.parts.scrollWidth(scroll);
+    this.parts.connectScrolling({ frame, scroll, earlier, later, track, thumb });
+  }
+
+  /**
+   * Aufgeklappt: Linie, Stationen darunter, Engagements darüber, „heute“ dahinter. Die Elemente
+   * kommen erst in den verschiebbaren Bereich, damit sich ihre Breite messen lässt; danach stellt
+   * `layOutExpanded` sie an ihren Platz.
+   */
+  private showExpanded(stations: Stations, scroll: Element): void {
+    const { measureWidth, measureHeight, visibleWidth } = this.parts;
+    const content = this.element("div", "timeline-content");
+    const axis = this.element("div", "timeline-axis");
+    const today = this.today();
+    const stationBlocks = stations.mainTrack.map((station) => this.stationBlock(station));
+    const engagementBlocks = stations.engagements.map((station) => this.engagementBlock(station));
+    content.append(
+      axis,
+      ...stationBlocks.map(({ block }) => block),
+      ...engagementBlocks.map(({ block }) => block),
+      today,
+    );
+    scroll.append(content);
 
     const layout = layOutExpanded(
       stations,
@@ -144,8 +172,56 @@ export class TimelineView<Element extends ElementLike<Element>> {
       ...stationBlocks.map(({ block }) => stationTop + measureHeight(block)),
     );
     this.place(content, { width: layout.contentWidth, height: bottom + BOTTOM_SPACE });
-    scroll.scrollLeft = scrollWidth(scroll);
-    this.parts.connectScrolling({ frame, scroll, earlier, later, track, thumb });
+  }
+
+  /**
+   * Zugeklappt (Q48): eine Zeile „Jahr Name“ mit allen Stationen samt Engagements, nach Beginn
+   * sortiert (bei gleichem Beginn die der Linie vorn), Engagements blasser (Klasse `engagement`),
+   * dazwischen Punkte und am Ende „heute“. Ohne Linie.
+   */
+  private showCollapsed(stations: Stations, scroll: Element): void {
+    const isEngagement = (station: Station): boolean => stations.engagements.includes(station);
+    const all = [...stations.mainTrack, ...stations.engagements].sort(
+      (first, second) =>
+        first.from - second.from || Number(isEngagement(first)) - Number(isEngagement(second)),
+    );
+    const line = this.element("div", "timeline-line");
+    all.forEach((station, index) => {
+      if (index > 0) line.append(this.separator(index));
+      const className = isEngagement(station) ? "timeline-entry engagement" : "timeline-entry";
+      const entry = this.button(className, station);
+      entry.textContent = `${yearLabel(station)} ${shortName(station)}`;
+      line.append(entry);
+    });
+    line.append(this.separator(all.length), this.today());
+    scroll.append(line);
+  }
+
+  /** Ein Punkt zwischen zwei Einträgen der Zeile; der Übergang beim Klappen findet ihn über seine Nummer. */
+  private separator(index: number): Element {
+    const dot = this.element("span", "timeline-separator", "·");
+    dot.setAttribute("data-transition", `separator-${String(index)}`);
+    return dot;
+  }
+
+  /** „heute“ am Ende der Linie bzw. der Zeile. */
+  private today(): Element {
+    const today = this.element("span", "timeline-today", "heute");
+    today.setAttribute("data-transition", "today");
+    return today;
+  }
+
+  /** Der Klappknopf: nur ein Pfeil, ▴ klappt zu, ▾ klappt auf. */
+  private foldButton(display: TimelineDisplayState): Element {
+    const fold = this.element("button", "timeline-fold", display.expanded ? "▴" : "▾");
+    fold.setAttribute("type", "button");
+    fold.setAttribute("aria-expanded", String(display.expanded));
+    fold.setAttribute(
+      "aria-label",
+      display.expanded ? "Zeitleiste zuklappen" : "Zeitleiste aufklappen",
+    );
+    fold.addEventListener("click", display.onToggle);
+    return fold;
   }
 
   /** Ein Pfeil zum Verschieben: „‹“ (früher) links, „›“ (später) rechts. */

@@ -206,6 +206,8 @@ new QuestionForm(form, questionInput, {
   ),
   onQuestion: (question) => {
     conversation.ask(question);
+    // Wer fragt, braucht Platz für die Antwort (Q43).
+    timeline?.collapse();
   },
 });
 

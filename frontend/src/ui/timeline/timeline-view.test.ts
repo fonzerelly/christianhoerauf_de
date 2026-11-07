@@ -6,6 +6,9 @@ import { TimelineView } from "./timeline-view";
 
 const TODAY = 2026;
 
+/** Aufgeklappt, ohne dass das Klappen etwas tut. */
+const EXPANDED = { expanded: true, onToggle: () => undefined };
+
 /** Das erste Element mit der Klasse, sonst ein leeres (dann scheitert die Erwartung daran). */
 function first(root: FakeElement, className: string): FakeElement {
   return root.findAll(className)[0] ?? new FakeElement("fehlt");
@@ -87,7 +90,7 @@ describe("TimelineView", () => {
 
   describe("aufgeklappt", () => {
     const { container, view } = setup();
-    view.showStations(STATIONS);
+    view.showStations(STATIONS, EXPANDED);
     const layout = layOutExpanded(
       STATIONS,
       [112, 112],
@@ -159,7 +162,7 @@ describe("TimelineView", () => {
   it("rahmt den Inhalt: links „‹“, rechts „›“, darunter die Bahn mit dem Griff; und verbindet sie zum Verschieben", () => {
     const { container, view, connected } = setup();
 
-    view.showStations(STATIONS);
+    view.showStations(STATIONS, EXPANDED);
 
     const frame = first(container, "timeline-frame");
     expect(frame.children.map(({ className }) => className)).toEqual([
@@ -175,7 +178,7 @@ describe("TimelineView", () => {
       "Später",
     ]);
     const track = first(container, "timeline-track");
-    expect(bottom?.children).toEqual([track]);
+    expect(bottom?.children).toEqual([track, first(container, "timeline-fold")]);
     expect(track.attributes.get("aria-hidden")).toBe("true");
     expect(connected).toEqual([
       {
@@ -192,8 +195,106 @@ describe("TimelineView", () => {
   it("legt die Linie ohne Engagements nach oben", () => {
     const { container, view } = setup();
 
-    view.showStations({ ...STATIONS, engagements: [] });
+    view.showStations({ ...STATIONS, engagements: [] }, EXPANDED);
 
     expect(first(container, "timeline-axis").styleOf("top")).toBe("0px");
+  });
+
+  describe("Klappknopf", () => {
+    it("ist der Fuß unter „›“: hinter der Bahn, aufgeklappt mit ▴, und klappt per Klick", () => {
+      const { container, view } = setup();
+      let toggles = 0;
+
+      view.showStations(STATIONS, {
+        expanded: true,
+        onToggle: () => {
+          toggles++;
+        },
+      });
+
+      const fold = first(container, "timeline-fold");
+      expect(
+        first(container, "timeline-bottom").children.map(({ className }) => className),
+      ).toEqual(["timeline-track", "timeline-fold"]);
+      expect(fold.textContent).toBe("▴");
+      expect(fold.attributes.get("aria-expanded")).toBe("true");
+      expect(fold.attributes.get("aria-label")).toBe("Zeitleiste zuklappen");
+      fold.click();
+      expect(toggles).toBe(1);
+    });
+  });
+
+  describe("zugeklappt", () => {
+    const { container, view, connected } = setup();
+    view.showStations(
+      {
+        ...STATIONS,
+        engagements: [
+          ...STATIONS.engagements,
+          station(3, 2010, { section: "lehre", title: "Gleichzeitig", organization: "Verein" }),
+        ],
+      },
+      { expanded: false, onToggle: () => undefined },
+    );
+
+    it("zeigt eine Zeile „Jahr Name“ nach Beginn, bei gleichem Beginn der Beruf vorn, Engagements blasser", () => {
+      const entries = container.findAll("timeline-entry");
+
+      expect(entries.map(({ textContent }) => textContent)).toEqual([
+        "2000 Schule",
+        "2010 Beispiel",
+        "2010 Verein",
+        "2015 Hochschule",
+      ]);
+      expect(entries.map(({ className }) => className.includes("engagement"))).toEqual([
+        false,
+        false,
+        true,
+        true,
+      ]);
+      expect(entries.map((entry) => entry.attributes.get("data-station"))).toEqual([
+        "0",
+        "1",
+        "3",
+        "2",
+      ]);
+    });
+
+    it("trennt mit Punkten und endet mit „heute“; keine Linie", () => {
+      const line = first(container, "timeline-line");
+
+      expect(line.allText()).toBe("2000 Schule·2010 Beispiel·2010 Verein·2015 Hochschule·heute");
+      expect(container.findAll("timeline-axis")).toEqual([]);
+      expect(first(container, "timeline-frame").className).toBe("timeline-frame collapsed");
+    });
+
+    it("hat einen Klappknopf mit ▾, der aufklappt", () => {
+      const fold = first(container, "timeline-fold");
+
+      expect(fold.textContent).toBe("▾");
+      expect(fold.attributes.get("aria-expanded")).toBe("false");
+      expect(fold.attributes.get("aria-label")).toBe("Zeitleiste aufklappen");
+    });
+
+    it("lässt sich verschieben und zeigt „heute“ am rechten Rand", () => {
+      expect(connected).toHaveLength(1);
+      expect(first(container, "timeline-scroll").scrollLeft).toBe(1234);
+    });
+
+    it("nennt Punkte und „heute“ für den Übergang beim Klappen", () => {
+      expect(
+        container.findAll("timeline-separator").map((dot) => dot.attributes.get("data-transition")),
+      ).toEqual(["separator-1", "separator-2", "separator-3", "separator-4"]);
+      expect(first(container, "timeline-today").attributes.get("data-transition")).toBe("today");
+    });
+  });
+
+  it("nennt „heute“ auch aufgeklappt für den Übergang", () => {
+    const { container, view } = setup();
+
+    view.showStations(STATIONS, EXPANDED);
+
+    expect(first(container, "timeline-today").attributes.get("data-transition")).toBe("today");
+    expect(first(container, "timeline-frame").className).toBe("timeline-frame expanded");
   });
 });
