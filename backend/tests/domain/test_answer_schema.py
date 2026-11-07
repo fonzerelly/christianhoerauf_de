@@ -22,6 +22,16 @@ def test_answer_with_gimmick_satisfies_schema() -> None:
     VALIDATOR.validate(Answer(text="14 Grad.", gimmick=gimmick).to_dict())
 
 
+def test_answer_with_keyword_and_suggestions_satisfies_schema() -> None:
+    answer = Answer(
+        text="Chris baute bei Navigon Spracherkennung.",
+        keyword="Navigon Highlights",
+        suggestions=("Was erlebte Chris mit der Polizei?", "Warum nutzte Chris C++?"),
+    )
+
+    VALIDATOR.validate(answer.to_dict())
+
+
 @given(text=st.text(min_size=1))
 def test_every_answer_with_text_satisfies_schema(text: str) -> None:
     VALIDATOR.validate(Answer(text=text).to_dict())
@@ -35,6 +45,12 @@ def test_every_answer_with_text_satisfies_schema(text: str) -> None:
         {"text": 5},
         {"text": "x", "gimmick": {"temperature": 14}},
         {"text": "x", "unknown": 1},
+        {"text": "x", "keyword": ""},
+        {"text": "x", "keyword": "x" * 25},
+        {"text": "x", "suggestions": []},
+        {"text": "x", "suggestions": [""]},
+        {"text": "x", "suggestions": ["a?", "b?", "c?", "d?"]},
+        {"text": "x", "suggestions": ["x" * 301]},
     ],
 )
 def test_schema_rejects_broken_answers(broken: dict[str, object]) -> None:

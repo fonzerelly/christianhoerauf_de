@@ -13,7 +13,8 @@ Hilfsskripte. Aufruf aus beliebigem Verzeichnis, sie wechseln selbst nach `backe
 Holt mit `aws logs filter-log-events` alle Protokollzeilen der Lambda
 `christianhoerauf-bot` aus den letzten TAGE Tagen (Standard 2), die eine Frage enthalten. `jq`
 zerlegt sie und gibt je Frage aus: Uhrzeit (Berlin), erkannte Absicht (`–`, wenn keine), Ausgang,
-Dauer, Besucherkürzel, dann Frage (`F:`) und Antwort (`A:`). Am Ende steht, wie viele Fragen von
+Dauer, Besucherkürzel, dann Frage (`F:`) und Antwort (`A:`), bei Antworten aus der Wissensbasis
+dazu das Stichwort (`S:`) und je Folgefrage eine Zeile (`?:`). Am Ende steht, wie viele Fragen von
 wie vielen verschiedenen Besuchern kamen. Zeilen ohne Frage oder ohne JSON werden übersprungen.
 Braucht `aws` mit Zugangsdaten und `jq`. Der Zugriff ist nur lesend und kostet nichts.
 

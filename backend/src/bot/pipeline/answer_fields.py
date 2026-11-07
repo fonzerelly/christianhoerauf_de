@@ -2,7 +2,8 @@
 
 Die Regeln stehen in docs/backend/antwort-prompt/KRITERIEN.md (K12, K15, K16, K28) und im
 Plan „Stichwort und Folgefragen“ (Format, Q21). Was eine Prüfung nicht besteht, entfällt; die
-Antwort selbst bleibt immer stehen. Der Bot benutzt das noch nicht, die Messung der Antworten schon.
+Antwort selbst bleibt immer stehen. Der Bot (Antworten aus der Wissensbasis, seit 07.11.2026) und
+die Messung der Antworten benutzen dieselben Prüfungen.
 """
 
 import re

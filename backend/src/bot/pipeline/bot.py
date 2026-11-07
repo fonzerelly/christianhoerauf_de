@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from datetime import date
 
@@ -16,6 +17,7 @@ from bot.domain.intent import Intent
 from bot.domain.language import Language, guess_language
 from bot.domain.reaction import ReactionKind, reaction_for
 from bot.domain.reply_check import check_reply
+from bot.pipeline.answer_fields import checked_answer_fields, read_answer_fields
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
 from bot.ports.clock import Clock
@@ -69,16 +71,20 @@ class Bot:
         day = self._clock.today()
         tag = visitor_tag(ip, self._secret, day)
         outcome = self._decide(question, tag, day)
-        self._log.write(
-            {
-                "question": question,
-                "intent": outcome.intent.value if outcome.intent else None,
-                "outcome": outcome.name,
-                "answer": outcome.answer.text,
-                "visitor": tag,
-                "duration_ms": round((self._clock.seconds() - started) * 1000),
-            }
-        )
+        record: dict[str, object] = {
+            "question": question,
+            "intent": outcome.intent.value if outcome.intent else None,
+            "outcome": outcome.name,
+            "answer": outcome.answer.text,
+            "visitor": tag,
+            "duration_ms": round((self._clock.seconds() - started) * 1000),
+        }
+        # Stichwort und Folgefragen nur, wenn es sie gibt (Antworten aus der Wissensbasis).
+        if outcome.answer.keyword is not None:
+            record["keyword"] = outcome.answer.keyword
+        if outcome.answer.suggestions:
+            record["suggestions"] = list(outcome.answer.suggestions)
+        self._log.write(record)
         return outcome.answer
 
     def _decide(self, question: str, tag: str, day: date) -> _Outcome:
@@ -89,7 +95,7 @@ class Bot:
         # 2. Zwischenspeicher: gleiche Frage heute schon beantwortet.
         cached = self._store.read(cache_key(question, day, self._cache_version))
         if cached is not None:
-            return _Outcome(Answer(text=cached), "cache")
+            return _Outcome(Answer.from_dict(json.loads(cached)), "cache")
         # 3. Absicht bestimmen.
         try:
             intent = self._classifier.classify(question)
@@ -121,15 +127,30 @@ class Bot:
                 FixedAnswerKind.VISITOR_LIMIT_REACHED, language, "visitor_limit", intent
             )
         try:
-            reply = check_reply(self._answerers[reaction].answer(question))
+            answer = self._checked_answer(self._answerers[reaction].answer(question), reaction)
         except LanguageModelError:
-            reply = ""
-        if not reply:
+            answer = Answer(text="")
+        if not answer.text:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable", intent)
         # Die allgemeine Antwort kennt die Uhrzeit und veraltet deshalb; sie ist kurz und billig.
         if reaction is not ReactionKind.GENERAL_ANSWER:
-            self._store.write(cache_key(question, day, self._cache_version), reply)
-        return _Outcome(Answer(text=reply), "answered", intent)
+            key = cache_key(question, day, self._cache_version)
+            self._store.write(key, json.dumps(answer.to_dict(), ensure_ascii=False))
+        return _Outcome(answer, "answered", intent)
+
+    @staticmethod
+    def _checked_answer(reply: str, reaction: ReactionKind) -> Answer:
+        """Die geprüfte Antwort des Modells. Aus der Wissensbasis kommt sie in Feldern (Antwort,
+        Stichwort, Folgefragen); was deren Prüfungen nicht besteht, entfällt. Den Text prüft immer
+        `check_reply`."""
+        if reaction is not ReactionKind.KNOWLEDGE_BASE_ANSWER:
+            return Answer(text=check_reply(reply))
+        fields = checked_answer_fields(read_answer_fields(reply))
+        return Answer(
+            text=check_reply(fields.answer),
+            keyword=fields.keyword,
+            suggestions=fields.suggestions,
+        )
 
     @staticmethod
     def _fixed(

@@ -7,8 +7,9 @@ importiert nur sich selbst (der Architekturtest `lint-imports` prüft das).
 
 | Name | Was es konkret tut |
 |---|---|
-| `Answer` | Unveränderliche Antwort des Bots (Vertrag laut ADR system/0003). Felder: `text` (immer) und `gimmick` (ein Dict oder `None`). |
-| `Answer.to_dict()` | Liefert die Antwort als Dict, das sich direkt als JSON ausgeben lässt: immer `{"text": ...}`; der Schlüssel `gimmick` kommt nur dazu, wenn ein Gimmick gesetzt ist. |
+| `Answer` | Unveränderliche Antwort des Bots (Vertrag laut ADR system/0003). Felder: `text` (immer), `gimmick` (ein Dict oder `None`), seit 07.11.2026 `keyword` (Stichwort oder `None`) und `suggestions` (Tupel von Folgefragen, sonst leer); die beiden haben nur Antworten aus der Wissensbasis. |
+| `Answer.to_dict()` | Liefert die Antwort als Dict, das sich direkt als JSON ausgeben lässt: immer `{"text": ...}`; `gimmick`, `keyword` und `suggestions` (als Liste) kommen nur dazu, wenn sie gesetzt bzw. nicht leer sind. |
+| `Answer.from_dict(data)` | Der Rückweg von `to_dict`, für den Zwischenspeicher: liest `text` und die optionalen Felder; was fehlt oder den falschen Typ hat, gilt als nicht vorhanden. |
 
 ## intent.py
 

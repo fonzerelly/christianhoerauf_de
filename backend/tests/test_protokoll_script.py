@@ -54,3 +54,20 @@ def test_asks_aws_for_the_bot_log_of_the_given_number_of_days(tmp_path: Path) ->
 
     assert "--log-group-name /aws/lambda/christianhoerauf-bot" in (tmp_path / "args").read_text()
     assert abs(start_time_seconds(tmp_path) - (datetime.now().timestamp() - 7 * 86400)) < 120
+
+
+def test_prints_keyword_and_suggestions_of_a_knowledge_answer(tmp_path: Path) -> None:
+    knowledge = record(
+        answer="Chris baute Spracherkennung.",
+        keyword="Navigon Highlights",
+        suggestions=["Was erlebte Chris mit der Polizei?", "Warum nutzte Chris C++?"],
+    )
+
+    output = run(tmp_path, [knowledge])
+
+    assert (
+        "  A: Chris baute Spracherkennung.\n"
+        "  S: Navigon Highlights\n"
+        "  ?: Was erlebte Chris mit der Polizei?\n"
+        "  ?: Warum nutzte Chris C++?\n"
+    ) in output

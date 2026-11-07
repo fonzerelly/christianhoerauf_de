@@ -5,7 +5,7 @@ from bot.domain.intent import Intent
 from bot.pipeline.prompts import load_intent_program, load_prompt
 
 
-@pytest.mark.parametrize("name", ["general_answer", "task_answer", "knowledge_base_answer"])
+@pytest.mark.parametrize("name", ["general_answer", "task_answer", "knowledge_base_answer_fields"])
 def test_prompt_file_exists_and_states_the_length_and_language_rules(name: str) -> None:
     prompt = load_prompt(name)
 
@@ -29,7 +29,7 @@ def test_exported_intent_program_knows_every_intent() -> None:
 
 
 def test_knowledge_base_prompt_refuses_with_the_fixed_text_of_career() -> None:
-    prompt = load_prompt("knowledge_base_answer")
+    prompt = load_prompt("knowledge_base_answer_fields")
 
     assert intent_answer(Intent.CAREER, "de").text in prompt
     assert intent_answer(Intent.CAREER, "en").text in prompt

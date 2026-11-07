@@ -1,3 +1,4 @@
+import json
 from datetime import date
 
 import pytest
@@ -33,6 +34,11 @@ FIXED_INTENTS = [
     for intent in Intent
     if reaction_for(intent) in {ReactionKind.FIXED_TEXT, ReactionKind.GIMMICK}
 ]
+
+
+def stored(text: str) -> str:
+    """So steht eine Antwort ohne Stichwort im Zwischenspeicher."""
+    return json.dumps({"text": text})
 
 
 def gate(intent: Intent) -> str:
@@ -212,7 +218,7 @@ def test_fixed_texts_do_not_count_for_the_visitor() -> None:
 
 def test_cached_answers_do_not_count_for_the_visitor() -> None:
     setup = Setup([])
-    setup.store.write(cache_key("Frage?", DAY), "Gespeichert.")
+    setup.store.write(cache_key("Frage?", DAY), stored("Gespeichert."))
 
     assert setup.bot.ask("Frage?", IP).text == "Gespeichert."
     assert setup.visitor_count_after_one_more() == 1
@@ -288,7 +294,7 @@ def test_log_keeps_the_intent_when_the_answer_fails() -> None:
 
 def test_log_marks_cache_and_limit_outcomes() -> None:
     cached = Setup([])
-    cached.store.write(cache_key("Frage?", DAY), "Gespeichert.")
+    cached.store.write(cache_key("Frage?", DAY), stored("Gespeichert."))
     limited = Setup([])
     for _ in range(2000):
         limited.store.increment(daily_counter_key(DAY))
@@ -302,10 +308,10 @@ def test_log_marks_cache_and_limit_outcomes() -> None:
 
 def test_answers_cached_by_an_earlier_rollout_are_not_used() -> None:
     setup = Setup([Intent.TASK], task_answers=["Neu."], cache_version="neu")
-    setup.store.write(cache_key("Frage?", DAY, version="alt"), "Alt.")
+    setup.store.write(cache_key("Frage?", DAY, version="alt"), stored("Alt."))
 
     assert setup.bot.ask("Frage?", IP).text == "Neu."
-    assert setup.store.read(cache_key("Frage?", DAY, version="neu")) == "Neu."
+    assert setup.store.read(cache_key("Frage?", DAY, version="neu")) == stored("Neu.")
 
 
 def test_career_is_answered_from_the_knowledge_base_when_it_has_texts() -> None:
@@ -334,3 +340,45 @@ def test_without_knowledge_texts_career_gets_its_fixed_text_and_logs_it_as_such(
 
     assert answer == intent_answer(Intent.CAREER, "de")
     assert setup.log.records[0]["outcome"] == "fixed_text"
+
+
+FIELDS_REPLY = (
+    "[[ ## antwort ## ]]\nChris baute bei Navigon Spracherkennung 😀.\n\n"
+    "[[ ## stichwort ## ]]\nNavigon Highlights\n\n"
+    "[[ ## folgefragen ## ]]\nWas erlebte Chris mit der Polizei?\nWarum nutzte man C++?"
+)
+FIELDS_ANSWER = Answer(
+    text="Chris baute bei Navigon Spracherkennung .",
+    keyword="Navigon Highlights",
+    suggestions=("Was erlebte Chris mit der Polizei?",),
+)
+
+
+def test_knowledge_answer_brings_its_checked_keyword_and_suggestions() -> None:
+    setup = Setup([Intent.CAREER], knowledge_answers=[FIELDS_REPLY])
+
+    answer = setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP)
+
+    assert answer == FIELDS_ANSWER
+
+
+def test_cached_knowledge_answer_keeps_keyword_and_suggestions() -> None:
+    setup = Setup([Intent.CAREER], knowledge_answers=[FIELDS_REPLY])
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP)
+
+    answer = setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP)
+
+    assert answer == FIELDS_ANSWER
+    assert len(setup.knowledge_model.calls) == 1
+
+
+def test_log_has_keyword_and_suggestions_of_a_knowledge_answer() -> None:
+    setup = Setup([Intent.CAREER], knowledge_answers=[FIELDS_REPLY])
+
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP)
+
+    record = setup.log.records[0]
+    assert (record.get("keyword"), record.get("suggestions")) == (
+        "Navigon Highlights",
+        ["Was erlebte Chris mit der Polizei?"],
+    )

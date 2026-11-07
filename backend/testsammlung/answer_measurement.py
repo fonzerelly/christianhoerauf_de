@@ -18,7 +18,7 @@ from pathlib import Path
 
 from bot.adapters.knowledge_files import knowledge_texts
 from bot.pipeline.intent_classifier import IntentClassifier
-from bot.pipeline.prompts import load_intent_program
+from bot.pipeline.prompts import knowledge_base_system_prompt, load_intent_program
 from bot.ports.language_model import LanguageModel, LanguageModelError
 from testsammlung.answer_assessment import Assessment, assess
 from testsammlung.answer_judge import Judge
@@ -42,10 +42,8 @@ JUDGE_MAX_TOKENS = 600
 
 
 def system_prompt(prompt: str, knowledge: str, closing: str) -> str:
-    """Wie der Bot den Systemprompt bauen soll: Prompt (endet mit „Texte über Chris:“), Texte,
-    dann der Schlusstext. Ohne Schlusstext nach den Texten antwortet Gemma auf englische Fragen
-    deutsch (ERGEBNISSE.md)."""
-    return f"{prompt}{knowledge}\n\n{closing}"
+    """Der Systemprompt genau wie im Bot (`knowledge_base_system_prompt`)."""
+    return knowledge_base_system_prompt(prompt, knowledge, closing)
 
 
 def measure_answers(

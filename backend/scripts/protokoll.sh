@@ -20,6 +20,9 @@ aws logs filter-log-events \
           | $eintrag + {zeit: (.[0] / 1000 | floor | strflocaltime("%d.%m. %H:%M"))} ]
     | (.[] | "\(.zeit)  \(.intent // "–") → \(.outcome)  \(.duration_ms) ms  [\(.visitor)]\n"
              + "  F: \(.question)\n"
-             + "  A: \(.answer)\n"),
+             + "  A: \(.answer)\n"
+             # Antworten aus der Wissensbasis: Stichwort (S) und Folgefragen (?), wenn es sie gibt.
+             + (if .keyword then "  S: \(.keyword)\n" else "" end)
+             + ((.suggestions // []) | map("  ?: \(.)\n") | add // "")),
       "\(length) Fragen von \(map(.visitor) | unique | length) Besuchern"
   '

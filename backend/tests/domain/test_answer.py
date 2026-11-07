@@ -12,3 +12,17 @@ def test_answer_with_gimmick_carries_it_along() -> None:
     answer = Answer(text="In München 14 Grad, bewölkt.", gimmick=gimmick)
 
     assert answer.to_dict() == {"text": "In München 14 Grad, bewölkt.", "gimmick": gimmick}
+
+
+def test_answer_from_the_knowledge_base_carries_keyword_and_suggestions() -> None:
+    answer = Answer(
+        text="Chris baute bei Navigon Spracherkennung.",
+        keyword="Navigon Highlights",
+        suggestions=("Was erlebte Chris bei Navigon mit der Polizei?",),
+    )
+
+    assert answer.to_dict() == {
+        "text": "Chris baute bei Navigon Spracherkennung.",
+        "keyword": "Navigon Highlights",
+        "suggestions": ["Was erlebte Chris bei Navigon mit der Polizei?"],
+    }

@@ -1,7 +1,8 @@
 """Einstieg des Lambdas. Hier wird alles zusammengesteckt (Plan, Schritt 5).
 
 Vertrag mit dem Frontend: `POST` mit JSON `{"question": "..."}`. Antwort `200` mit
-`{"text": ..., "gimmick"?: ...}`; ungültige Anfrage `400` mit `{"text": <feste Antwort>}`.
+`{"text": ..., "gimmick"?: ..., "keyword"?: ..., "suggestions"?: [...]}`; ungültige Anfrage `400`
+mit `{"text": <feste Antwort>}`.
 Schemas: `schema/request.schema.json` und `schema/answer.schema.json`.
 """
 
@@ -37,7 +38,7 @@ from bot.domain.public_cv import CvData, public_cv
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, IntentClassifier
-from bot.pipeline.prompts import load_intent_program, load_prompt
+from bot.pipeline.prompts import knowledge_base_system_prompt, load_intent_program, load_prompt
 
 MAX_QUESTION_LENGTH = 500
 # Im Lambda-Paket liegt die Wissensbasis neben `bot/` (scripts/build_package.sh).
@@ -129,7 +130,14 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
     knowledge = knowledge_texts(Path(environ.get("WISSENSBASIS_DIR", _PACKAGED_KNOWLEDGE_BASE)))
     clock = SystemClock()
     knowledge_answerer = (
-        GeneralAnswerer(make_model(), load_prompt("knowledge_base_answer") + knowledge)
+        GeneralAnswerer(
+            make_model(),
+            knowledge_base_system_prompt(
+                load_prompt("knowledge_base_answer_fields"),
+                knowledge,
+                load_prompt("knowledge_base_answer_fields_end"),
+            ),
+        )
         if knowledge
         else None
     )

@@ -288,7 +288,10 @@ def test_build_bot_answers_career_with_the_knowledge_texts_in_the_prompt(
     _, answer = (request["body"] for request in server.requests)
     assert isinstance(answer, dict)
     assert answer["messages"][0]["content"] == (
-        load_prompt("knowledge_base_answer") + f"# stationen/sonnenschein.md\n\n{STATION}"
+        load_prompt("knowledge_base_answer_fields")
+        + f"# stationen/sonnenschein.md\n\n{STATION}"
+        + "\n\n"
+        + load_prompt("knowledge_base_answer_fields_end")
     )
 
 

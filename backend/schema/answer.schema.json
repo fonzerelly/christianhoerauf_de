@@ -11,6 +11,19 @@
       "type": "object",
       "required": ["type"],
       "properties": { "type": { "type": "string", "minLength": 1 } }
+    },
+    "keyword": {
+      "description": "Kurze Überschrift einer Antwort aus der Wissensbasis: ein oder zwei Wörter.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 24
+    },
+    "suggestions": {
+      "description": "Folgefragen zu einer Antwort aus der Wissensbasis.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 }
     }
   }
 }
