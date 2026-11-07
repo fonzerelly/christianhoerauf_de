@@ -2,6 +2,8 @@
 export interface MatchTermEntry {
   readonly matchTerms: readonly string[];
   readonly answer: string;
+  /** Das Stichwort, das der Lichtpunkt zu dieser Antwort schreibt (darf fehlen). */
+  readonly keyword?: string;
 }
 
 /**
@@ -25,11 +27,11 @@ function simplifyForMatching(text: string): string {
 export class MatchTermMatcher {
   public constructor(private readonly entries: readonly MatchTermEntry[]) {}
 
-  /** Die Antwort des ersten passenden Eintrags, oder `undefined`, wenn nichts passt. */
-  public find(question: string): string | undefined {
+  /** Der erste passende Eintrag, oder `undefined`, wenn nichts passt. */
+  public find(question: string): MatchTermEntry | undefined {
     const simplifiedQuestion = simplifyForMatching(question);
     return this.entries.find((entry) =>
       entry.matchTerms.some((term) => simplifiedQuestion.includes(simplifyForMatching(term))),
-    )?.answer;
+    );
   }
 }

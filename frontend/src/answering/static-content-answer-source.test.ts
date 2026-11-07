@@ -4,7 +4,10 @@ import { StaticContentAnswerSource, UNAVAILABLE_ANSWER } from "./static-content-
 const CONTENT = {
   greeting: "Hier entsteht etwas",
   unknownAnswer: "Weiß ich nicht",
-  answers: [{ matchTerms: ["hallo"], answer: "HALLO" }],
+  answers: [
+    { matchTerms: ["hallo"], answer: "HALLO" },
+    { matchTerms: ["kafka"], answer: "Über Kafka", keyword: "KAFKA" },
+  ],
 };
 
 /** Ein Lader, der mitzählt, wie oft er gerufen wurde. */
@@ -32,6 +35,15 @@ describe("StaticContentAnswerSource", () => {
     await expect(source.answer("Hallo du!")).resolves.toEqual({ text: "HALLO" });
   });
 
+  it("liefert das Stichwort des Eintrags mit, wenn er eins hat", async () => {
+    const source = new StaticContentAnswerSource(loader(() => Promise.resolve(CONTENT)).load);
+
+    await expect(source.answer("Was ist Kafka?")).resolves.toEqual({
+      text: "Über Kafka",
+      keyword: "KAFKA",
+    });
+  });
+
   it("antwortet mit der Standardantwort, wenn kein Suchwort passt", async () => {
     const source = new StaticContentAnswerSource(loader(() => Promise.resolve(CONTENT)).load);
 
@@ -55,7 +67,10 @@ describe("StaticContentAnswerSource", () => {
     );
     const source = new StaticContentAnswerSource(load);
 
-    await expect(source.answer("hallo")).resolves.toEqual({ text: UNAVAILABLE_ANSWER });
+    await expect(source.answer("hallo")).resolves.toEqual({
+      text: UNAVAILABLE_ANSWER,
+      keyword: "OFFLINE",
+    });
     fails = false;
     await expect(source.answer("hallo")).resolves.toEqual({ text: "HALLO" });
     expect(state.calls).toBe(2);
@@ -64,6 +79,9 @@ describe("StaticContentAnswerSource", () => {
   it("sagt dasselbe, wenn der Inhalt die falsche Form hat", async () => {
     const source = new StaticContentAnswerSource(loader(() => Promise.resolve({ foo: 1 })).load);
 
-    await expect(source.answer("")).resolves.toEqual({ text: UNAVAILABLE_ANSWER });
+    await expect(source.answer("")).resolves.toEqual({
+      text: UNAVAILABLE_ANSWER,
+      keyword: "OFFLINE",
+    });
   });
 });

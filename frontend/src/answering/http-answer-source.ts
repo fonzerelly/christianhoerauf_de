@@ -30,6 +30,16 @@ export interface HttpAnswerSourceSettings {
 }
 
 const STATUS_BAD_REQUEST = 400;
+/** So lang darf ein Stichwort höchstens sein (`backend/schema/answer.schema.json`). */
+const LONGEST_KEYWORD = 24;
+/** So viele Folgefragen höchstens, je so lang höchstens (Schema). */
+const MOST_SUGGESTIONS = 3;
+const LONGEST_SUGGESTION = 300;
+
+/** Die Stichwörter, wenn das Backend nicht antworten kann (Q27, Q35); sonst der HTTP-Code. */
+export const OFFLINE_KEYWORD = "OFFLINE";
+export const TIMEOUT_KEYWORD = "TIMEOUT";
+export const BROKEN_ANSWER_KEYWORD = "FEHLER";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -40,41 +50,81 @@ function readGimmick(value: unknown): Gimmick | undefined {
   return { ...value, type: value.type };
 }
 
-/** Macht aus dem JSON der Antwort eine `Answer`; `undefined`, wenn der Text fehlt oder leer ist. */
+function readKeyword(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const keyword = value.trim();
+  return keyword !== "" && keyword.length <= LONGEST_KEYWORD ? keyword : undefined;
+}
+
+/** Die gültigen Folgefragen, höchstens drei; `undefined`, wenn keine bleibt. */
+function readSuggestions(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const suggestions = value
+    .filter((item): item is string => typeof item === "string")
+    .filter((item) => item.trim() !== "" && item.length <= LONGEST_SUGGESTION)
+    .slice(0, MOST_SUGGESTIONS);
+  return suggestions.length > 0 ? suggestions : undefined;
+}
+
+/**
+ * Macht aus dem JSON der Antwort eine `Answer`; `undefined`, wenn der Text fehlt oder leer ist.
+ * Ein ungültiges Gimmick, Stichwort oder ungültige Folgefragen fallen weg, die Antwort bleibt.
+ */
 function readAnswer(body: unknown): Answer | undefined {
   if (!isRecord(body) || typeof body.text !== "string" || body.text.trim() === "") {
     return undefined;
   }
   const gimmick = readGimmick(body.gimmick);
-  return gimmick === undefined ? { text: body.text } : { text: body.text, gimmick };
+  const keyword = readKeyword(body.keyword);
+  const suggestions = readSuggestions(body.suggestions);
+  return {
+    text: body.text,
+    ...(gimmick === undefined ? {} : { gimmick }),
+    ...(keyword === undefined ? {} : { keyword }),
+    ...(suggestions === undefined ? {} : { suggestions }),
+  };
+}
+
+/** Die feste Antwort mit dem Stichwort, das sagt, was los ist. */
+function unreachable(keyword: string): Answer {
+  return { text: UNREACHABLE_ANSWER, keyword };
 }
 
 /**
- * Fragt das Backend per `POST` mit `{"question": "..."}` und liest `{"text": ..., "gimmick"?: ...}`.
- * Bei Status 400 gilt der Text der Antwort (das Backend sagt, was an der Frage nicht stimmt). Bei
- * Netzfehler, Zeitüberschreitung, anderem Status oder ungültiger Antwort gilt `UNREACHABLE_ANSWER`.
- * Die Begrüßung (leere Frage) kommt aus `greetingSource`.
+ * Fragt das Backend per `POST` mit `{"question": "..."}` und liest `{"text", "gimmick"?,
+ * "keyword"?, "suggestions"?}`. Bei Status 400 gilt der Text der Antwort (das Backend sagt, was an
+ * der Frage nicht stimmt). Sonst gilt bei einem Fehler `UNREACHABLE_ANSWER` mit einem Stichwort:
+ * dem HTTP-Code bei anderem Status, `TIMEOUT` nach der Zeitüberschreitung, `OFFLINE` ohne
+ * Verbindung (auch CORS), `FEHLER` bei unbrauchbarer Antwort. Die Begrüßung (leere Frage) kommt
+ * aus `greetingSource`.
  */
 export class HttpAnswerSource implements AnswerSource {
   public constructor(private readonly settings: HttpAnswerSourceSettings) {}
 
   public async answer(question: string): Promise<Answer> {
     if (question === "") return this.settings.greetingSource.answer(question);
-    try {
-      return (await this.ask(question)) ?? { text: UNREACHABLE_ANSWER };
-    } catch {
-      return { text: UNREACHABLE_ANSWER };
-    }
-  }
 
-  private async ask(question: string): Promise<Answer | undefined> {
-    const response = await this.settings.fetchFunction(this.settings.url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
-      signal: this.settings.timeoutSignal(this.settings.timeoutMillis),
-    });
-    if (!response.ok && response.status !== STATUS_BAD_REQUEST) return undefined;
-    return readAnswer(await response.json());
+    const signal = this.settings.timeoutSignal(this.settings.timeoutMillis);
+    let response: Awaited<ReturnType<HttpFetch>>;
+    try {
+      response = await this.settings.fetchFunction(this.settings.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+        signal,
+      });
+    } catch {
+      return unreachable(signal.aborted ? TIMEOUT_KEYWORD : OFFLINE_KEYWORD);
+    }
+
+    const status = String(response.status);
+    if (!response.ok && response.status !== STATUS_BAD_REQUEST) return unreachable(status);
+    try {
+      const answer = readAnswer(await response.json());
+      if (answer !== undefined) return answer;
+    } catch {
+      // kein JSON: wie eine unbrauchbare Antwort
+    }
+    return unreachable(response.ok ? BROKEN_ANSWER_KEYWORD : status);
   }
 }

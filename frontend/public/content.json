@@ -4,7 +4,8 @@
   "answers": [
     {
       "matchTerms": ["wer bist du", "wie heißt du", "wie heisst du", "dein name", "name"],
-      "answer": "CHRISTIAN HÖRAUF"
+      "answer": "CHRISTIAN HÖRAUF",
+      "keyword": "CHRIS"
     },
     {
       "matchTerms": [
@@ -17,23 +18,28 @@
         "guten morgen",
         "guten abend"
       ],
-      "answer": "HALLO"
+      "answer": "HALLO",
+      "keyword": "HALLO"
     },
     {
       "matchTerms": ["wie geht es dir", "wie gehts", "wie geht's"],
-      "answer": "GUT UND DIR?"
+      "answer": "GUT UND DIR?",
+      "keyword": "GUT"
     },
     {
       "matchTerms": ["danke", "dankeschön", "vielen dank"],
-      "answer": "GERN GESCHEHEN"
+      "answer": "GERN GESCHEHEN",
+      "keyword": "GERN"
     },
     {
       "matchTerms": ["tschüss", "tschüs", "ciao", "auf wiedersehen", "bis bald"],
-      "answer": "BIS BALD"
+      "answer": "BIS BALD",
+      "keyword": "TSCHÜSS"
     },
     {
       "matchTerms": ["lang", "lange", "langer", "seiten"],
-      "answer": "DAS IST EIN LANGER PLATZHALTER-TEXT ZUM AUSPROBIEREN MEHRERER SEITEN"
+      "answer": "DAS IST EIN LANGER PLATZHALTER-TEXT ZUM AUSPROBIEREN MEHRERER SEITEN",
+      "keyword": "LANGER PLATZHALTER"
     }
   ]
 }

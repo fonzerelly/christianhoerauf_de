@@ -3,6 +3,7 @@ import type { AnswerSource } from "./answer-source";
 import { parseContent } from "./content";
 import type { Content } from "./content";
 import { MatchTermMatcher } from "./match-term-matcher";
+import { OFFLINE_KEYWORD } from "./http-answer-source";
 
 /** Die Antwort, wenn der Inhalt nicht zu laden ist. Die Quelle antwortet immer, auch dann. */
 export const UNAVAILABLE_ANSWER = "Das klappt gerade nicht. Versuch es später nochmal.";
@@ -22,10 +23,11 @@ export class StaticContentAnswerSource implements AnswerSource {
   public async answer(question: string): Promise<Answer> {
     try {
       const content = await this.loadOnce();
-      return { text: this.textFor(question, content) };
+      return this.answerFor(question, content);
     } catch {
       this.content = undefined;
-      return { text: UNAVAILABLE_ANSWER };
+      // Die Datei liegt neben der Seite; lädt sie nicht, ist meist die Verbindung weg.
+      return { text: UNAVAILABLE_ANSWER, keyword: OFFLINE_KEYWORD };
     }
   }
 
@@ -34,8 +36,12 @@ export class StaticContentAnswerSource implements AnswerSource {
     return this.content;
   }
 
-  private textFor(question: string, content: Content): string {
-    if (question === "") return content.greeting;
-    return new MatchTermMatcher(content.answers).find(question) ?? content.unknownAnswer;
+  private answerFor(question: string, content: Content): Answer {
+    if (question === "") return { text: content.greeting };
+    const entry = new MatchTermMatcher(content.answers).find(question);
+    if (entry === undefined) return { text: content.unknownAnswer };
+    return entry.keyword === undefined
+      ? { text: entry.answer }
+      : { text: entry.answer, keyword: entry.keyword };
   }
 }

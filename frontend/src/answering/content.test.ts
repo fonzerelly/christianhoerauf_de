@@ -12,6 +12,12 @@ describe("parseContent", () => {
     expect(parseContent(VALID)).toEqual(VALID);
   });
 
+  it("liest das Stichwort eines Eintrags, wenn er eins hat", () => {
+    const answers = [{ matchTerms: ["kafka"], answer: "Text", keyword: "KAFKA" }];
+
+    expect(parseContent({ ...VALID, answers }).answers).toEqual(answers);
+  });
+
   it("lässt eine leere Tabelle zu", () => {
     expect(parseContent({ ...VALID, answers: [] }).answers).toEqual([]);
   });
@@ -38,6 +44,11 @@ describe("parseContent", () => {
       "Suchwort ist kein Text",
       { ...VALID, answers: [{ matchTerms: [1], answer: "A" }] },
       "answers[0].matchTerms",
+    ],
+    [
+      "Stichwort ist kein Text",
+      { ...VALID, answers: [{ matchTerms: ["a"], answer: "A", keyword: 5 }] },
+      "answers[0].keyword",
     ],
   ])("lehnt ab: %s", (_name, json, field) => {
     expect(() => parseContent(json)).toThrow(field);

@@ -91,6 +91,48 @@ describe("HttpAnswerSource", () => {
     },
   );
 
+  it("liefert Stichwort und Folgefragen mit", async () => {
+    const { source } = build(() =>
+      respond(200, { text: "ANTWORT", keyword: "KAFKA", suggestions: ["Und dann?", "Wo?"] }),
+    );
+
+    await expect(source.answer("Kafka?")).resolves.toEqual({
+      text: "ANTWORT",
+      keyword: "KAFKA",
+      suggestions: ["Und dann?", "Wo?"],
+    });
+  });
+
+  it.each([
+    ["kein Text", 5],
+    ["leer", ""],
+    ["nur Leerraum", "  "],
+    ["länger als 24 Zeichen", "X".repeat(25)],
+  ])("lässt ein ungültiges Stichwort weg (%s), die Antwort bleibt", async (_name, keyword) => {
+    const { source } = build(() => respond(200, { text: "ANTWORT", keyword }));
+
+    await expect(source.answer("Hallo?")).resolves.toEqual({ text: "ANTWORT" });
+  });
+
+  it("nimmt von den Folgefragen nur gültige, höchstens drei", async () => {
+    const suggestions = ["Eins?", 7, "", "X".repeat(301), "Zwei?", "Drei?", "Vier?"];
+    const { source } = build(() => respond(200, { text: "ANTWORT", suggestions }));
+
+    await expect(source.answer("Hallo?")).resolves.toEqual({
+      text: "ANTWORT",
+      suggestions: ["Eins?", "Zwei?", "Drei?"],
+    });
+  });
+
+  it.each([
+    ["keine Liste", "Und dann?"],
+    ["keine gültige darin", [5, ""]],
+  ])("lässt Folgefragen weg, wenn keine bleibt (%s)", async (_name, suggestions) => {
+    const { source } = build(() => respond(200, { text: "ANTWORT", suggestions }));
+
+    await expect(source.answer("Hallo?")).resolves.toEqual({ text: "ANTWORT" });
+  });
+
   it("beantwortet die leere Frage aus der Begrüßungsquelle, ohne das Netz zu fragen", async () => {
     let calls = 0;
     const { source, greeting } = build(() => {
@@ -109,24 +151,34 @@ describe("HttpAnswerSource", () => {
     await expect(source.answer("x")).resolves.toEqual({ text: "Das war zu lang." });
   });
 
+  // Kann das Backend nicht antworten, steht im Antwortbereich der feste Satz; das Stichwort sagt,
+  // was los ist (Q27, Q35): der HTTP-Code, OFFLINE (Netz, CORS) oder FEHLER (unbrauchbare Antwort).
   it.each([
-    ["Status 500", () => respond(500, { text: "Fehler" })],
-    ["Status 403", () => respond(403, { text: "Nein" })],
-    ["Netzfehler", () => Promise.reject(new Error("offline"))],
+    ["Status 500", () => respond(500, { text: "Fehler" }), "500"],
+    ["Status 503", () => respond(503, {}), "503"],
+    ["Status 403", () => respond(403, { text: "Nein" }), "403"],
+    ["Netzfehler", () => Promise.reject(new Error("offline")), "OFFLINE"],
     [
       "kein JSON",
       () => Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new Error("x")) }),
+      "FEHLER",
     ],
-    ["Antwort ohne Objekt", () => respond(200, "Text")],
-    ["Antwort ohne text", () => respond(200, { gimmick: { type: "a" } })],
-    ["text ist kein Text", () => respond(200, { text: 5 })],
-    ["text ist leer", () => respond(200, { text: " " })],
-    ["400 ohne text", () => respond(400, {})],
-  ])("antwortet fest, dass es nicht erreichbar ist: %s", async (_name, result) => {
-    const { source } = build(result);
+    ["Antwort ohne Objekt", () => respond(200, "Text"), "FEHLER"],
+    ["Antwort ohne text", () => respond(200, { gimmick: { type: "a" } }), "FEHLER"],
+    ["text ist kein Text", () => respond(200, { text: 5 }), "FEHLER"],
+    ["text ist leer", () => respond(200, { text: " " }), "FEHLER"],
+    ["400 ohne text", () => respond(400, {}), "400"],
+  ])(
+    "antwortet fest, dass es nicht erreichbar ist: %s",
+    async (_name, result: HttpFetch, keyword) => {
+      const { source } = build(result);
 
-    await expect(source.answer("Hallo?")).resolves.toEqual({ text: UNREACHABLE_ANSWER });
-  });
+      await expect(source.answer("Hallo?")).resolves.toEqual({
+        text: UNREACHABLE_ANSWER,
+        keyword,
+      });
+    },
+  );
 
   it("bricht nach der Zeitüberschreitung ab und antwortet fest", async () => {
     const timeout = new AbortController();
@@ -147,7 +199,7 @@ describe("HttpAnswerSource", () => {
     const answer = source.answer("Hallo?");
     timeout.abort();
 
-    await expect(answer).resolves.toEqual({ text: UNREACHABLE_ANSWER });
+    await expect(answer).resolves.toEqual({ text: UNREACHABLE_ANSWER, keyword: "TIMEOUT" });
     expect(millisAsked).toEqual([15000]);
   });
 });

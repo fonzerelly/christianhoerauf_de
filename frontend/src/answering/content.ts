@@ -29,7 +29,9 @@ function parseEntry(entry: unknown, index: number): MatchTermEntry {
   if (!Array.isArray(matchTerms) || !matchTerms.every((term) => typeof term === "string")) {
     throw invalid(`${path}.matchTerms`, "eine Liste von Texten");
   }
-  return { matchTerms, answer: textAt(entry, "answer", `${path}.answer`) };
+  const answer = textAt(entry, "answer", `${path}.answer`);
+  if (entry.keyword === undefined) return { matchTerms, answer };
+  return { matchTerms, answer, keyword: textAt(entry, "keyword", `${path}.keyword`) };
 }
 
 /**

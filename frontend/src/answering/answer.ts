@@ -14,4 +14,6 @@ export interface Gimmick {
 export interface Answer {
   readonly text: string;
   readonly gimmick?: Gimmick;
+  readonly keyword?: string;
+  readonly suggestions?: readonly string[];
 }
