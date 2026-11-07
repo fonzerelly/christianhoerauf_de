@@ -264,27 +264,25 @@ Folgefrage); `richter/pruefungen.yaml` die übrigen Prüffragen; `richter/aufgab
 
 ### calibration.py (Eichung, 07.11.2026)
 
-Prüft, ob die Modelle so urteilen wie Christian. Aufruf über `scripts/eiche_richter.sh`,
-`scripts/eiche_stichwort.sh` und `scripts/pruefe_sollwerte.sh`.
+Prüft, ob die Modelle so urteilen wie Christian. Aufruf über `scripts/eiche_richter.sh` und
+`scripts/pruefe_sollwerte.sh`. Die Qwen-Eichung an den Stichwort-Urteilen (`stichwort`,
+`KeywordLabel`, `load_keyword_labels`, `judge_keywords`) ist seit 07.11.2026 entfernt.
 
 | Name | Was es konkret tut |
 |---|---|
 | `SUGGESTION_LABELS`, `KEYWORD_LABELS`, `REFERENCE_FILE` | Standards: `eichung_richter.yaml`, `eichung_stichwort.yaml`, `sollwerte_stichwort.yaml` in `docs/backend/antwort-prompt/`. |
 | `SuggestionLabel(name, suggestion, understandable, good_impression)` | Christians Urteil über eine Folgefrage (K17, K24). |
-| `KeywordLabel(name, question, answer, keyword, good)` | Christians Urteil über ein Stichwort (K13). |
 | `Verdict(name, criterion, shown, christian, judge, reason)` | Ein Kriterium eines Eintrags: Christians Urteil, das des Richters, dessen Grund. |
 | `Agreement(same, total, caught, failures, false_alarms)` | Übereinstimmung; `caught` von `failures` fallen bei beiden durch, `false_alarms` nur beim Richter. |
 | `KeywordResult(question, keyword, raw, rating)` | Eine Antwort von Gemma mit dem Stichwort, das der Bot zeigen würde. |
 | `load_suggestion_labels(path)` | Liest `eichung_richter.yaml`; `urteil` oder `auch` = `u` → K17 durchgefallen, `s` → K24 durchgefallen. Name „Runde 2, Nr. 11“. |
-| `load_keyword_labels(path)` | Liest `eichung_stichwort.yaml`; `urteil: g` = bestanden (auch mit `besser`). Name „Nr. 3“. |
 | `agreement(verdicts)` | Zählt die Übereinstimmung. |
 | `judge_suggestions(judge, labels)` | Je Folgefrage K17 und K24 mit `Judge.suggestion_alone`, wie in der Messung; schneidet die Folgefrage vorn vom Grund ab. |
-| `judge_keywords(judge, labels)` | Je Stichwort alle Prüffragen zur Antwort mit `Judge.answer`, wie in der Messung, und davon K13. Ohne Urteil zu K13: durchgefallen, Grund „kein Urteil zu K13“. |
 | `calibration_report(verdicts, judge_name)` | Je Kriterium „K17 (Qwen): 87/90 wie Christian, 10 von 13 Durchfallern erkannt, 0 Fehlalarme“ und darunter jede Abweichung mit Name, beiden Urteilen, Folgefrage oder Stichwort und Grund. |
 | `measure_reference_keywords(questions, references, model, system, kev, rounds)` | Je Runde jede Frage an Gemma, Felder lesen und wie im Bot prüfen (`checked_answer_fields`), Stichwort mit `rate_keyword` bewerten. |
 | `reference_report(results)` | Mittlere Note, Anteil mit Note ab 0,5 („Sollwert getroffen oder Kev ≥ 0,5“) und jedes Stichwort darunter; `frei` zählt nicht. Hat der Code das Stichwort verworfen, steht dort „verworfen: „…““ mit dem, was Gemma geschrieben hatte (`_shown_keyword`), ohne Stichwort „keins“. |
 | `build_kev()` | `Kev(KEV_URL)`. |
-| `main(argv, judge_model_factory, answer_model_factory, kev_factory)` | Unterbefehle `richter` und `stichwort` (Qwen gegen die Eichdatei, `--datei`; `stichwort` mit `--wissensbasis`) und `sollwerte` (`--datei`, `--fragen` nur diese Fragen, `--ziel` Standard `dgx`, `--prompt`, `--schluss`, `--wissensbasis`, `--runden`). Alle mit `--aus`, Standard `versuche/eichung.<prüfung>.json`. Druckt den Bericht, schreibt die Einzelheiten. Exit 0. |
+| `main(argv, judge_model_factory, answer_model_factory, kev_factory)` | Unterbefehle `richter` (Qwen gegen die Eichdatei, `--datei`) und `sollwerte` (`--datei`, `--fragen` nur diese Fragen, `--ziel` Standard `dgx`, `--prompt`, `--schluss`, `--wissensbasis`, `--runden`). Alle mit `--aus`, Standard `versuche/eichung.<prüfung>.json`. Druckt den Bericht, schreibt die Einzelheiten. Exit 0. |
 
 ### answer_prompt.py
 

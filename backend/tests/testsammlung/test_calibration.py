@@ -5,19 +5,16 @@ import pytest
 
 from bot.ports.language_model import LanguageModel
 from tests.fakes import FakeLanguageModel
-from testsammlung.answer_judge import ANSWER_CHECKS, Judge
+from testsammlung.answer_judge import Judge
 from testsammlung.calibration import (
     Agreement,
-    KeywordLabel,
     KeywordResult,
     SuggestionLabel,
     Verdict,
     agreement,
     build_kev,
     calibration_report,
-    judge_keywords,
     judge_suggestions,
-    load_keyword_labels,
     load_suggestion_labels,
     main,
     measure_reference_keywords,
@@ -47,22 +44,6 @@ RICHTER = """# Kopf
   auch: "u"
 """
 
-STICHWORT = """# Kopf
-- nr: 1
-  frage: "Was machte Chris bei Musterbau?"
-  antwort: "Chris baute ein Lager."
-  stichwort: "Lager"
-  urteil: "g"
-  besser: "Musterbau Highlights"
-
-- nr: 2
-  frage: "Was machte Chris bei Musterbau?"
-  antwort: "Chris baute ein Lager."
-  stichwort: "Gabelstapler"
-  urteil: "s"
-  besser:
-"""
-
 RAW = (
     "[[ ## antwort ## ]]\nChris baute ein Lager.\n\n"
     "[[ ## stichwort ## ]]\nGabelstapler\n\n"
@@ -82,23 +63,6 @@ def test_load_suggestion_labels_turns_u_and_s_into_failed_k17_and_k24(tmp_path: 
         SuggestionLabel("Runde 1, Nr. 1", "Warum wählte Chris Java?", True, True),
         SuggestionLabel("Runde 1, Nr. 2", "Warum tat er das?", False, True),
         SuggestionLabel("Runde 2, Nr. 1", "Warum musste Chris zur Polizei?", False, False),
-    ]
-
-
-def test_load_keyword_labels_counts_g_as_passed(tmp_path: Path) -> None:
-    labels = load_keyword_labels(write(tmp_path / "stichwort.yaml", STICHWORT))
-
-    assert labels == [
-        KeywordLabel(
-            "Nr. 1", "Was machte Chris bei Musterbau?", "Chris baute ein Lager.", "Lager", True
-        ),
-        KeywordLabel(
-            "Nr. 2",
-            "Was machte Chris bei Musterbau?",
-            "Chris baute ein Lager.",
-            "Gabelstapler",
-            False,
-        ),
     ]
 
 
@@ -128,27 +92,6 @@ def test_judge_suggestions_asks_k17_and_k24_for_each_label() -> None:
         Verdict("Runde 1, Nr. 2", "K17", "Warum tat er das?", False, True, "klar"),
         Verdict("Runde 1, Nr. 2", "K24", "Warum tat er das?", True, True, "harmlos"),
     ]
-
-
-def answer_reply(k13: str) -> str:
-    lines = [f"{criterion}: JA – passt" for criterion, _, _ in ANSWER_CHECKS if criterion != "K13"]
-    return "\n".join([*lines, k13])
-
-
-def test_judge_keywords_takes_k13_from_the_answer_checks() -> None:
-    labels = [
-        KeywordLabel("Nr. 2", "Was machte Chris?", "Chris baute ein Lager.", "Gabelstapler", False),
-        KeywordLabel("Nr. 3", "Was machte Chris?", "Chris baute ein Lager.", "Lager", True),
-    ]
-    model = FakeLanguageModel([answer_reply("K13: NEIN – zu speziell"), "Weiß nicht."])
-
-    verdicts = judge_keywords(Judge(model, "TEXTE"), labels)
-
-    assert verdicts == [
-        Verdict("Nr. 2", "K13", "Gabelstapler", False, False, "zu speziell"),
-        Verdict("Nr. 3", "K13", "Lager", True, False, "kein Urteil zu K13"),
-    ]
-    assert "Stichwort: Gabelstapler" in model.calls[0][1]["content"]
 
 
 def test_calibration_report_shows_the_agreement_and_each_difference() -> None:
@@ -259,29 +202,6 @@ def knowledge_base(tmp_path: Path) -> Path:
     (folder / "stationen").mkdir(parents=True)
     (folder / "stationen" / "musterbau.md").write_text("Musterbau-Text", "utf-8")
     return folder
-
-
-def test_main_stichwort_gives_qwen_the_knowledge_base(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    labels = write(tmp_path / "stichwort.yaml", STICHWORT)
-    model = FakeLanguageModel([answer_reply("K13: JA – gut")] * 2)
-
-    main(
-        [
-            "stichwort",
-            "--datei",
-            str(labels),
-            "--wissensbasis",
-            str(knowledge_base(tmp_path)),
-            "--aus",
-            str(tmp_path / "bericht.json"),
-        ],
-        judge_model_factory=lambda: model,
-    )
-
-    assert "K13 (Qwen): 1/2 wie Christian" in capsys.readouterr().out
-    assert "Musterbau-Text" in model.calls[0][0]["content"]
 
 
 def test_main_sollwerte_lets_gemma_answer_on_the_target_and_kev_compare(

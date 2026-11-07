@@ -1,16 +1,17 @@
 """Eichung: Urteilen die Modelle so wie Christian?
 
-Drei Prüfungen, je mit einer Datei, die Christian von Hand ausgefüllt hat
+Zwei Prüfungen, je mit einer Datei, die Christian von Hand ausgefüllt hat
 (docs/backend/antwort-prompt/, verschlüsselt):
 
 - `richter`: Qwen beurteilt die 90 Folgefragen aus `eichung_richter.yaml` nach K17
   (verständlich ohne die Antwort) und K24 (kein schlechter Eindruck).
-- `stichwort`: Qwen beurteilt die 49 Stichwörter aus `eichung_stichwort.yaml` nach K13.
 - `sollwerte`: Gemma beantwortet die Fragen aus `sollwerte_stichwort.yaml` mit dem aktuellen
   Prompt, das Stichwort wird an Christians Sollwerten gemessen, sonst mit Kev verglichen.
 
-Aufruf über `scripts/eiche_richter.sh`, `scripts/eiche_stichwort.sh` und
-`scripts/pruefe_sollwerte.sh`. Einzelheiten landen in `versuche/eichung.<prüfung>.json`.
+Aufruf über `scripts/eiche_richter.sh` und `scripts/pruefe_sollwerte.sh`. Die Eichung von Qwen
+an den 49 Stichwort-Urteilen (`eichung_stichwort.yaml`, K13) ist seit 07.11.2026 stillgelegt: Die
+Urteile stammen aus der Zeit vor der Oberbegriff-Regel; Sollwerte und Kev ersetzen sie.
+Einzelheiten landen in `versuche/eichung.<prüfung>.json`.
 """
 
 import argparse
@@ -23,7 +24,7 @@ from pathlib import Path
 import yaml
 
 from bot.adapters.knowledge_files import knowledge_texts
-from bot.pipeline.answer_fields import AnswerFields, checked_answer_fields, read_answer_fields
+from bot.pipeline.answer_fields import checked_answer_fields, read_answer_fields
 from bot.ports.language_model import LanguageModel
 from testsammlung.answer_judge import Judge
 from testsammlung.answer_measurement import (
@@ -48,7 +49,6 @@ from testsammlung.targets import KEV_URL, MEASUREMENT_TARGETS
 
 DOCS = BACKEND.parent / "docs" / "backend" / "antwort-prompt"
 SUGGESTION_LABELS = DOCS / "eichung_richter.yaml"
-KEYWORD_LABELS = DOCS / "eichung_stichwort.yaml"
 REFERENCE_FILE = DOCS / "sollwerte_stichwort.yaml"
 
 
@@ -61,17 +61,6 @@ class SuggestionLabel:
     suggestion: str
     understandable: bool
     good_impression: bool
-
-
-@dataclass(frozen=True)
-class KeywordLabel:
-    """Christians Urteil über ein Stichwort zu Frage und Antwort (K13)."""
-
-    name: str
-    question: str
-    answer: str
-    keyword: str
-    good: bool
 
 
 @dataclass(frozen=True)
@@ -132,20 +121,6 @@ def load_suggestion_labels(path: Path) -> list[SuggestionLabel]:
     return labels
 
 
-def load_keyword_labels(path: Path) -> list[KeywordLabel]:
-    """Liest `eichung_stichwort.yaml`: `urteil` g (gut, auch mit `besser`) oder s (schlecht)."""
-    return [
-        KeywordLabel(
-            f"Nr. {entry['nr']}",
-            str(entry["frage"]),
-            str(entry["antwort"]),
-            str(entry["stichwort"]),
-            entry["urteil"] == "g",
-        )
-        for entry in _entries(path)
-    ]
-
-
 def agreement(verdicts: Sequence[Verdict]) -> Agreement:
     """Zählt die Übereinstimmung von Richter und Christian."""
     return Agreement(
@@ -174,18 +149,6 @@ def judge_suggestions(judge: Judge, labels: Sequence[SuggestionLabel]) -> list[V
                     reason,
                 )
             )
-    return verdicts
-
-
-def judge_keywords(judge: Judge, labels: Sequence[KeywordLabel]) -> list[Verdict]:
-    """Fragt den Richter wie in der Messung alle Prüffragen zur Antwort und nimmt K13. Ohne
-    Urteil zu K13 zählt es als durchgefallen."""
-    verdicts = []
-    for label in labels:
-        findings = judge.answer(label.question, AnswerFields(label.answer, label.keyword))
-        k13 = next((f for f in findings if f.criterion == "K13"), None)
-        passed, reason = (k13.passed, k13.note) if k13 else (False, "kein Urteil zu K13")
-        verdicts.append(Verdict(label.name, "K13", label.keyword, label.good, passed, reason))
     return verdicts
 
 
@@ -296,8 +259,6 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="pruefung", required=True)
     richter = commands.add_parser("richter", help="Qwen: K17 und K24 der Folgefragen")
     richter.add_argument("--datei", type=Path, default=SUGGESTION_LABELS)
-    stichwort = commands.add_parser("stichwort", help="Qwen: K13 der Stichwörter")
-    stichwort.add_argument("--datei", type=Path, default=KEYWORD_LABELS)
     sollwerte = commands.add_parser("sollwerte", help="Gemma und Kev: Stichwort gegen Sollwerte")
     sollwerte.add_argument("--datei", type=Path, default=REFERENCE_FILE)
     sollwerte.add_argument("--fragen", type=Path, default=None)
@@ -305,10 +266,9 @@ def _parser() -> argparse.ArgumentParser:
     sollwerte.add_argument("--prompt", type=Path, default=PROMPT_FILE)
     sollwerte.add_argument("--schluss", type=Path, default=CLOSING_FILE)
     sollwerte.add_argument("--runden", type=int, default=1)
-    for command in (richter, stichwort, sollwerte):
+    for command in (richter, sollwerte):
         command.add_argument("--aus", type=Path, default=None)
-    for command in (stichwort, sollwerte):
-        command.add_argument("--wissensbasis", type=Path, default=KNOWLEDGE_DIR)
+    sollwerte.add_argument("--wissensbasis", type=Path, default=KNOWLEDGE_DIR)
     return parser
 
 
@@ -326,13 +286,6 @@ def main(
         suggestion_labels = load_suggestion_labels(arguments.datei)
         print(f"Qwen beurteilt {len(suggestion_labels)} Folgefragen …", flush=True)
         verdicts = judge_suggestions(Judge(judge_model_factory(), ""), suggestion_labels)
-        print(calibration_report(verdicts, "Qwen"))
-        _write(report, _verdict_details(verdicts))
-    elif arguments.pruefung == "stichwort":
-        keyword_labels = load_keyword_labels(arguments.datei)
-        print(f"Qwen beurteilt {len(keyword_labels)} Stichwörter …", flush=True)
-        judge = Judge(judge_model_factory(), knowledge_texts(arguments.wissensbasis))
-        verdicts = judge_keywords(judge, keyword_labels)
         print(calibration_report(verdicts, "Qwen"))
         _write(report, _verdict_details(verdicts))
     else:
