@@ -45,6 +45,18 @@ während des Wartens, Ton.
 ./baue-einzeldatei.sh   # holt den Lebenslauf und schreibt /mnt/share/website/klappleiste/index.html
 ```
 
+Bildschirmfotos und Prüfung in Chromium (Playwright im Docker, Bilder nach `bilder/`, nicht
+eingecheckt):
+
+```bash
+./fotografiere.sh rundgang     # Desktop und Handy durchklicken; Höhen, Breiten, Konsolenfehler
+./fotografiere.sh ecken        # Nahaufnahmen beider Ecken der Zeitleiste, auf und zu; Griff ziehen
+./fotografiere.sh einzeldatei  # die gebaute Einzeldatei laden, eine Frage stellen, Fehler zählen
+```
+
+Die Skripte dazu liegen in `fotos/`. Das Docker-Image nimmt die Version von `playwright-core` aus
+`frontend/node_modules`.
+
 Ganz unten auf der Seite öffnet **Schalter** das Bedienfeld: oben die Schalter dieses Prototyps (rot), darunter
 die Regler aus Prototyp 6. Die Beispiel-Links für die Begrüßung stehen unter „Daten und Bot“.
 
