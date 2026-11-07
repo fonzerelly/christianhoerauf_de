@@ -8,5 +8,5 @@
 # Einzelheiten landen in versuche/antworten.<ziel>.json (oder --aus DATEI).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-uv sync --locked --quiet
+uv sync --locked --inexact --quiet  # --inexact: lässt DSPy eines laufenden Trainings stehen
 exec uv run --no-sync python -m testsammlung.answer_measurement "$@"

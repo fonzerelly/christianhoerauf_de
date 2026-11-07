@@ -109,6 +109,16 @@ verletzte muss-Kriterien, K32, Folgefragen je Antwort und die Fehler je Kriteriu
 `versuche/antworten.<ziel>.json`. Mit `--ziel bedrock` kostet es (nur Gemma und Türsteher laufen
 dort, der Richter bleibt auf der DGX).
 
+## pruefe_fragen.sh [NAME …] [OPTIONEN]
+
+Prüft die Fragendateien `docs/backend/antwort-prompt/fragen_<NAME>.yaml` (ohne Namen alle: testperson,
+testperson_schwer, pointe, echt, probe, antworten) nacheinander mit `messe_antworten.sh`, je mit
+`--teil alle` und der passenden Wissensbasis: `testsammlung/testperson` für testperson,
+testperson_schwer und pointe, sonst die echte. Ein Argument, zu dem es keine Fragendatei gibt, geht
+als Option weiter (`--ziel dgx --runden 2`). Erwartete Wörter zählen als K5, verbotene als K10, `art:
+fehlt` als K6. Einzelheiten in `versuche/fragen.<NAME>.json`. Auf der DGX etwa 30 s je Antwort: alle
+128 Fragen gut eine Stunde je Runde. Unbekannter Name: Exit 2.
+
 ## eiche_richter.sh, pruefe_sollwerte.sh
 
 Starten `python -m testsammlung.calibration` mit dem Unterbefehl `richter` oder `sollwerte`
@@ -120,7 +130,9 @@ und prüfen, ob die Modelle wie Christian urteilen:
   DGX) beantwortet die Fragen aus `sollwerte_stichwort.yaml`, das Stichwort wird an den Sollwerten
   gemessen, sonst mit Kev verglichen. Etwa 2 Minuten je Runde für alle 80 Fragen.
 
-Einzelheiten in `versuche/eichung.<prüfung>.json`. Kein Bedrock. `eiche_stichwort.sh` (Qwen gegen
+Einzelheiten in `versuche/eichung.<prüfung>.json`. Kein Bedrock. `messe_antworten.sh`,
+`eiche_richter.sh` und `pruefe_sollwerte.sh` gleichen die Umgebung mit `uv sync --inexact` ab, damit
+DSPy eines laufenden Trainings (GEPA) stehen bleibt. `eiche_stichwort.sh` (Qwen gegen
 die 49 Stichwort-Urteile, K13) ist seit 07.11.2026 stillgelegt: Die Urteile stammen aus der Zeit
 vor der Oberbegriff-Regel; Sollwerte und Kev übernehmen die Aufgabe.
 

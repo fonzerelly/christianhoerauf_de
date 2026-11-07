@@ -6,5 +6,5 @@
 # Einzelheiten landen in versuche/eichung.richter.json.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-uv sync --locked --quiet
+uv sync --locked --inexact --quiet  # --inexact: lässt DSPy eines laufenden Trainings stehen
 exec uv run --no-sync python -m testsammlung.calibration richter "$@"

@@ -158,3 +158,32 @@ def test_form_of_the_answer(
     question = AnswerQuestion("Was machte Chris bei Musterbau?", language)
 
     assert expected in failed(rule_findings(question, reply(answer, "Java", (suggestion,))))
+
+
+def test_expected_and_forbidden_words_of_the_question_are_checked() -> None:
+    question = AnswerQuestion(
+        QUESTION.text, expected=(("lagerverwaltung",), ("Kotlin", "Java")), forbidden=("Kälte",)
+    )
+    good = rule_findings(question, reply(ANSWER, "Lagerverwaltung", (GOOD_SUGGESTION,)))
+    bad = rule_findings(
+        question,
+        reply("Chris fror bei der Kälte im Lager.", "Lager", (GOOD_SUGGESTION,)),
+    )
+
+    assert [(f.criterion, f.note) for f in good if f.note.startswith(("fehlt", "verboten"))] == [
+        ("K5", "fehlt: lagerverwaltung"),
+        ("K5", "fehlt: Kotlin / Java"),
+        ("K10", "verboten: Kälte"),
+    ]
+    assert all(f.passed for f in good if f.note.startswith(("fehlt", "verboten")))
+    assert [(c, must, note) for c, must, note in failed(bad) if c in ("K5", "K10")] == [
+        ("K5", False, "fehlt: lagerverwaltung"),
+        ("K5", False, "fehlt: Kotlin / Java"),
+        ("K10", False, "verboten: Kälte"),
+    ]
+
+
+def test_without_expected_or_forbidden_words_there_is_no_fact_finding() -> None:
+    findings = rule_findings(QUESTION, reply(ANSWER, "Lagerverwaltung", (GOOD_SUGGESTION,)))
+
+    assert {"K5", "K10"} & {f.criterion for f in findings} == set()

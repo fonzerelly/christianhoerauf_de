@@ -53,8 +53,31 @@ def rule_findings(question: AnswerQuestion, raw: str) -> list[Finding]:
     findings.append(_format(raw))
     findings += _form(question, fields.answer, fields.suggestions)
     findings += _dropped(fields.keyword, fields.suggestions)
+    findings += _facts(question, fields.answer)
     if question.kind in ANSWERED_KINDS:
         findings.append(_complete(fields))
+    return findings
+
+
+def _facts(question: AnswerQuestion, answer: str) -> list[Finding]:
+    """K5 (soll) je Gruppe aus `erwartet`: eine der Alternativen steht in der Antwort. K10 (soll)
+    je Wort aus `verboten`: es steht nicht darin, etwa die Pointe einer Anekdote. Beides ohne
+    Rücksicht auf Groß- und Kleinschreibung und auch als Teil eines Worts („Lager“ steht in
+    „Lagerverwaltung“)."""
+    text = answer.lower()
+    findings = [
+        Finding(
+            "K5",
+            False,
+            any(word.lower() in text for word in group),
+            "fehlt: " + " / ".join(group),
+        )
+        for group in question.expected
+    ]
+    findings += [
+        Finding("K10", False, word.lower() not in text, f"verboten: {word}")
+        for word in question.forbidden
+    ]
     return findings
 
 
