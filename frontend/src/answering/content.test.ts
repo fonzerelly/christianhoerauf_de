@@ -4,11 +4,11 @@ import { parseContent } from "./content";
 const VALID = {
   greeting: "Hallo",
   unknownAnswer: "Weiß ich nicht",
-  answers: [{ keywords: ["hallo", "hi"], answer: "HALLO" }],
+  answers: [{ matchTerms: ["hallo", "hi"], answer: "HALLO" }],
 };
 
 describe("parseContent", () => {
-  it("liest Begrüßung, Standardantwort und Stichwort-Tabelle", () => {
+  it("liest Begrüßung, Standardantwort und Suchwort-Tabelle", () => {
     expect(parseContent(VALID)).toEqual(VALID);
   });
 
@@ -28,16 +28,16 @@ describe("parseContent", () => {
     ["keine Standardantwort", { ...VALID, unknownAnswer: undefined }, "unknownAnswer"],
     ["Tabelle ist keine Liste", { ...VALID, answers: "x" }, "answers"],
     ["Eintrag ist kein Objekt", { ...VALID, answers: [1] }, "answers[0]"],
-    ["Eintrag ohne Antwort", { ...VALID, answers: [{ keywords: ["a"] }] }, "answers[0].answer"],
+    ["Eintrag ohne Antwort", { ...VALID, answers: [{ matchTerms: ["a"] }] }, "answers[0].answer"],
     [
-      "Stichwörter sind keine Liste",
-      { ...VALID, answers: [{ keywords: "a", answer: "A" }] },
-      "answers[0].keywords",
+      "Suchwörter sind keine Liste",
+      { ...VALID, answers: [{ matchTerms: "a", answer: "A" }] },
+      "answers[0].matchTerms",
     ],
     [
-      "Stichwort ist kein Text",
-      { ...VALID, answers: [{ keywords: [1], answer: "A" }] },
-      "answers[0].keywords",
+      "Suchwort ist kein Text",
+      { ...VALID, answers: [{ matchTerms: [1], answer: "A" }] },
+      "answers[0].matchTerms",
     ],
   ])("lehnt ab: %s", (_name, json, field) => {
     expect(() => parseContent(json)).toThrow(field);

@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { KeywordMatcher } from "./keyword-matcher";
+import { MatchTermMatcher } from "./match-term-matcher";
 
 const ENTRIES = [
-  { keywords: ["wer bist du", "name"], answer: "CHRISTIAN" },
-  { keywords: ["hallo", "hi", "guten tag"], answer: "HALLO" },
-  { keywords: ["hi"], answer: "ZWEITER TREFFER" },
+  { matchTerms: ["wer bist du", "name"], answer: "CHRISTIAN" },
+  { matchTerms: ["hallo", "hi", "guten tag"], answer: "HALLO" },
+  { matchTerms: ["hi"], answer: "ZWEITER TREFFER" },
 ];
 
-const matcher = new KeywordMatcher(ENTRIES);
+const matcher = new MatchTermMatcher(ENTRIES);
 
-describe("KeywordMatcher", () => {
-  it("findet die Antwort des Eintrags, von dem ein Stichwort in der Frage vorkommt", () => {
+describe("MatchTermMatcher", () => {
+  it("findet die Antwort des Eintrags, von dem ein Suchwort in der Frage vorkommt", () => {
     expect(matcher.find("Hallo zusammen")).toBe("HALLO");
   });
 
@@ -33,18 +33,18 @@ describe("KeywordMatcher", () => {
     expect(matcher.find("hi")).toBe("HALLO");
   });
 
-  it("liefert nichts, wenn kein Stichwort passt", () => {
+  it("liefert nichts, wenn kein Suchwort passt", () => {
     expect(matcher.find("Wie wird das Wetter")).toBeUndefined();
   });
 
   it("kommt mit Umlauten und Ziffern zurecht", () => {
-    const umlauts = new KeywordMatcher([{ keywords: ["tschüss", "24h"], answer: "BIS BALD" }]);
+    const umlauts = new MatchTermMatcher([{ matchTerms: ["tschüss", "24h"], answer: "BIS BALD" }]);
 
     expect(umlauts.find("Tschüss!")).toBe("BIS BALD");
     expect(umlauts.find("Das dauert 24h")).toBe("BIS BALD");
   });
 
   it("liefert nichts ohne Einträge", () => {
-    expect(new KeywordMatcher([]).find("Hallo")).toBeUndefined();
+    expect(new MatchTermMatcher([]).find("Hallo")).toBeUndefined();
   });
 });

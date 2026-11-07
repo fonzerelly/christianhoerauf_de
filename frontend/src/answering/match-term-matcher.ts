@@ -1,6 +1,6 @@
-/** Ein Eintrag der Antwort-Tabelle: Passt eines der Stichwörter zur Frage, gilt die Antwort. */
-export interface KeywordEntry {
-  readonly keywords: readonly string[];
+/** Ein Eintrag der Antwort-Tabelle: Passt eines der Suchwörter zur Frage, gilt die Antwort. */
+export interface MatchTermEntry {
+  readonly matchTerms: readonly string[];
   readonly answer: string;
 }
 
@@ -19,17 +19,17 @@ function simplifyForMatching(text: string): string {
 
 /**
  * Wählt zu einer Frage die Antwort aus der Tabelle: Der erste Eintrag gewinnt, von dem ein
- * Stichwort als ganzes Wort (oder ganze Wortfolge) in der Frage vorkommt. Groß- und
+ * Suchwort als ganzes Wort (oder ganze Wortfolge) in der Frage vorkommt. Groß- und
  * Kleinschreibung und Satzzeichen sind egal; "hi" passt deshalb nicht auf "Schiff".
  */
-export class KeywordMatcher {
-  public constructor(private readonly entries: readonly KeywordEntry[]) {}
+export class MatchTermMatcher {
+  public constructor(private readonly entries: readonly MatchTermEntry[]) {}
 
   /** Die Antwort des ersten passenden Eintrags, oder `undefined`, wenn nichts passt. */
   public find(question: string): string | undefined {
     const simplifiedQuestion = simplifyForMatching(question);
     return this.entries.find((entry) =>
-      entry.keywords.some((keyword) => simplifiedQuestion.includes(simplifyForMatching(keyword))),
+      entry.matchTerms.some((term) => simplifiedQuestion.includes(simplifyForMatching(term))),
     )?.answer;
   }
 }

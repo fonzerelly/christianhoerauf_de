@@ -4,7 +4,7 @@ import { StaticContentAnswerSource, UNAVAILABLE_ANSWER } from "./static-content-
 const CONTENT = {
   greeting: "Hier entsteht etwas",
   unknownAnswer: "Weiß ich nicht",
-  answers: [{ keywords: ["hallo"], answer: "HALLO" }],
+  answers: [{ matchTerms: ["hallo"], answer: "HALLO" }],
 };
 
 /** Ein Lader, der mitzählt, wie oft er gerufen wurde. */
@@ -26,13 +26,13 @@ describe("StaticContentAnswerSource", () => {
     await expect(source.answer("")).resolves.toEqual({ text: "Hier entsteht etwas" });
   });
 
-  it("antwortet auf eine Frage mit der Antwort des passenden Stichworts", async () => {
+  it("antwortet auf eine Frage mit der Antwort des passenden Suchworts", async () => {
     const source = new StaticContentAnswerSource(loader(() => Promise.resolve(CONTENT)).load);
 
     await expect(source.answer("Hallo du!")).resolves.toEqual({ text: "HALLO" });
   });
 
-  it("antwortet mit der Standardantwort, wenn kein Stichwort passt", async () => {
+  it("antwortet mit der Standardantwort, wenn kein Suchwort passt", async () => {
     const source = new StaticContentAnswerSource(loader(() => Promise.resolve(CONTENT)).load);
 
     await expect(source.answer("Was kostet das")).resolves.toEqual({ text: "Weiß ich nicht" });

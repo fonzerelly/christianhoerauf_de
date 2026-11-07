@@ -1,10 +1,10 @@
-import type { KeywordEntry } from "./keyword-matcher";
+import type { MatchTermEntry } from "./match-term-matcher";
 
-/** Der Inhalt von `content.json`: Begrüßung, Standardantwort und die Stichwort-Tabelle. */
+/** Der Inhalt von `content.json`: Begrüßung, Standardantwort und die Suchwort-Tabelle. */
 export interface Content {
   readonly greeting: string;
   readonly unknownAnswer: string;
-  readonly answers: readonly KeywordEntry[];
+  readonly answers: readonly MatchTermEntry[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -21,15 +21,15 @@ function textAt(record: Record<string, unknown>, field: string, path: string): s
   return value;
 }
 
-function parseEntry(entry: unknown, index: number): KeywordEntry {
+function parseEntry(entry: unknown, index: number): MatchTermEntry {
   const path = `answers[${String(index)}]`;
   if (!isRecord(entry)) throw invalid(path, "ein Objekt");
 
-  const keywords = entry.keywords;
-  if (!Array.isArray(keywords) || !keywords.every((keyword) => typeof keyword === "string")) {
-    throw invalid(`${path}.keywords`, "eine Liste von Texten");
+  const matchTerms = entry.matchTerms;
+  if (!Array.isArray(matchTerms) || !matchTerms.every((term) => typeof term === "string")) {
+    throw invalid(`${path}.matchTerms`, "eine Liste von Texten");
   }
-  return { keywords: keywords, answer: textAt(entry, "answer", `${path}.answer`) };
+  return { matchTerms, answer: textAt(entry, "answer", `${path}.answer`) };
 }
 
 /**
