@@ -17,14 +17,17 @@ interface PageHooks {
   advance(seconds: number, step?: number): void;
 }
 
-/** Eine Leuchtspur, die nicht verglimmt: Am Haltepunkt steht dann der ganze Text lesbar da. */
-const LASTING_TRAIL = { holdSeconds: 3600, fadeSeconds: 3600 };
+/**
+ * Ein Durchlauf statt zwei: Der Lichtpunkt steht dann schneller am Haltepunkt. Die Schrift bleibt
+ * dort stehen (seit Schritt 12.6), die Verbindungswege verglimmen wie sonst auch.
+ */
+const ONE_RUN = { keywordRuns: 1 };
 
 /**
  * Eine Leuchtspur, die lange genug steht, dass eine ganze Seite lesbar bleibt, aber nach einer halben Minute
  * verglommen ist: So wartet die Animation nicht ewig, bis sie zur nächsten Seite weiterschiebt.
  */
-const LONG_TRAIL = { holdSeconds: 25, fadeSeconds: 5 };
+const LONG_TRAIL = { holdSeconds: 25, fadeSeconds: 5, keywordRuns: 1 };
 
 /** Längste Zeit in Sekunden, die auf einen Abschnitt gewartet wird. */
 const LONGEST_WAIT_SECONDS = 180;
@@ -112,18 +115,30 @@ async function advanceUntil(page: Page, phase: Phase): Promise<void> {
 /**
  * Stellt die Frage „zeige“ und wartet, bis der Lichtpunkt das Stichwort der Antwort zu schreiben
  * beginnt (nach dem Weiterschieben von der Begrüßung).
+ *
+ * Gefragt wird erst, wenn die Begrüßung am Haltepunkt steht. Bis die Antwort über das Netz da ist,
+ * steht die Uhr still (Bilder ohne Zeit); `waitForFunction` lässt dem Browser zwischen zwei
+ * Prüfungen Luft dafür. So ist jedes Bild unabhängig davon, wie schnell die Antwort kommt.
  */
 async function askToShow(page: Page): Promise<void> {
-  await page.fill("#question", "zeige");
+  await ask(page, "zeige");
+  await advanceUntil(page, "scrolling");
+  await advanceUntil(page, "writing");
+}
+
+/**
+ * Wartet, bis der Lichtpunkt am Haltepunkt steht, stellt die Frage und wartet bei stehender Uhr,
+ * bis die Antwort da ist (der Lichtpunkt läuft dann weiter).
+ */
+async function ask(page: Page, question: string): Promise<void> {
+  await advanceUntil(page, "resting");
+  await page.fill("#question", question);
   await page.press("#question", "Enter");
-  // Die Antwort kommt über das Netz. Zwischen zwei Prüfungen bekommt der Browser Luft dafür
-  // (anders als in `advanceUntil`, das in einem Zug läuft); die Uhr läuft dabei in Schritten weiter.
   await page.waitForFunction(() => {
     const hooks = (window as unknown as { labyrinthTestHooks: PageHooks }).labyrinthTestHooks;
-    hooks.advance(0.1);
-    return document.getElementById("stage")?.dataset.phase === "scrolling";
+    hooks.advance(0);
+    return document.getElementById("stage")?.dataset.phase !== "resting";
   });
-  await advanceUntil(page, "writing");
 }
 
 /** Der Zeichensatz in Stücken zu höchstens 10 Zeichen, dazu die Ersatzglyphe. */
@@ -147,7 +162,7 @@ for (const fixture of SINGLE_PAGE_FIXTURES) {
     });
 
     test("am Haltepunkt, die Spur bleibt stehen", async ({ page }) => {
-      await open(page, fixture, LASTING_TRAIL);
+      await open(page, fixture, ONE_RUN);
       await askToShow(page);
 
       await advanceUntil(page, "resting");
@@ -193,10 +208,8 @@ test.describe("mehrere-seiten", () => {
 test.describe("Frage und Antwort", () => {
   test("beim Weiterschieben nach einer Frage", async ({ page }) => {
     await open(page, "zeichensatz-1");
-    await advanceUntil(page, "resting");
 
-    await page.fill("#question", "Hallo!");
-    await page.press("#question", "Enter");
+    await ask(page, "Hallo!");
     await advanceUntil(page, "scrolling");
     await advance(page, 0.6);
 
@@ -221,7 +234,7 @@ test.describe("weniger Bewegung gewünscht", () => {
   test("der Lichtpunkt leuchtet am Haltepunkt ruhig, ohne Flimmern und Bildstörung", async ({
     page,
   }) => {
-    await open(page, "zeichensatz-1", LASTING_TRAIL);
+    await open(page, "zeichensatz-1", ONE_RUN);
     await askToShow(page);
 
     await advanceUntil(page, "resting");

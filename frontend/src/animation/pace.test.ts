@@ -11,6 +11,8 @@ const SETTINGS: PlaybackSettings = {
   fadeSeconds: 1,
   pulseSeconds: 2,
   seed: 1,
+  keywordRuns: 1,
+  runPauseSeconds: 2,
 };
 
 describe("paceOf", () => {

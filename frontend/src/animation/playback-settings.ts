@@ -16,4 +16,8 @@ export interface PlaybackSettings {
   readonly pulseSeconds: number;
   /** Startwert der Begrüßung; jede weitere Antwort zählt eins dazu. */
   readonly seed: number;
+  /** So oft schreibt der Lichtpunkt ein Stichwort hintereinander (ADR 0007). */
+  readonly keywordRuns: number;
+  /** Pause zwischen zwei Durchläufen, nachdem die Spur verglommen ist. */
+  readonly runPauseSeconds: number;
 }

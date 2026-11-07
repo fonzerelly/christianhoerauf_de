@@ -3,8 +3,8 @@
 // Anteile von 0 bis 1.
 //
 // Ausgenommen sind die Werte, die mit der flachen Bühne (ADR 0007, Prototyp 12) bewusst anders
-// sind: Raster und Reihen, Wand- und Spurbreite, Leuchten, Überstrahlen, Bildstörung und dunkle
-// Ecken. Die prüft `src/config/tuning.test.ts`.
+// sind: Raster und Reihen, Wand- und Spurbreite, Leuchten, Überstrahlen, Bildstörung, dunkle
+// Ecken und das Tempo (×1,5). Die prüft `src/config/tuning.test.ts`.
 
 import { describe, expect, it } from "vitest";
 import { DESKTOP_FROM_WIDTH, TUNING } from "../../src/config/tuning";
@@ -28,9 +28,8 @@ describe.each(["desktop", "handy"] as const)("Abstimmungswerte des Profils %s", 
   const values = prototypeValues(profile);
   const tuning = TUNING[profile];
 
-  it("übernimmt Tempo, Leuchtspur und Weiterschieben unverändert", () => {
+  it("übernimmt Leuchtspur, Weiterschieben und das Verhältnis der Tempi unverändert", () => {
     expect(tuning).toMatchObject({
-      speed: values.speed,
       connectorSpeedFactor: values.connectorSpeedFactor,
       rushFactor: values.rushFactor,
       scrollSeconds: values.scrollSeconds,

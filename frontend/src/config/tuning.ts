@@ -23,6 +23,10 @@ export interface Tuning {
   readonly rushFactor: number;
   /** Dauer des Weiterschiebens. */
   readonly scrollSeconds: number;
+  /** So oft schreibt der Lichtpunkt ein Stichwort hintereinander (ADR 0007). */
+  readonly keywordRuns: number;
+  /** Pause zwischen zwei Durchläufen, nachdem die Spur verglommen ist. */
+  readonly runPauseSeconds: number;
 
   // Leuchtspur
   /** Leuchtet voll für so lange. */
@@ -101,10 +105,13 @@ export interface Tuning {
 
 /** Die Grundwerte; das Profil `handy` überschreibt einige davon. */
 const BASE: Tuning = {
-  speed: 60,
+  // Anderthalbmal so schnell wie Prototyp 6 (60), damit man das Stichwort schneller liest
+  speed: 90,
   connectorSpeedFactor: 3,
   rushFactor: 6,
   scrollSeconds: 1.2,
+  keywordRuns: 2,
+  runPauseSeconds: 2,
   holdSeconds: 0.6,
   fadeSeconds: 0.8,
   trailWidth: 3.5,

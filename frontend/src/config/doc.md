@@ -13,7 +13,8 @@ lesen (Architekturtest).
 Die Werte stammen aus `prototyp/06-frage-antwort/config.js`; `tests/golden-master/tuning.test.ts`
 vergleicht sie. Ausnahme seit Schritt 12.3 (ADR 0007, Prototyp 12): Raster (`stageSizing`), Reihen
 (`stageRows`), Wand- und Spurbreite, Leuchten, Überstrahlen, Bildstörung und dunkle Ecken (20 %);
-die prüft `tuning.test.ts` hier. Prozentwerte stehen als Anteile von 0 bis 1. Neu sind `restingDistance` (2),
+die prüft `tuning.test.ts` hier. Prozentwerte stehen als Anteile von 0 bis 1. Mit ADR 0007 (Schritt 12.6): `speed` 90 statt 60 (Tempo ×1,5), `keywordRuns` 2 und
+`runPauseSeconds` 2. Neu sind `restingDistance` (2),
 `pulseSeconds` (1,6) und die Werte des Brummens (`humVolume`, `humBaseHertz`, `humDriftHertz`,
 `humMinLevel`, `humDriftSeconds`, siehe `sound/doc.md`). Die Einstellungs-Schnittstellen der Teile (`PlaybackSettings`, `RenderSettings`,
 `MazeSettings`) sind Ausschnitte von `Tuning`, deshalb kann `main.ts` es unverändert übergeben.

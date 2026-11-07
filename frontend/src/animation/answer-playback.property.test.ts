@@ -22,6 +22,8 @@ const SETTINGS = {
   fadeSeconds: 0.5,
   pulseSeconds: 2,
   seed: 100,
+  keywordRuns: 1,
+  runPauseSeconds: 2,
 };
 
 const event = fc.oneof(

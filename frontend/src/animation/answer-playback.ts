@@ -9,10 +9,16 @@ import { pulseOf } from "./pulse";
 import type { PlaybackSettings } from "./playback-settings";
 import type { Phase, Playback } from "./playback-view";
 import { RouteWalker } from "./route-walker";
-import { Trail } from "./trail";
+import { BRIGHTNESS_LEVELS, Trail } from "./trail";
 
 /** Die Route, auf der der Lichtpunkt steht, solange es noch keine Seite gibt: ein einziges Wegstück. */
 const NO_ROUTE: readonly RouteStep[] = [{ x: 0, y: 0, kind: "connector", isDot: false }];
+
+/** Gehört das Wegstück zur Schrift (Schriftweg oder Punkt)? Andere Stellen der Route: nein. */
+function isWriting(page: MazePage, step: number): boolean {
+  const routeStep = page.route[step];
+  return routeStep !== undefined && (routeStep.kind === "letter" || routeStep.isDot);
+}
 
 /** Sanftes Anfahren und Abbremsen: bildet 0..1 auf 0..1 ab. */
 function easeInOut(part: number): number {
@@ -29,6 +35,12 @@ function easeInOut(part: number): number {
  * Kommt eine Frage, während noch geschrieben wird, laufen die sichtbaren Seiten im
  * Schnelldurchlauf zu Ende, und Seiten der alten Antwort, die noch nicht zu sehen sind, entfallen.
  * Bei mehreren Fragen hintereinander zählt nur die Antwort auf die neueste.
+ *
+ * Ein Stichwort schreibt der Lichtpunkt `keywordRuns`-mal (ADR 0007): In jedem Durchlauf außer
+ * dem letzten läuft er hinaus, die Spur verglimmt, nach `runPauseSeconds` beginnt er auf denselben
+ * Seiten von vorn. Erst im letzten Durchlauf wartet er am Haltepunkt, und die Schrift bleibt stehen,
+ * bis die nächste Antwort kommt. Ein Pfad ohne Schrift läuft nur einmal, ebenso eine Antwort, nach
+ * der schon eine neue Frage gestellt wurde.
  */
 export class AnswerPlayback implements Playback {
   private pages: MazePage[] = [];
@@ -42,10 +54,21 @@ export class AnswerPlayback implements Playback {
   private readonly trail: Trail;
   /** Seiten, die im Schnelldurchlauf laufen, weil inzwischen eine neue Frage gestellt wurde. */
   private readonly rushedPages = new Set<MazePage>();
+  /** Die Seiten der Antwort, die gerade geschrieben wird (für die Wiederholung). */
+  private answerPages: readonly MazePage[] = [];
+  /** Der wievielte Durchlauf dieser Antwort läuft (ab 0), und wie viele es werden. */
+  private run = 0;
+  private runs = 1;
+  /** Hat die Antwort Schrift? Ein Pfad hat keine. */
+  private hasWriting = false;
+  /** Die Frage, deren Antwort gerade geschrieben wird. */
+  private answerQuestion = 0;
 
   public constructor(
     private readonly pageSource: PageSource,
     private readonly settings: PlaybackSettings,
+    /** Wünscht der Besucher weniger Bewegung? Dann nur ein Durchlauf (gilt ab der nächsten Antwort). */
+    private readonly motion: { readonly isReduced: boolean } = { isReduced: false },
   ) {
     this.trail = new Trail(settings);
   }
@@ -122,13 +145,20 @@ export class AnswerPlayback implements Playback {
     return this.currentPage === undefined ? undefined : this.walker.position();
   }
 
-  /** Die Helligkeitsstufe der Leuchtspur auf dem Wegstück (0 bis 16). */
+  /**
+   * Die Helligkeitsstufe der Leuchtspur auf dem Wegstück (0 bis 16). Im letzten Durchlauf bleibt
+   * die Schrift (Schriftwege und Punkte) voll hell; die Verbindungswege verglimmen.
+   */
   public trailLevelOf(step: number): number {
+    const page = this.currentPage;
+    if (page !== undefined && this.keepsWriting() && isWriting(page, step))
+      return BRIGHTNESS_LEVELS;
     return this.trail.levelOf(step, this.clock);
   }
 
-  /** Das erste Wegstück der aktuellen Seite, das noch leuchtet. */
+  /** Das erste Wegstück der aktuellen Seite, das noch leuchtet (bleibt die Schrift stehen: das erste). */
   public firstGlowingStep(): number {
+    if (this.keepsWriting()) return 1;
     return this.trail.firstGlowingStep(this.walker.stepsDone, this.clock);
   }
 
@@ -204,12 +234,18 @@ export class AnswerPlayback implements Playback {
     const seed = this.settings.seed + this.arrivedAnswers;
 
     void this.pageSource.paginate(content, seed, exitBefore).then(({ pages }) => {
-      if (question === this.latestQuestion) this.startAnswer(pages);
+      if (question === this.latestQuestion) this.startAnswer(pages, question);
     });
   }
 
-  private startAnswer(newPages: readonly MazePage[]): void {
+  private startAnswer(newPages: readonly MazePage[], question: number): void {
     this.arrivedAnswers++;
+    this.answerPages = newPages;
+    this.answerQuestion = question;
+    this.run = 0;
+    this.hasWriting = newPages.some((page) => page.route.some(({ kind }) => kind === "letter"));
+    const wantsRepeats = this.hasWriting && !this.motion.isReduced;
+    this.runs = wantsRepeats ? Math.max(1, this.settings.keywordRuns) : 1;
     const hadPages = this.pages.length > 0;
     this.pages.push(...newPages);
 
@@ -240,7 +276,7 @@ export class AnswerPlayback implements Playback {
    */
   private targetStep(walker: RouteWalker, page: MazePage): number {
     const lastStep = page.route.length - 1;
-    const isLastPage = this.pageIndex === this.pages.length - 1;
+    const isLastPage = this.pageIndex === this.pages.length - 1 && !this.repeatsAfter(page);
     const restingStep = Math.min(this.pageSource.restingStepOf(page), lastStep);
     return isLastPage && !walker.hasReached(restingStep) ? restingStep : lastStep;
   }
@@ -263,8 +299,42 @@ export class AnswerPlayback implements Playback {
   private fade(): void {
     const page = itemAt(this.pages, this.pageIndex);
     const lifetime = this.settings.holdSeconds + this.settings.fadeSeconds;
+    if (this.repeatsAfter(page)) {
+      if (this.secondsInPhase() >= lifetime + this.settings.runPauseSeconds) this.startNextRun();
+      return;
+    }
     // Im Schnelldurchlauf wird das Verglimmen nicht abgewartet: Die Spur verglimmt beim Weiterschieben.
     const trailIsGone = this.secondsInPhase() >= lifetime || this.isRushingPage(page);
     if (trailIsGone) this.enterPhase(this.nextPage === undefined ? "waiting" : "scrolling");
+  }
+
+  /**
+   * Folgt nach dieser Seite ein weiterer Durchlauf? Ja, wenn sie die letzte Seite der Antwort ist,
+   * noch Durchläufe fehlen und inzwischen keine neue Frage gestellt wurde.
+   */
+  private repeatsAfter(page: MazePage): boolean {
+    return (
+      page === this.answerPages.at(-1) &&
+      this.run < this.runs - 1 &&
+      this.latestQuestion === this.answerQuestion
+    );
+  }
+
+  /** Beginnt den nächsten Durchlauf auf der ersten Seite der Antwort, im selben Labyrinth. */
+  private startNextRun(): void {
+    this.run++;
+    this.pages = [...this.answerPages];
+    this.startPage(0);
+  }
+
+  /** Bleibt die Schrift stehen? Im letzten Durchlauf einer Antwort mit Schrift, auf ihren Seiten. */
+  private keepsWriting(): boolean {
+    const page = this.currentPage;
+    return (
+      this.hasWriting &&
+      page !== undefined &&
+      this.run === this.runs - 1 &&
+      this.answerPages.includes(page)
+    );
   }
 }

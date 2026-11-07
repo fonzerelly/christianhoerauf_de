@@ -19,7 +19,8 @@ export const RESTING_STEP = LAST_GLYPH_END + 2;
 
 /**
  * Eine Attrappe für die Seitenquelle der Animation: Jedes Zeichen des Stichworts wird eine kleine
- * Seite (ohne Stichwort, und ein Bild oder Foto, wird es eine einzige Seite) mit einer Route von 12 Wegstücken auf einer
+ * Seite (ohne Stichwort eine einzige Seite nur mit Verbindungswegen, ein Bild oder Foto eine
+ * einzige Seite) mit einer Route von 12 Wegstücken auf einer
  * Linie. Jede Seite hat einen eigenen Ausgang, und jede Anfrage wird in `requests` festgehalten. Die Seiten kommen sofort, oder auf
  * Wunsch erst nach `releaseResults()` (so lässt sich das Warten auf die Seiten nachstellen).
  */
@@ -49,7 +50,8 @@ export class FakePageSource implements PageSource {
       this.requests.push({ text, photo: answer.photo, seed, exitBefore });
     } else this.requests.push({ text, seed, exitBefore });
     const isWritten = "maxLinesPerPage" in answer && text !== "";
-    const pages = isWritten ? Array.from(text, () => this.createPage()) : [this.createPage()];
+    const isPath = "maxLinesPerPage" in answer && text === "";
+    const pages = isWritten ? Array.from(text, () => this.createPage()) : [this.createPage(isPath)];
     const result = { pages, restingStepIndex: RESTING_STEP };
     if (!this.isHolding) return Promise.resolve(result);
     return new Promise((resolve) => {
@@ -76,12 +78,13 @@ export class FakePageSource implements PageSource {
     return page.lastGlyphEnd + 2;
   }
 
-  private createPage(): MazePage {
+  /** Eine Seite mit Schrift auf allen Wegstücken; ein Pfad (`isPath`) hat nur Verbindungswege. */
+  private createPage(isPath = false): MazePage {
     this.pagesCreated++;
     const route: RouteStep[] = Array.from({ length: ROUTE_LENGTH }, (_, index) => ({
       x: index,
       y: 0,
-      kind: "letter",
+      kind: isPath ? "connector" : "letter",
       isDot: false,
     }));
     const exit: Gate = { cell: { x: this.pagesCreated, y: 0 }, side: "right" };

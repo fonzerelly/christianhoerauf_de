@@ -93,6 +93,10 @@ const flushTarget = createContext2d(
 // unter dem Foto leer.
 const chrisPhoto = Object.assign(new Image(), { src: chrisPhotoUrl });
 
+// Weniger Bewegung gewünscht: kein Flimmern, keine Bildstörung, ein Durchlauf je Stichwort
+const motion = new MediaQueryMotionPreference(
+  window.matchMedia("(prefers-reduced-motion: reduce)"),
+);
 const renderer = new CanvasRenderer({
   canvas,
   context: createContext2d(canvas),
@@ -109,7 +113,7 @@ const renderer = new CanvasRenderer({
     };
   },
   random: new Mulberry32(randomSeed),
-  motion: new MediaQueryMotionPreference(window.matchMedia("(prefers-reduced-motion: reduce)")),
+  motion,
   settings: tuning,
   layout: measureStage(),
   photos: () => (chrisPhoto.complete && chrisPhoto.naturalWidth > 0 ? chrisPhoto : undefined),
@@ -146,6 +150,7 @@ const stage = new Stage({
         scheduleTask,
       ),
       { ...tuning, seed: firstSeed },
+      motion,
     ),
   baseSeed: tuning.seed,
   phaseDisplay: new PhaseIndicator(stageElement),

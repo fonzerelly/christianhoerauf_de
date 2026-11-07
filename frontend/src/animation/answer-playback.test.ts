@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AnswerContent } from "../domain/pages/answer-content";
 import { FakePageSource, written } from "../test-support/fake-page-source";
+import { mazePage } from "../test-support/maze-page-builder";
 import { AnswerPlayback } from "./answer-playback";
 import type { PlaybackSettings } from "./playback-settings";
 
@@ -17,6 +18,8 @@ const SETTINGS: PlaybackSettings = {
   fadeSeconds: 0.5,
   pulseSeconds: 2,
   seed: 100,
+  keywordRuns: 1,
+  runPauseSeconds: 2,
 };
 const STEP = 0.0625;
 const RUSH_STEP = 0.0078125;
@@ -537,8 +540,9 @@ describe("AnswerPlayback", () => {
   });
 
   describe("Leuchtspur", () => {
-    it("lässt gelaufene Wegstücke erst voll leuchten und dann verglimmen", async () => {
-      const { playback } = await playbackWithGreeting();
+    it("lässt gelaufene Verbindungswege erst voll leuchten und dann verglimmen", async () => {
+      // ohne Stichwort: ein Pfad nur aus Verbindungswegen (Schrift bliebe stehen)
+      const { playback } = await playbackWithGreeting("");
 
       playback.advance(2 * STEP);
       expect(playback.trailLevelOf(1)).toBe(16);
@@ -559,6 +563,145 @@ describe("AnswerPlayback", () => {
 
       expect(playback.firstGlowingStep()).toBe(1);
       expect(playback.trailLevelOf(1)).toBe(16);
+    });
+  });
+
+  describe("Wiederholen (ADR 0007)", () => {
+    const REPEATING: PlaybackSettings = { ...SETTINGS, keywordRuns: 2 };
+    /** Vom Anfang einer Seite bis hinaus (Wegstück 11). */
+    const TO_EXIT = 11 * STEP;
+    /** Verglimmen der Spur (0,5 + 0,5 s) und Pause (2 s). */
+    const FADE_AND_PAUSE = 1 + 2;
+
+    it("läuft im ersten von zwei Durchläufen bis hinaus, statt am Haltepunkt zu warten", async () => {
+      const { playback } = await playbackWithGreeting("A", REPEATING);
+
+      playback.advance(TO_EXIT);
+
+      expect(playback.phase).toBe("fading");
+    });
+
+    it("schreibt nach Verglimmen und Pause dasselbe Labyrinth von vorn", async () => {
+      const { playback } = await playbackWithGreeting("A", REPEATING);
+      const page = playback.currentPage;
+      playback.advance(TO_EXIT);
+
+      playback.advance(FADE_AND_PAUSE - STEP);
+      expect(playback.phase).toBe("fading");
+      playback.advance(STEP);
+
+      expect(playback.phase).toBe("writing");
+      expect(playback.currentPage).toBe(page);
+      expect(playback.progress).toBe(0);
+    });
+
+    it("wartet nach dem letzten Durchlauf am Haltepunkt", async () => {
+      const { playback } = await playbackWithGreeting("A", REPEATING);
+      playback.advance(TO_EXIT);
+      playback.advance(FADE_AND_PAUSE);
+
+      playback.advance(TO_RESTING);
+
+      expect(playback.phase).toBe("resting");
+    });
+
+    it("beginnt bei einem Stichwort über mehrere Seiten wieder auf der ersten", async () => {
+      const { playback } = await playbackWithGreeting("AB", REPEATING);
+      const first = playback.currentPage;
+      playback.advance(TO_EXIT); // Seite 1 hinaus
+      playback.advance(1); // verglommen
+      playback.advance(SETTINGS.scrollSeconds); // zur zweiten Seite geschoben
+      const second = playback.currentPage;
+      playback.advance(TO_EXIT); // Seite 2 hinaus: der erste Durchlauf ist zu Ende
+
+      playback.advance(FADE_AND_PAUSE);
+
+      expect(second).not.toBe(first);
+      expect(playback.currentPage).toBe(first);
+      expect(playback.phase).toBe("writing");
+    });
+
+    it("lässt die Schrift im letzten Durchlauf stehen, im ersten nicht", async () => {
+      const { playback } = await playbackWithGreeting("A", REPEATING);
+      playback.advance(TO_EXIT);
+      playback.advance(1);
+      expect(playback.trailLevelOf(5)).toBe(0); // erster Durchlauf: verglommen
+
+      playback.advance(2); // Pause, dann von vorn
+      playback.advance(TO_RESTING);
+      playback.advance(10);
+
+      expect(playback.trailLevelOf(5)).toBe(16);
+      expect(playback.firstGlowingStep()).toBe(1);
+    });
+
+    it("lässt auch die Punkte (etwa über dem Ü) stehen, Verbindungswege und Sprünge nicht", async () => {
+      // Wegstück 1 Verbindung, 2 Schrift, 3 Sprung zum Punkt, 4 der Punkt (Haltepunkt)
+      const kinds = ["connector", "connector", "letter", "silent", "silent", "connector"] as const;
+      const route = kinds.map((kind, x) => ({ x, y: 0, kind, isDot: x === 4 }));
+      const page = mazePage({ columns: 6, rows: 1, route, lastGlyphEnd: 4 });
+      const playback = new AnswerPlayback(
+        {
+          paginate: () => Promise.resolve({ pages: [page], restingStepIndex: 4 }),
+          restingStepOf: () => 4,
+        },
+        SETTINGS,
+      );
+      playback.request(Promise.resolve(written("Ü")));
+      await settle();
+      playback.advance(5 * STEP);
+      playback.advance(10);
+
+      expect([1, 2, 3, 4].map((step) => playback.trailLevelOf(step))).toEqual([0, 16, 0, 16]);
+    });
+
+    it("schreibt nur einmal, wenn so eingestellt", async () => {
+      const { playback } = await playbackWithGreeting("A", SETTINGS);
+
+      playback.advance(TO_RESTING);
+
+      expect(playback.phase).toBe("resting");
+    });
+
+    it("schreibt nur einmal, wenn der Besucher weniger Bewegung wünscht", async () => {
+      const playback = new AnswerPlayback(new FakePageSource(), REPEATING, { isReduced: true });
+      playback.request(Promise.resolve(written("A")));
+      await settle();
+
+      playback.advance(TO_RESTING);
+
+      expect(playback.phase).toBe("resting");
+    });
+
+    it("lässt auch bei nur einem Durchlauf die Schrift stehen", async () => {
+      const { playback } = await playbackWithGreeting("A", SETTINGS);
+
+      playback.advance(TO_RESTING);
+      playback.advance(10);
+
+      expect(playback.trailLevelOf(5)).toBe(16);
+    });
+
+    it("zieht einen Pfad ohne Schrift nur einmal", async () => {
+      const { playback } = await playbackWithGreeting("", REPEATING);
+
+      playback.advance(TO_RESTING);
+
+      expect(playback.phase).toBe("resting");
+    });
+
+    it("wiederholt nicht mehr, wenn inzwischen eine neue Frage gestellt wurde", async () => {
+      const { playback } = await playbackWithGreeting("A", REPEATING);
+      const greeting = playback.currentPage;
+      playback.advance(STEP);
+      playback.request(Promise.resolve(written("B")));
+      await settle();
+
+      playback.advance(TO_EXIT); // im Schnelldurchlauf hinaus
+      playback.advance(STEP); // im Schnelldurchlauf wird das Verglimmen nicht abgewartet
+      playback.advance(SETTINGS.scrollSeconds);
+
+      expect(playback.currentPage).not.toBe(greeting);
     });
   });
 });

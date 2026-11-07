@@ -34,19 +34,21 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 | `installTestHooks(tuning)`    | Läuft in der Seite vor ihren Skripten und legt `labyrinthTestHooks` an (auch `scheduleTask`: führt Aufgaben sofort aus). `advance(seconds, step)` stellt die Uhr in Bildern zu höchstens `step` Sekunden weiter und löst je Bild den Bildtakt aus. |
 | `open(page, fixture, tuning)` | Liefert die Antwort-Datei, öffnet die Seite und löst Bilder aus, bis der Lichtpunkt zu schreiben beginnt (die Begrüßung kommt über das Netz, die Uhr steht still). Prüft, dass es keine Fehler in der Konsole gab.                                 |
 | `advance(page, seconds)`      | Stellt die Uhr der Seite um `seconds` weiter.                                                                                                                                                                                                      |
+| `ask(page, question)`         | Wartet bis zum Haltepunkt, stellt die Frage und lässt bei stehender Uhr Bilder laufen, bis die Antwort da ist (der Lichtpunkt läuft weiter). So hängt kein Bild davon ab, wie schnell die Antwort über das Netz kommt.                             |
+| `askToShow(page)`             | `ask(page, "zeige")`, dann bis das Stichwort der Antwort zu schreiben beginnt.                                                                                                                                                                     |
 | `advanceUntil(page, phase)`   | Stellt die Uhr in Schritten zu 0,1 s weiter, bis die Bühne im Abschnitt ist (höchstens 180 s); scheitert, wenn er nicht erreicht wird.                                                                                                             |
 
 ## Momente
 
-| Test                            | Was das Bild zeigt                                                                                               |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `<Zeichensatz>-schreiben`       | Eine Sekunde, nachdem das Stichwort begonnen hat: Lichtpunkt mitten im Wort, die Leuchtspur dahinter.            |
-| `<Zeichensatz>-haltepunkt`      | Der Lichtpunkt pulsiert am Haltepunkt, die Spur ist nicht verglommen (Test-Abstimmung): der ganze Text steht da. |
-| `mehrere-seiten-weiterschieben` | Mitten im Weiterschieben zur zweiten Seite.                                                                      |
-| `mehrere-seiten-haltepunkt`     | Haltepunkt der zweiten Seite.                                                                                    |
-| `frage-weiterschieben`          | Eine Frage am Haltepunkt: Der Lichtpunkt läuft hinaus, mitten im Weiterschieben zur Antwort.                     |
-| `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                       |
-| `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                |
+| Test                            | Was das Bild zeigt                                                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `<Zeichensatz>-schreiben`       | Eine Sekunde, nachdem das Stichwort begonnen hat: Lichtpunkt mitten im Wort, die Leuchtspur dahinter.                     |
+| `<Zeichensatz>-haltepunkt`      | Der Lichtpunkt pulsiert am Haltepunkt; die Schrift steht, die Verbindungswege sind verglommen (ein Durchlauf, `ONE_RUN`). |
+| `mehrere-seiten-weiterschieben` | Mitten im Weiterschieben zur zweiten Seite.                                                                               |
+| `mehrere-seiten-haltepunkt`     | Haltepunkt der zweiten Seite.                                                                                             |
+| `frage-weiterschieben`          | Eine Frage am Haltepunkt: Der Lichtpunkt läuft hinaus, mitten im Weiterschieben zur Antwort.                              |
+| `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                                |
+| `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                         |
 
 Seit Schritt 12.5 schreibt der Lichtpunkt nur das Stichwort. Die Begrüßung baut die Seite selbst
 (ohne persönlichen Link „HALLO“); jeder Test fragt deshalb „zeige“ (`askToShow`) und fotografiert

@@ -53,3 +53,14 @@ describe("Bühne fester Höhe (ADR 0007, gewählt mit Prototyp 12)", () => {
     expect(TUNING[profile].vignetteStrength).toBe(0.2);
   });
 });
+
+describe("Stichwort sichtbar machen (ADR 0007, gewählt mit Prototyp 12)", () => {
+  it.each(["desktop", "handy"] as const)(
+    "%s: anderthalbmal so schnell wie Prototyp 6, zwei Durchläufe mit 2 s Pause",
+    (profile) => {
+      expect(TUNING[profile].speed).toBe(90);
+      expect(TUNING[profile].keywordRuns).toBe(2);
+      expect(TUNING[profile].runPauseSeconds).toBe(2);
+    },
+  );
+});
