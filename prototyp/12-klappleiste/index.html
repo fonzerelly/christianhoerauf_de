@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prototyp 12: Bühne über der Klappleiste</title>
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    /* Für Screenreader lesbar, auf dem Bildschirm unsichtbar. */
+    .visuallyHidden {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+    }
+
+    /* Schriften: Monospace für Überschriften und Bedienung, Systemschrift ohne Serifen für
+       lesbaren Text. Keine Webfonts. */
+    :root {
+      --mono: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+      --lesefont: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "DejaVu Sans", sans-serif;
+      --grund: #020a04;
+      --gruen: #2bdc5a;
+      --gruen-hell: #c4ffd6;
+      --gruen-text: #7fdc97;
+      --gruen-blass: #4fb36d;
+      --linie: #1f7a40;
+      --rot: #ff2a2a;
+      --rand: 38px;
+    }
+
+    html { background: var(--grund); }
+    body {
+      margin: 0; min-height: 100vh;
+      font: 14px/1.4 var(--mono); color: var(--gruen-text); background: var(--grund);
+      -webkit-text-size-adjust: 100%;
+    }
+    body[data-profile="handy"] { --rand: 14px; }
+    a { color: var(--gruen); }
+
+    #seite { max-width: 1440px; margin: 0 auto; padding: 28px var(--rand) 40px; }
+
+    /* ===== Kopf ===== */
+    #kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 28px; margin-bottom: 22px; }
+    #kopf h1 {
+      margin: 0; font: 700 40px/1.1 var(--mono); letter-spacing: 0.02em;
+      color: #e4ffec; text-shadow: 0 0 10px rgba(43, 220, 90, 0.45);
+    }
+    #rolle { font-size: 18px; color: #4fd07a; }
+    .kopfLinks { margin-left: auto; display: flex; gap: 28px; font-size: 16px; }
+    #fuss { display: none; }
+
+    body[data-profile="handy"] #kopf { gap: 8px 14px; margin-bottom: 14px; }
+    body[data-profile="handy"] #kopf h1 { font-size: 26px; width: 100%; }
+    body[data-profile="handy"] #rolle { font-size: 14px; width: 100%; }
+    body[data-profile="handy"] #kopf .kopfLinks { display: none; }
+    body[data-profile="handy"] #fuss { display: flex; gap: 20px; margin-top: 14px; font-size: 14px; }
+
+    /* ===== Bühne =====
+       Immer gleich hoch (Q41): buehne.js setzt die Höhe aus Reihen × Zellgröße. Bis dahin eine
+       vorläufige, damit das erste Bild von seite.js kein Canvas der Höhe 0 zeichnet (das bricht
+       die Animation ab). */
+    #stage { position: relative; width: 100%; height: 300px; }
+    #maze { position: absolute; left: 0; top: 0; display: block; }
+    #answerText { display: none; }
+
+    /* ===== Zeitleiste ===== */
+    #zeitleiste { position: relative; margin-top: 10px; }
+    .zlStatus { padding: 14px 0; color: var(--gruen-blass); }
+    .zlStatus button { margin-left: 10px; }
+
+    /* [‹] [verschiebbarer Inhalt] [›] [Klappknopf] */
+    .zlRahmen { position: relative; display: flex; align-items: stretch; gap: 6px; }
+    .zlScroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--linie) transparent; }
+    .zlScroll.ziehbar { cursor: grab; }
+    .zlScroll.zieht { cursor: grabbing; user-select: none; }
+    .zlInhalt { position: relative; }
+    .zlPfeil {
+      flex: none; width: 34px; margin: 0; padding: 0; font: 20px/1 var(--mono); cursor: pointer;
+      color: var(--gruen); background: transparent; border: 1px solid var(--linie);
+    }
+    .zlRahmen.zu .zlPfeil { width: 28px; font-size: 16px; }
+    .zlPfeil:disabled { opacity: 0.3; cursor: default; }
+    body[data-profile="handy"] .zlPfeil { display: none; }
+
+    /* Der Klappknopf am rechten Ende, auf Höhe der Linie (Q42). */
+    .zlKlapp {
+      flex: none; align-self: flex-start; margin: 0; padding: 4px 10px; cursor: pointer; white-space: nowrap;
+      font: 13px/1.4 var(--mono); color: var(--gruen-text); background: var(--grund); border: 1px solid var(--linie);
+    }
+    .zlKlapp:hover, .zlKlapp:focus-visible { color: var(--gruen-hell); border-color: var(--gruen); outline: none; }
+    body[data-profile="handy"] .zlKlapp { padding: 4px 9px; font-size: 14px; }
+    body[data-profile="handy"] .zlKlappText { display: none; }
+
+    /* Aufgeklappt: Die Linie wird beim Erscheinen von links nach rechts gezogen. */
+    .zlAchse {
+      position: absolute; left: 0; height: 2px; background: var(--gruen);
+      box-shadow: 0 0 8px rgba(43, 220, 90, 0.6);
+      transform-origin: left center; transform: scaleX(0); transition: transform 0.9s ease-out;
+    }
+    .zlInhalt.da .zlAchse { transform: scaleX(1); }
+    .zlHeute { position: absolute; font: 700 15px/1 var(--mono); color: var(--rot); }
+
+    .zlStation { position: absolute; border-left: 2px solid var(--gruen); opacity: 0; transition: opacity 0.4s; }
+    .zlInhalt.da .zlStation { opacity: 1; }
+    .zlStation button, .zlBalken button, .zlZeile button {
+      font: inherit; color: inherit; background: none; border: none; margin: 0; cursor: pointer; text-align: left;
+    }
+    /* Nebeneinander, nichts versetzt (Q45): Die Station ist mindestens so breit wie ihre Beschriftung. */
+    .zlStation > button { display: block; padding: 6px 10px 4px 10px; width: max-content; }
+    .zlStation > button:hover, .zlStation > button:focus-visible { background: #0a2414; outline: none; }
+    .zlStation > button[aria-expanded="true"] { background: #0d2e19; }
+    .zlJahr { display: block; font: 700 20px/1.2 var(--mono); color: #e4ffec; }
+    .zlOrg { display: block; font-size: 15px; color: #4fd07a; }
+    .zlTitel { display: block; font: 14px/1.35 var(--lesefont); color: #9fdcb0; }
+    body[data-profile="handy"] .zlJahr { font-size: 17px; }
+    body[data-profile="handy"] .zlOrg { font-size: 13px; }
+    body[data-profile="handy"] .zlTitel { font-size: 13px; }
+
+    /* Engagements über der Linie (Q47): klein, die Beschriftung über einem dünnen Balken. */
+    .zlBalken { position: absolute; height: 26px; display: flex; flex-direction: column; justify-content: flex-end; opacity: 0; transition: opacity 0.4s 0.6s; }
+    .zlInhalt.da .zlBalken { opacity: 1; }
+    .zlBalken::after { content: ""; display: block; height: 3px; margin-bottom: 3px; background: rgba(43, 220, 90, 0.45); border-radius: 2px; }
+    .zlBalken button { display: block; width: max-content; padding: 1px 4px; font: 12px/1.3 var(--lesefont); color: #6cc485; white-space: nowrap; }
+    .zlBalken button:hover, .zlBalken button:focus-visible, .zlBalken button[aria-expanded="true"] { color: var(--gruen-hell); background: rgba(43, 220, 90, 0.1); outline: none; }
+
+    /* Zugeklappt: eine Zeile „Jahr Name“ auf der Linie (Q48). */
+    .zlZeile { display: flex; width: max-content; min-width: 100%; gap: 6px 4px; white-space: nowrap; padding: 6px 0 2px; border-top: 2px solid var(--gruen); }
+    .zlZeile button { padding: 2px 6px; font: 14px/1.4 var(--mono); color: var(--gruen-text); }
+    .zlZeile button.engagement { font-size: 13px; color: #3f9a5c; }
+    .zlZeile button:hover, .zlZeile button[aria-expanded="true"] { color: var(--gruen-hell); background: rgba(43, 220, 90, 0.1); }
+    .zlZeile .trenner { color: var(--linie); align-self: center; }
+    .zlZeile .heute { color: var(--rot); align-self: center; padding: 0 6px; }
+
+    /* ===== Stationsmenü ===== */
+    #stationsMenue {
+      position: absolute; z-index: 20; width: min(460px, calc(100vw - 2 * var(--rand)));
+      padding: 12px 0 8px; background: #04140a; border: 1px solid var(--linie);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    }
+    #stationsMenue .kopfzeile { padding: 0 14px 8px; font: 12px/1.4 var(--mono); color: var(--gruen-blass); }
+    #stationsMenue ul { list-style: none; margin: 0; padding: 0; }
+    #stationsMenue li button {
+      display: block; width: 100%; margin: 0; padding: 7px 14px 7px 28px; position: relative; cursor: pointer;
+      text-align: left; font: 15px/1.4 var(--lesefont); color: var(--gruen-hell); background: none; border: none;
+    }
+    #stationsMenue li button::before { content: "›"; position: absolute; left: 13px; color: var(--rot); }
+    #stationsMenue li button:hover, #stationsMenue li button:focus-visible { background: rgba(43, 220, 90, 0.1); outline: none; }
+    #stationsMenue li:first-child button { font-weight: 600; }
+
+    /* ===== Antwort, Folgefragen, Fragefeld ===== */
+    #antwortBereich { max-width: 900px; margin-top: 26px; font: 19px/1.45 var(--lesefont); color: var(--gruen-text); }
+    body[data-profile="handy"] #antwortBereich { font-size: 16px; margin-top: 18px; }
+    #antwortBereich p { margin: 0 0 0.6em; }
+    #antwortBereich .frage { font: 13px/1.4 var(--mono); letter-spacing: 0.03em; color: var(--gruen-blass); margin-bottom: 0.5em; }
+    #antwortBereich .antwort { transition: opacity 0.25s; }
+    #antwortBereich.wartet .antwort { opacity: 0.4; }
+    #antwortBereich .denkt { font: 15px/1.4 var(--mono); color: var(--gruen-blass); }
+    #antwortBereich .denkt::after { content: "…"; animation: blinken 1s steps(2) infinite; }
+    @keyframes blinken { 50% { opacity: 0; } }
+
+    #folgefragen { display: flex; flex-wrap: wrap; gap: 10px; max-width: 900px; margin: 6px 0 14px; }
+    #folgefragen button {
+      margin: 0; padding: 7px 12px; cursor: pointer; text-align: left;
+      font: 15px/1.35 var(--mono); color: var(--gruen-hell); background: transparent; border: 1px solid var(--linie);
+    }
+    #folgefragen button:hover, #folgefragen button:focus-visible { background: rgba(43, 220, 90, 0.1); border-color: var(--gruen); outline: none; }
+
+    #askForm { display: flex; gap: 10px; max-width: 900px; margin-top: 12px; }
+    #question {
+      flex: 1; min-width: 0; height: 50px; padding: 0 16px; margin: 0;
+      font: 18px var(--mono); color: #33ff66; caret-color: var(--rot);
+      background: var(--grund); border: 1px solid var(--linie); border-radius: 0;
+    }
+    #question::placeholder { color: #2f8f4d; opacity: 1; }
+    #question:focus { outline: none; border-color: #33ff66; box-shadow: 0 0 10px rgba(43, 220, 90, 0.5); }
+    #send {
+      height: 50px; margin: 0; padding: 0 22px; cursor: pointer;
+      font: 700 18px var(--mono); color: #03140a; background: var(--gruen); border: 1px solid var(--gruen); border-radius: 0;
+    }
+    #send:hover { background: #33ff66; }
+    .datenschutz { max-width: 900px; margin: 8px 0 0; font-size: 12px; color: var(--gruen-blass); }
+
+    /* ===== Schalter und Regler (nur Prototyp) ===== */
+    #toggleControls {
+      position: fixed; right: 14px; bottom: 14px; z-index: 40; width: auto; margin: 0; padding: 10px 14px;
+      font: 600 13px var(--mono); color: var(--gruen-hell); background: #0a2a15; border: 1px solid var(--gruen); cursor: pointer;
+    }
+    #controls {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; width: 340px; overflow-y: auto;
+      background: rgba(4, 20, 10, 0.97); border-left: 1px solid var(--linie);
+    }
+    body[data-profile="handy"] #controls { top: auto; left: 0; width: auto; max-height: 70vh; border-left: none; border-top: 1px solid var(--gruen); }
+    #controlsHead {
+      position: sticky; top: 0; z-index: 1; display: flex; gap: 8px; align-items: center;
+      padding: 10px 16px; background: #062010; border-bottom: 1px solid var(--linie);
+    }
+    #controlsHead div { flex: 1; min-width: 0; }
+    #controls #controlsHead button { width: auto; margin: 0; padding: 8px 12px; }
+    /* Bei offenem Bedienfeld schließt der Knopf „Schließen“ darin; der Knopf „Schalter“ läge darunter. */
+    #toggleControls[aria-expanded="true"] { display: none; }
+    #frameRate { color: #33ff66; font-weight: 600; }
+    #frameRateDetail, #profileInfo { font-size: 12px; opacity: 0.7; }
+    #controlsBody { padding: 16px; }
+    #controls h2 { margin: 20px 0 8px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
+    #controls h2:first-child { margin-top: 0; }
+    #controls h2.p11 { opacity: 1; color: var(--rot); }
+    #controls label { display: block; margin-bottom: 10px; }
+    #controls label span { float: right; opacity: 0.6; }
+    #controls .hint { font-size: 12px; opacity: 0.7; margin: 0 0 10px; }
+    #controls input[type=text], #controls input[type=number], #controls select, #controls textarea {
+      width: 100%; padding: 8px; margin-top: 4px;
+      font: inherit; font-size: 16px; color: inherit; background: var(--grund); border: 1px solid #14502a; border-radius: 2px;
+    }
+    #controls textarea { font-size: 12px; white-space: pre; }
+    #controls input[type=range] { width: 100%; margin: 4px 0 0; accent-color: #33ff66; }
+    #controls input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; accent-color: #33ff66; }
+    #controls input[type=color] { float: right; width: 44px; height: 24px; padding: 0; border: none; background: none; }
+    #controls button, .zlStatus button {
+      width: 100%; padding: 10px; margin-bottom: 6px; font: inherit; color: inherit; cursor: pointer;
+      background: #0a2a15; border: 1px solid #14502a; border-radius: 2px;
+    }
+    .zlStatus button { width: auto; padding: 6px 12px; }
+    #controls button:hover { background: #0f3d1f; }
+    #controls .linkKnoepfe { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    #controls .linkKnoepfe button { width: auto; margin: 0; padding: 6px 8px; font-size: 12px; }
+    #pageStatus { font-size: 16px; font-weight: 600; color: #33ff66; }
+    #status, #exchange { font-size: 12px; opacity: 0.7; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div id="seite">
+    <header id="kopf">
+      <h1>Christian Hörauf</h1>
+      <div id="rolle">Softwareentwickler · seit 2004</div>
+      <div class="kopfLinks">
+        <a href="#" class="pdfLink" title="Den Endpunkt für das PDF gibt es noch nicht">Lebenslauf als PDF ↓</a>
+        <a href="https://christianhoerauf.de/impressum.html#kontakt">Kontakt</a>
+      </div>
+    </header>
+
+    <main>
+      <div id="stage">
+        <canvas id="maze" aria-hidden="true"></canvas>
+        <div id="answerText" hidden></div>
+        <div id="spokenAnswer" class="visuallyHidden"></div>
+      </div>
+
+      <section id="zeitleiste" aria-label="Stationen"></section>
+
+      <section id="antwortBereich" aria-live="polite" aria-label="Antwort"></section>
+      <div id="folgefragen" aria-label="Folgefragen"></div>
+
+      <form id="askForm" autocomplete="off">
+        <input type="text" id="question" placeholder="Ihre Frage …" aria-label="Ihre Frage" lang="de"
+               maxlength="500" enterkeyhint="send" autocapitalize="sentences" autocorrect="on" spellcheck="true">
+        <button type="submit" id="send">Senden</button>
+        <button type="button" id="replayAnswer" hidden>Nochmal</button>
+      </form>
+      <p class="datenschutz">Fragen beantwortet ein Sprachmodell bei AWS in Frankfurt. Bitte keine persönlichen
+        Daten eingeben. <a href="https://christianhoerauf.de/datenschutz.html">Datenschutz</a> ·
+        <a href="https://christianhoerauf.de/impressum.html">Impressum</a></p>
+
+      <footer id="fuss">
+        <a href="#" class="pdfLink" title="Den Endpunkt für das PDF gibt es noch nicht">Lebenslauf als PDF ↓</a>
+        <a href="https://christianhoerauf.de/impressum.html#kontakt">Kontakt</a>
+      </footer>
+    </main>
+  </div>
+
+  <button type="button" id="toggleControls" aria-controls="controls" aria-expanded="false">Schalter</button>
+
+  <div id="controls" hidden>
+    <div id="controlsHead">
+      <div>
+        <div id="frameRate">– Bilder pro Sekunde</div>
+        <div id="frameRateDetail"></div>
+      </div>
+      <button type="button" id="closeControls">Schließen</button>
+    </div>
+
+    <div id="controlsBody">
+      <h2 class="p11">Prototyp 12: Schalter</h2>
+      <label>Höhe der Bühne (gilt sofort)
+        <select id="p12Reihen">
+          <option value="10">10 Reihen: eine Zeile Stichwort</option>
+          <option value="14" selected>14 Reihen: eine Zeile, mehr Labyrinth</option>
+          <option value="18">18 Reihen: zwei Zeilen (wie Prototyp 11 im Werdegang)</option>
+        </select>
+      </label>
+      <p class="hint">Aus Prototyp 11 (Grilling 06./07.11.): Laufrichtung, Lage und Wiederholung gelten ab der
+        nächsten Antwort; „Jetzt neu aufbauen“ zeigt sie sofort an der aktuellen.</p>
+      <button type="button" id="p11NeuAufbauen">Jetzt neu aufbauen</button>
+      <label>Laufrichtung
+        <select id="p11Laufrichtung">
+          <option value="gerade">1 · links → rechts, gerade auf Höhe der Schrift</option>
+          <option value="zufall">2 · Ränder zufällig (wie Prototyp 6)</option>
+          <option value="obenunten">3 · hinein und hinaus oben oder unten</option>
+          <option value="hoehe">4 · links → rechts, zufällige Höhe, mehr Umwege</option>
+        </select>
+      </label>
+      <label>Lage des Worts
+        <select id="p11Lage">
+          <option value="startwert">vom Startwert gewählt (links, Mitte, rechts)</option>
+          <option value="mitte">mittig</option>
+          <option value="links">linksbündig</option>
+        </select>
+      </label>
+      <label>Tempo-Faktor <span data-for="p11Tempo"></span>
+        <input type="range" id="p11Tempo" min="0.5" max="4" step="0.25" value="1.5">
+      </label>
+      <label>Pause zwischen Durchläufen (Sekunden) <span data-for="p11Pause"></span>
+        <input type="range" id="p11Pause" min="0" max="8" step="0.5" value="2">
+      </label>
+      <label>Durchläufe (0 = endlos) <span data-for="p11Durchlaeufe"></span>
+        <input type="range" id="p11Durchlaeufe" min="0" max="6" step="1" value="3">
+      </label>
+      <label>Bei Wiederholung
+        <select id="p11Labyrinth">
+          <option value="gleich">gleiches Labyrinth nochmal</option>
+          <option value="neu">jedes Mal ein neues (schiebt weiter)</option>
+        </select>
+      </label>
+      <label>Wort bleibt stehen
+        <select id="p11Stehen">
+          <option value="danach">nach dem letzten Durchlauf</option>
+          <option value="immer">immer</option>
+          <option value="nie">nie (verglimmt)</option>
+        </select>
+      </label>
+      <label>Dunkle Ecken
+        <select id="p11Ecken">
+          <option value="20">schwach</option>
+          <option value="0">aus</option>
+          <option value="55">stark (wie Prototyp 6)</option>
+        </select>
+      </label>
+      <p class="hint" id="p11Bewegung"></p>
+
+      <h2 class="p11">Daten und Bot</h2>
+      <label>Lebenslauf laden
+        <select id="p11Lebenslauf">
+          <option value="echt">echt (sonst Schnappschuss)</option>
+          <option value="langsam">echt, aber 3 s verzögert</option>
+          <option value="fehler">scheitert</option>
+        </select>
+      </label>
+      <button type="button" id="p11LebenslaufNeu">Lebenslauf neu laden</button>
+      <label>Nächste Antwort des Bots
+        <select id="p11Bot">
+          <option value="reihe">der Reihe nach (vorgetäuscht)</option>
+          <option value="404">HTTP 404</option>
+          <option value="500">HTTP 500</option>
+          <option value="503">HTTP 503</option>
+          <option value="OFFLINE">keine Verbindung</option>
+          <option value="TIMEOUT">Zeitüberschreitung</option>
+        </select>
+      </label>
+      <p class="hint">Begrüßung mit persönlichem Link (lädt die Seite neu):</p>
+      <div class="linkKnoepfe" id="p11Links"></div>
+
+      <h2>Frage und Antwort</h2>
+      <div id="pageStatus"></div>
+      <div id="exchange"></div>
+      <div id="status"></div>
+      <p class="hint">Testhilfe: Beginnt die Frage mit <b>=</b>, wird der Rest wörtlich geschrieben,
+        z. B. <b>=HALLO WELT</b>. Erlaubt sind A–Z, ÄÖÜ, 0–9, Bindestrich, Punkt und Fragezeichen.
+        Ein <b>|</b> markiert eine Trennstelle: <b>=INTER|NET|PRÄ|SENZ</b>.</p>
+      <button type="button" id="replay">Antwort nochmal abspielen</button>
+      <button type="button" id="skipPage">Diese Seite überspringen</button>
+      <label>
+        <input type="checkbox" id="showAnswerAsText"> Antwort am Ende zusätzlich als Text zeigen
+      </label>
+      <label>
+        <input type="checkbox" id="blurInputAfterSending"> Nach dem Senden die Tastatur schließen
+      </label>
+      <label>Neue Frage mitten im Schreiben: Rest so viel mal schneller <span data-for="rushFactor"></span>
+        <input type="range" id="rushFactor" min="1" max="20">
+      </label>
+
+      <h2>Geräteprofil</h2>
+      <div id="profileInfo" class="hint"></div>
+      <label>Regler füllen mit den Werten von
+        <select id="profile"></select>
+      </label>
+      <button type="button" id="showConfig">Aktuelle Werte als Config anzeigen und kopieren</button>
+      <div id="configStatus" class="hint"></div>
+      <textarea id="configText" rows="12" readonly hidden></textarea>
+
+      <h2>Tempo</h2>
+      <label>Tempo in Buchstaben (Zellen pro Sekunde) <span data-for="speed"></span>
+        <input type="range" id="speed" min="5" max="200">
+      </label>
+      <label>Auf Verbindungswegen so viel mal schneller <span data-for="connectorSpeedFactor"></span>
+        <input type="range" id="connectorSpeedFactor" min="1" max="8" step="0.5">
+      </label>
+
+      <h2>Leuchtspur (Nachleuchten)</h2>
+      <label>Leuchtet voll für (Sekunden) <span data-for="holdSeconds"></span>
+        <input type="range" id="holdSeconds" min="0" max="10" step="0.1">
+      </label>
+      <label>Blendet danach aus innerhalb von (Sekunden) <span data-for="fadeSeconds"></span>
+        <input type="range" id="fadeSeconds" min="0" max="10" step="0.1">
+      </label>
+      <label>Rest-Helligkeit danach (%, 100 = Text bleibt stehen) <span data-for="restBrightness"></span>
+        <input type="range" id="restBrightness" min="0" max="100">
+      </label>
+
+      <h2>Zeilenwechsel</h2>
+      <label>Höhe des Bands für den Rückweg (1 = gerade wie in Prototyp 5) <span data-for="returnBandRows"></span>
+        <input type="range" id="returnBandRows" min="1" max="4">
+      </label>
+      <label>Windungen des Rückwegs <span data-for="returnWindiness"></span>
+        <input type="range" id="returnWindiness" min="0" max="100">
+      </label>
+      <label>Gerade Wand darunter höchstens so viele Zellen lang (0 = nicht unterbrechen) <span data-for="maxWallRun"></span>
+        <input type="range" id="maxWallRun" min="0" max="12">
+      </label>
+
+      <h2>Labyrinth</h2>
+      <label>Zufalls-Startwert (bestimmt nur die Form des Labyrinths)
+        <input type="number" id="seed">
+      </label>
+      <button type="button" id="newSeed">Neues Labyrinth (neuer Startwert)</button>
+      <label>Feste Spaltenzahl (0 = Zellgröße gilt) <span data-for="cellColumns"></span>
+        <input type="range" id="cellColumns" min="0" max="80">
+      </label>
+      <label>Zellgröße (nur bei Spaltenzahl 0) <span data-for="cellSize"></span>
+        <input type="range" id="cellSize" min="8" max="48">
+      </label>
+      <label>Gewundenheit der Gänge <span data-for="windiness"></span>
+        <input type="range" id="windiness" min="0" max="100">
+      </label>
+      <label>Wandstärke <span data-for="wallWidth"></span>
+        <input type="range" id="wallWidth" min="0.5" max="12" step="0.5">
+      </label>
+
+      <h2>Lichtpunkt und Spur</h2>
+      <label>Sichtbarkeit der Verbindungswege (%) <span data-for="connectorOpacity"></span>
+        <input type="range" id="connectorOpacity" min="0" max="100">
+      </label>
+      <label>Spurstärke <span data-for="trailWidth"></span>
+        <input type="range" id="trailWidth" min="1" max="16" step="0.5">
+      </label>
+      <label>Leuchten der Spur <span data-for="glow"></span>
+        <input type="range" id="glow" min="0" max="40">
+      </label>
+      <label>Heller Kern der Spur (%) <span data-for="trailCore"></span>
+        <input type="range" id="trailCore" min="0" max="100">
+      </label>
+      <label>
+        <input type="checkbox" id="showPlannedPath"> Geplanten Weg gestrichelt zeigen
+      </label>
+
+      <h2>Monitor</h2>
+      <label>Überstrahlen: Reichweite <span data-for="bloomRadius"></span>
+        <input type="range" id="bloomRadius" min="0" max="24">
+      </label>
+      <label>Überstrahlen: Stärke (%) <span data-for="bloomStrength"></span>
+        <input type="range" id="bloomStrength" min="0" max="100">
+      </label>
+      <label>Zeilenraster (%) <span data-for="scanlineStrength"></span>
+        <input type="range" id="scanlineStrength" min="0" max="100">
+      </label>
+      <label>Dunkle Ecken (%) <span data-for="vignetteStrength"></span>
+        <input type="range" id="vignetteStrength" min="0" max="100">
+      </label>
+      <label>Flimmern (%) <span data-for="flickerStrength"></span>
+        <input type="range" id="flickerStrength" min="0" max="100">
+      </label>
+      <label>Bildstörungen pro Minute <span data-for="glitchesPerMinute"></span>
+        <input type="range" id="glitchesPerMinute" min="0" max="60">
+      </label>
+      <label>Stärke der Störung (Versatz in Pixeln) <span data-for="glitchStrength"></span>
+        <input type="range" id="glitchStrength" min="0" max="60">
+      </label>
+      <button type="button" id="glitchNow">Störung jetzt auslösen</button>
+
+      <h2>Seiten</h2>
+      <label>Höchstens Zeilen pro Seite <span data-for="maxLinesPerPage"></span>
+        <input type="range" id="maxLinesPerPage" min="1" max="12">
+      </label>
+      <label>Dauer des Weiterschiebens (Sekunden) <span data-for="scrollSeconds"></span>
+        <input type="range" id="scrollSeconds" min="0" max="4" step="0.1">
+      </label>
+
+      <h2>Eingang und Ausgang</h2>
+      <label>Lichtpunkt kommt nach dem Laden von
+        <select id="entranceSide">
+          <option value="random">zufällig</option>
+          <option value="left">links</option>
+          <option value="top">oben</option>
+          <option value="bottom">unten</option>
+        </select>
+      </label>
+      <label>Lichtpunkt verlässt jede Seite nach
+        <select id="exitSide">
+          <option value="random">zufällig</option>
+          <option value="right">rechts</option>
+          <option value="top">oben</option>
+          <option value="bottom">unten</option>
+        </select>
+      </label>
+      <label>Umwege bei An- und Ablauf <span data-for="detour"></span>
+        <input type="range" id="detour" min="0" max="100">
+      </label>
+
+      <h2>Farben</h2>
+      <label>Hintergrund <input type="color" id="backgroundColor"></label>
+      <label>Wände <input type="color" id="wallColor"></label>
+      <label>Spur <input type="color" id="trailColor"></label>
+      <label>Lichtpunkt <input type="color" id="dotColor"></label>
+
+      <h2>Leistung</h2>
+      <label>Höchste Pixeldichte (kleiner = unschärfer, aber schneller) <span data-for="maxPixelRatio"></span>
+        <input type="range" id="maxPixelRatio" min="1" max="4" step="0.5">
+      </label>
+    </div>
+  </div>
+
+
+  <!-- Labyrinth und Seite aus Prototyp 6. vorher.js muss vor seite.js stehen (seite.js startet
+       beim Laden sofort), alles aus diesem Ordner danach (es ersetzt Funktionen aus seite.js). -->
+  <script src="../06-frage-antwort/config.js"></script>
+  <script src="../06-frage-antwort/schrift.js"></script>
+  <script src="../06-frage-antwort/labyrinth.js"></script>
+  <script src="../06-frage-antwort/antworten.js"></script>
+  <script src="../06-frage-antwort/einstellungen.js"></script>
+  <script src="vorher.js"></script>
+  <script src="../06-frage-antwort/seite.js"></script>
+  <script src="lebenslauf-schnappschuss.js"></script>
+  <script src="inhalte.js"></script>
+  <script src="buehne.js"></script>
+  <script src="zeitleiste.js"></script>
+  <script src="oberflaeche.js"></script>
+</body>
+</html>
