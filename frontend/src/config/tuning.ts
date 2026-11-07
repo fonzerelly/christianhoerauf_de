@@ -77,6 +77,8 @@ export interface Tuning {
   readonly stageSizing: { readonly columns: number } | { readonly cellSize: number };
   /** So viele Reihen hoch ist die Bühne; ihre Höhe ist Reihen × Zellgröße (ADR 0007). */
   readonly stageRows: number;
+  /** Weniger Pixel je Jahr bekommt die Zeitleiste nie (sonst kleben kurze Stationen zusammen). */
+  readonly timelineMinPixelsPerYear: number;
 
   // Gerät
   /** Höchste Pixeldichte des Bildes; kleiner ist unschärfer, aber schneller. */
@@ -137,6 +139,7 @@ const BASE: Tuning = {
   wallWidth: 2,
   stageSizing: { cellSize: 16 },
   stageRows: 15,
+  timelineMinPixelsPerYear: 34,
   maxPixelRatio: 3,
   blurInputAfterSending: false,
   restingDistance: 2,
@@ -161,6 +164,7 @@ export const TUNING: Readonly<Record<ProfileName, Tuning>> = {
     blurInputAfterSending: true,
     stageSizing: { columns: 45 },
     stageRows: 18,
+    timelineMinPixelsPerYear: 22,
     wallWidth: 1.1,
     bloomRadius: 2.5,
     bloomStrength: 0.7,

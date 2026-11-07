@@ -54,7 +54,7 @@ export interface HttpCvSourceSettings {
   /** Adresse von `/lebenslauf` (siehe `cvUrlOf`). */
   readonly url: string;
   /** Die Variante aus dem persönlichen Link; ohne kommt der ganze Lebenslauf. */
-  readonly variant?: number;
+  readonly variant?: number | undefined;
   readonly fetchFunction: (
     url: string,
   ) => Promise<{ readonly ok: boolean; readonly status: number; json(): Promise<unknown> }>;

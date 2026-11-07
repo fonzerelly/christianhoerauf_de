@@ -50,6 +50,8 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 | `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                                |
 | `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                         |
 
+Seit Schritt 12.9 steht unter der Bühne die Zeitleiste: Die Test-Hooks nennen `cvUrl` und ein
+festes `today` (2026,5); Playwright liefert dort `tests/fixtures/lebenslauf.json` (ausgedacht).
 Seit Schritt 12.5 schreibt der Lichtpunkt nur das Stichwort. Die Begrüßung baut die Seite selbst
 (ohne persönlichen Link „HALLO“); jeder Test fragt deshalb „zeige“ (`askToShow`) und fotografiert
 das Stichwort der Antwort. Die Stichwörter haben höchstens 10 Zeichen, damit sie auch am Handy auf

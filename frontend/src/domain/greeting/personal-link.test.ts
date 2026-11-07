@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { checksumOf, fnv1a, readPersonalLink } from "./personal-link";
+import { checksumOf, fnv1a, readPersonalLink, variantOf } from "./personal-link";
 
 /** Dieselben Beispiele, mit denen das Backend den Link baut (backend/tests/domain/test_personal_link.py). */
 interface Examples {
@@ -59,5 +59,13 @@ describe("readPersonalLink", () => {
     const fragment = btoa(text).replace(/=+$/, "");
 
     expect(readPersonalLink(`#${fragment}`)).toEqual({ kind: "valid", variant: 7, name });
+  });
+});
+
+describe("variantOf", () => {
+  it("ist die Nummer eines gültigen Links, sonst keine (dann kommt der ganze Lebenslauf)", () => {
+    expect(variantOf({ kind: "valid", variant: 4711, name: "Frau Muster" })).toBe(4711);
+    expect(variantOf({ kind: "broken" })).toBeUndefined();
+    expect(variantOf({ kind: "none" })).toBeUndefined();
   });
 });

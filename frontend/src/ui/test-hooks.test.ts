@@ -24,6 +24,22 @@ describe("readTestHooks", () => {
     expect(hooks?.tuning).toEqual({ holdSeconds: 600 });
   });
 
+  it("liest eine Adresse für den Lebenslauf und ein festes „heute“ (Zeitleiste ohne Backend und ohne Datum)", () => {
+    const hooks = readTestHooks({
+      labyrinthTestHooks: { ...VALID, cvUrl: "/test-lebenslauf", today: 2026.5 },
+    });
+
+    expect(hooks?.cvUrl).toBe("/test-lebenslauf");
+    expect(hooks?.today).toBe(2026.5);
+  });
+
+  it("kommt ohne Lebenslauf-Adresse und ohne „heute“ aus", () => {
+    const hooks = readTestHooks({ labyrinthTestHooks: VALID });
+
+    expect(hooks?.cvUrl).toBeUndefined();
+    expect(hooks?.today).toBeUndefined();
+  });
+
   it("kommt ohne Abstimmungswerte aus", () => {
     expect(readTestHooks({ labyrinthTestHooks: VALID })?.tuning).toEqual({});
   });
@@ -41,6 +57,8 @@ describe("readTestHooks", () => {
     ["Aufgaben-Einreihung fehlt", { ...VALID, scheduleTask: undefined }],
     ["Startwert ist keine Zahl", { ...VALID, randomSeed: "7" }],
     ["Abstimmungswerte sind kein Objekt", { ...VALID, tuning: 5 }],
+    ["Lebenslauf-Adresse ist kein Text", { ...VALID, cvUrl: 5 }],
+    ["„heute“ ist keine Zahl", { ...VALID, today: "2026" }],
   ])("liefert nichts, wenn die Bereitstellung unvollständig ist: %s", (_name, hooks) => {
     expect(readTestHooks({ labyrinthTestHooks: hooks })).toBeUndefined();
   });

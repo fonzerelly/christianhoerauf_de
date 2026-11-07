@@ -71,3 +71,8 @@ export function readPersonalLink(fragment: string): PersonalLink {
   if (checksum !== checksumOf(variant, name)) return { kind: "broken" };
   return { kind: "valid", variant, name };
 }
+
+/** Die Variante des Lebenslaufs aus einem gültigen Link; sonst keine (dann der ganze, Q23). */
+export function variantOf(link: PersonalLink): number | undefined {
+  return link.kind === "valid" ? link.variant : undefined;
+}

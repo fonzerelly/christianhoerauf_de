@@ -17,6 +17,10 @@ export interface TestHooks {
   readonly randomSeed: number;
   /** Abstimmungswerte, die den Wert des Geräteprofils ersetzen (leer, wenn der Test keine ersetzen will). */
   readonly tuning: Partial<Tuning>;
+  /** Woher die Zeitleiste den Lebenslauf holt (statt vom Backend); fehlt, wenn der Test keine will. */
+  readonly cvUrl?: string;
+  /** Ein festes „heute“ als Jahr, damit die Zeitleiste nicht vom Datum abhängt. */
+  readonly today?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -28,14 +32,16 @@ export function readTestHooks(scope: object): TestHooks | undefined {
   const hooks = (scope as { labyrinthTestHooks?: unknown }).labyrinthTestHooks;
   if (!isRecord(hooks)) return undefined;
 
-  const { clock, requestFrame, scheduleTask, randomSeed, tuning = {} } = hooks;
+  const { clock, requestFrame, scheduleTask, randomSeed, tuning = {}, cvUrl, today } = hooks;
   const hasClock = isRecord(clock) && typeof clock.now === "function";
   if (
     !hasClock ||
     typeof requestFrame !== "function" ||
     typeof scheduleTask !== "function" ||
     typeof randomSeed !== "number" ||
-    !isRecord(tuning)
+    !isRecord(tuning) ||
+    (cvUrl !== undefined && typeof cvUrl !== "string") ||
+    (today !== undefined && typeof today !== "number")
   ) {
     return undefined;
   }
@@ -45,5 +51,7 @@ export function readTestHooks(scope: object): TestHooks | undefined {
     requestFrame: requestFrame as TestHooks["requestFrame"],
     scheduleTask: scheduleTask as TestHooks["scheduleTask"],
     randomSeed,
+    ...(cvUrl === undefined ? {} : { cvUrl }),
+    ...(today === undefined ? {} : { today }),
   };
 }

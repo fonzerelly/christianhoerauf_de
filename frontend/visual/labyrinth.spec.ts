@@ -2,7 +2,8 @@
 // mit einer Uhr, die nur auf Befehl weiterläuft, und festem Startwert für Flimmern und
 // Bildstörung. So zeigt jedes Bild genau denselben Augenblick der Animation.
 //
-// Die Antworten liefert Playwright aus den Dateien unter `fixtures/` (statt `content.json`). Die
+// Die Antworten liefert Playwright aus den Dateien unter `fixtures/` (statt `content.json`), den
+// Lebenslauf für die Zeitleiste aus `tests/fixtures/lebenslauf.json` (ausgedacht). Die
 // Begrüßung baut die Seite selbst (ohne persönlichen Link: „HALLO“). Die Tests fragen „zeige“; die
 // Antwort darauf hat ein Stichwort, das auf eine Labyrinth-Seite passt (höchstens 10 Zeichen, so
 // viele wie am Handy in eine Zeile passen), außer in `mehrere-seiten`.
@@ -47,6 +48,10 @@ function installTestHooks(tuning: Record<string, number>): void {
     },
     randomSeed: 2026,
     tuning,
+    // Der ausgedachte Lebenslauf (tests/fixtures/lebenslauf.json) und ein festes „heute“: So hängt
+    // die Zeitleiste weder vom Backend noch vom Datum ab.
+    cvUrl: "test-lebenslauf.json",
+    today: 2026.5,
     /** Stellt die Uhr um `seconds` weiter, in Bildern zu höchstens `step` Sekunden. */
     advance: (seconds: number, step = 0.05) => {
       let left = seconds;
@@ -77,6 +82,9 @@ async function open(
   await page.addInitScript(installTestHooks, tuning);
   await page.route("**/content.json", (route) =>
     route.fulfill({ path: `visual/fixtures/${fixture}.json` }),
+  );
+  await page.route("**/test-lebenslauf.json", (route) =>
+    route.fulfill({ path: "tests/fixtures/lebenslauf.json" }),
   );
   await page.goto("/");
   // Bilder anstoßen, bis die Begrüßung da ist: Sie kommt über das Netz, die Uhr steht still.

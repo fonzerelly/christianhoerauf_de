@@ -64,3 +64,10 @@ describe("Stichwort sichtbar machen (ADR 0007, gewählt mit Prototyp 12)", () =>
     },
   );
 });
+
+describe("Zeitleiste (Prototyp 12)", () => {
+  it("hat am Desktop mindestens 34, am Handy 22 Pixel je Jahr", () => {
+    expect(TUNING.desktop.timelineMinPixelsPerYear).toBe(34);
+    expect(TUNING.handy.timelineMinPixelsPerYear).toBe(22);
+  });
+});

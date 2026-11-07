@@ -1,0 +1,162 @@
+import { describe, expect, it } from "vitest";
+import type { Station, Stations } from "../../domain/cv/stations";
+import { layOutExpanded } from "../../domain/timeline/scale";
+import { FakeElement, fakeDocument } from "../../test-support/fake-dom";
+import { TimelineView } from "./timeline-view";
+
+const TODAY = 2026;
+
+/** Das erste Element mit der Klasse, sonst ein leeres (dann scheitert die Erwartung daran). */
+function first(root: FakeElement, className: string): FakeElement {
+  return root.findAll(className)[0] ?? new FakeElement("fehlt");
+}
+
+function station(id: number, from: number, extra: Partial<Station> = {}): Station {
+  return {
+    id,
+    section: "beruf",
+    time: String(from),
+    title: `Titel ${String(id)}`,
+    bulletPoints: [],
+    from,
+    to: from + 1,
+    ...extra,
+  };
+}
+
+const STATIONS: Stations = {
+  careerStart: 2010,
+  mainTrack: [
+    station(0, 2000, { section: "schule", title: "Schule" }),
+    station(1, 2010, { organization: "Beispiel AG", title: "Entwicklerin" }),
+  ],
+  engagements: [
+    station(2, 2015, {
+      section: "lehre",
+      title: "Lehrauftrag, nebenher",
+      organization: "Hochschule",
+      time: "2015 – heute",
+    }),
+  ],
+};
+
+function setup() {
+  const container = new FakeElement("section");
+  container.hidden = true;
+  const view = new TimelineView({
+    document: fakeDocument,
+    container,
+    measureWidth: () => 100,
+    measureHeight: () => 60,
+    visibleWidth: () => 800,
+    scrollWidth: () => 1234,
+    minPixelsPerYear: 34,
+    today: TODAY,
+  });
+  return { container, view };
+}
+
+describe("TimelineView", () => {
+  it("sagt, dass die Stationen geladen werden", () => {
+    const { container, view } = setup();
+
+    view.showLoading();
+
+    expect(container.hidden).toBe(false);
+    expect(container.childTexts()).toEqual(["timeline-status: Stationen werden geladen …"]);
+  });
+
+  it("sagt, wenn die Stationen nicht erreichbar sind, und lässt es nochmal versuchen", () => {
+    const { container, view } = setup();
+    let retries = 0;
+
+    view.showError(() => {
+      retries++;
+    });
+
+    expect(container.allText()).toBe(
+      "Die Stationen sind gerade nicht erreichbar.Nochmal versuchen",
+    );
+    first(container, "timeline-retry").click();
+    expect(retries).toBe(1);
+  });
+
+  describe("aufgeklappt", () => {
+    const { container, view } = setup();
+    view.showStations(STATIONS);
+    const layout = layOutExpanded(
+      STATIONS,
+      [112, 112],
+      {
+        availableWidth: 800,
+        minPixelsPerYear: 34,
+        todaySpace: 64,
+        labelAir: 12,
+        minEngagementWidth: 40,
+      },
+      TODAY,
+    );
+
+    it("zeigt je Station Jahr, Organisation und Titel als Knopf", () => {
+      const buttons = container.findAll("timeline-station-button");
+
+      expect(buttons.map((button) => button.allText())).toEqual([
+        "2000Schule",
+        "2010Beispiel AGEntwicklerin",
+      ]);
+      expect(buttons.map((button) => button.attributes.get("data-station"))).toEqual(["0", "1"]);
+      expect(buttons[0]?.attributes.get("type")).toBe("button");
+    });
+
+    it("legt die Stationen nach dem Maßstab unter die Linie (Beschriftung 100 px + 12 px Luft)", () => {
+      const stations = container.findAll("timeline-station");
+
+      expect(
+        stations.map((element) => [element.styleOf("left"), element.styleOf("width")]),
+      ).toEqual(layout.sections.map(({ x, width }) => [`${String(x)}px`, `${String(width)}px`]));
+      expect(stations[0]?.styleOf("top")).toBe("28px");
+    });
+
+    it("stellt Engagements über die Linie, beschriftet mit Titel und Organisation, ganz im Tooltip", () => {
+      const engagement = first(container, "timeline-engagement");
+      const button = first(engagement, "timeline-engagement-button");
+      const [placed = { left: -1, maxLabelWidth: -1 }] = layout.engagements;
+
+      expect(button.textContent).toBe("Lehrauftrag · Hochschule");
+      expect(button.attributes.get("title")).toBe("2015 – heute · Lehrauftrag · Hochschule");
+      expect(button.attributes.get("aria-label")).toBe("Lehrauftrag · Hochschule, 2015 – heute");
+      expect(engagement.styleOf("left")).toBe(`${String(placed.left)}px`);
+      expect(engagement.styleOf("top")).toBe("2px");
+      expect(button.styleOf("max-width")).toBe(`${String(placed.maxLabelWidth)}px`);
+    });
+
+    it("zieht die Linie bis zum Ende und stellt „heute“ dahinter", () => {
+      const axis = first(container, "timeline-axis");
+      const today = first(container, "timeline-today");
+
+      expect(axis.styleOf("width")).toBe(`${String(layout.lineEnd)}px`);
+      expect(axis.styleOf("top")).toBe("26px");
+      expect(today.textContent).toBe("heute");
+      expect(today.styleOf("left")).toBe(`${String(layout.lineEnd + 10)}px`);
+    });
+
+    it("macht den Inhalt so breit wie die Zeitleiste und so hoch wie die Stationen", () => {
+      const content = first(container, "timeline-content");
+
+      expect(content.styleOf("width")).toBe(`${String(layout.contentWidth)}px`);
+      expect(content.styleOf("height")).toBe("96px");
+    });
+
+    it("zeigt beim Laden „heute“ am rechten Rand", () => {
+      expect(first(container, "timeline-scroll").scrollLeft).toBe(1234);
+    });
+  });
+
+  it("legt die Linie ohne Engagements nach oben", () => {
+    const { container, view } = setup();
+
+    view.showStations({ ...STATIONS, engagements: [] });
+
+    expect(first(container, "timeline-axis").styleOf("top")).toBe("0px");
+  });
+});

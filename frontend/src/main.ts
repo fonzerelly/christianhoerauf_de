@@ -15,7 +15,8 @@ import { StaticContentAnswerSource } from "./answering/static-content-answer-sou
 import { TUNING } from "./config/tuning";
 import { createDefaultFont, REPLACEMENT_CHARACTER } from "./domain/font/font";
 import { greetingKeyword, greetingParagraphs } from "./domain/greeting/greeting";
-import { readPersonalLink } from "./domain/greeting/personal-link";
+import { readPersonalLink, variantOf } from "./domain/greeting/personal-link";
+import { cvUrlOf, HttpCvSource } from "./cv/http-cv-source";
 import { AnswerPaginator } from "./domain/pages/answer-paginator";
 import { Mulberry32 } from "./domain/random/mulberry32";
 import { TextNormalizer } from "./domain/text/text-normalizer";
@@ -36,6 +37,9 @@ import { Stage } from "./ui/stage";
 import type { ScheduleTask } from "./ui/step-runner";
 import { applyStageLayout } from "./ui/stage-frame";
 import { StageSizeWatcher } from "./ui/stage-size-watcher";
+import { Timeline } from "./ui/timeline/timeline";
+import { TimelineView } from "./ui/timeline/timeline-view";
+import { yearOfDate } from "./ui/timeline/year-of-date";
 import { readTestHooks } from "./ui/test-hooks";
 import { readUrlParameters } from "./ui/url-parameters";
 
@@ -52,10 +56,15 @@ const tuning = {
   ...testHooks?.tuning,
 };
 
+// Der persönliche Link hinter „#“ (Schritt 12.2): Begrüßung und Variante des Lebenslaufs. Der Name
+// bleibt im Browser.
+const personalLink = readPersonalLink(window.location.hash);
+
 // Elemente der Seite; das Profil steht am body, das Layout richtet sich danach (Ränder am Handy)
 document.body.dataset.profile = profile;
 const pageElement = requireElement(document, "page", HTMLElement);
 const stageElement = requireElement(document, "stage", HTMLElement);
+const timelineElement = requireElement(document, "timeline", HTMLElement);
 const canvas = requireElement(document, "maze", HTMLCanvasElement);
 const form = requireElement(document, "ask-form", HTMLFormElement);
 const questionInput = requireElement(document, "question", HTMLInputElement);
@@ -205,6 +214,7 @@ const sizeWatcher = new StageSizeWatcher({
   builtFor: () => stage.builtFor,
   rebuild: () => {
     stage.rebuild();
+    timeline?.refresh();
   },
   delay: (callback, millis) => {
     const timer = window.setTimeout(callback, millis);
@@ -241,8 +251,33 @@ canvas.addEventListener("contextrestored", () => {
   stage.refresh();
 });
 
-// Die Begrüßung aus dem persönlichen Link hinter „#“ (Schritt 12.2); der Name bleibt im Browser.
-const personalLink = readPersonalLink(window.location.hash);
+// Die Zeitleiste mit den Stationen aus /lebenslauf, der Variante aus dem persönlichen Link (Q23).
+// Ohne Backend gibt es keine; ihr Platz bleibt versteckt.
+const cvUrl = testHooks?.cvUrl ?? cvUrlOf(answerUrl, import.meta.env.DEV);
+const today = testHooks?.today ?? yearOfDate(new Date());
+const timeline =
+  cvUrl === undefined
+    ? undefined
+    : new Timeline(
+        new HttpCvSource({
+          url: cvUrl,
+          variant: variantOf(personalLink),
+          fetchFunction: (url) => fetch(url),
+        }),
+        new TimelineView({
+          document,
+          container: timelineElement,
+          measureWidth: (element) => element.offsetWidth,
+          measureHeight: (element) => element.offsetHeight,
+          visibleWidth: (element) => element.clientWidth,
+          scrollWidth: (element) => element.scrollWidth,
+          minPixelsPerYear: tuning.timelineMinPixelsPerYear,
+          today,
+        }),
+        today,
+      );
+timeline?.load();
+
 conversation.start({
   text: greetingParagraphs(personalLink).join("\n\n"),
   keyword: greetingKeyword(personalLink, {
