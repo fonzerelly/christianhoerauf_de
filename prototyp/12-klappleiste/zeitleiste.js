@@ -9,7 +9,8 @@
 // Zugeklappt: eine Zeile, alle Stationen samt Engagements nach Beginn sortiert (Q48).
 // Beide verschiebbar; beim Laden steht „heute“ am rechten Rand (Q46).
 // Rechts sitzt ein Knopf wie ein gespiegeltes L: oben „›“ (später), unten der Fuß zum
-// Auf- und Zuklappen.
+// Auf- und Zuklappen. Links neben dem Fuß liegt eine eigene Bildlaufleiste, die bündig an ihm
+// endet; die des Browsers ist ausgeblendet, weil sie sich nicht dorthin legen lässt.
 //
 // Die Stationen kommen zur Laufzeit von /lebenslauf. Der Endpunkt erlaubt nur
 // christianhoerauf.de als Herkunft; aus dem Prototyp heraus scheitert der Abruf deshalb meist,
@@ -275,16 +276,18 @@ function zeichneZeitleiste(mitAufbau) {
     return;
   }
 
-  // Rahmen (Raster im CSS):  [‹] [verschiebbarer Inhalt] [›]
-  //                                           [Klappknopf  ]  <- Fuß des gespiegelten L
+  // Rahmen (Raster im CSS):  [‹] [verschiebbarer Inhalt      ] [›]
+  //                              [Bildlaufleiste ][Klappknopf  ]  <- Fuß des gespiegelten L
   const scroll = element("div", "zlScroll");
   const frueher = pfeilKnopf("‹", "Früher", -1, scroll, "frueher");
   const spaeter = pfeilKnopf("›", "Später", 1, scroll, "spaeter");
-  const klappknopf = klappknopfFuer(zeitleistenStand.aufgeklappt);
+  const leiste = bildlaufleisteFuer(scroll);
+  const unten = element("div", "zlUnten");
+  unten.append(leiste.element, klappknopfFuer(zeitleistenStand.aufgeklappt));
   // Erst ohne Pfeile messen, ob der Inhalt überhaupt breiter ist als der Platz.
   frueher.hidden = spaeter.hidden = true;
   const rahmen = element("div", "zlRahmen " + (zeitleistenStand.aufgeklappt ? "auf" : "zu"));
-  rahmen.append(frueher, scroll, spaeter, klappknopf);
+  rahmen.append(frueher, scroll, spaeter, unten);
   zeitleisteElement.replaceChildren(rahmen);
 
   if (zeitleistenStand.aufgeklappt) zeichneAufgeklappt(scroll, mitAufbau);
@@ -292,6 +295,9 @@ function zeichneZeitleiste(mitAufbau) {
 
   const laeuftUeber = scroll.scrollWidth > scroll.clientWidth + 1;
   frueher.hidden = spaeter.hidden = !laeuftUeber;
+  // Ohne „›“ darüber bekommt der Fuß oben einen durchgehenden Rand (CSS).
+  rahmen.classList.toggle("ohnePfeile", !laeuftUeber);
+  leiste.element.style.visibility = laeuftUeber ? "visible" : "hidden";
   if (!laeuftUeber) return;
   scroll.classList.add("ziehbar");
   macheZiehbar(scroll);
@@ -303,9 +309,11 @@ function zeichneZeitleiste(mitAufbau) {
   };
   scroll.addEventListener("scroll", () => {
     pfeileAnpassen();
+    leiste.anpassen();
     schliesseStationsMenue();
   });
   pfeileAnpassen();
+  leiste.anpassen();
 }
 
 // Aufgeklappt, von oben nach unten: Engagements, Linie mit „heute“, Stationen.
@@ -432,6 +440,49 @@ function pfeilKnopf(zeichen, beschriftung, richtung, scroll, klasse) {
     scroll.scrollBy({ left: richtung * scroll.clientWidth * 0.6, behavior: bewegungReduziert ? "auto" : "smooth" });
   });
   return knopf;
+}
+
+// Eine eigene Bildlaufleiste für `scroll`: eine dünne Bahn mit einem Griff, so breit wie der
+// sichtbare Anteil. Den Griff kann man ziehen (Maus und Finger); ein Klick daneben springt dorthin.
+// anpassen() setzt Breite und Lage des Griffs neu, nach jedem Verschieben.
+function bildlaufleisteFuer(scroll) {
+  const bahn = element("div", "zlLeiste");
+  const griff = element("div", "zlGriff");
+  bahn.append(griff);
+  bahn.setAttribute("aria-hidden", "true"); // Tastatur und Screenreader nehmen die Pfeilknöpfe
+
+  const weg = () => scroll.scrollWidth - scroll.clientWidth; // so weit lässt sich verschieben
+  const griffBreite = () => Math.max(24, bahn.clientWidth * (scroll.clientWidth / scroll.scrollWidth));
+  const spielraum = () => Math.max(1, bahn.clientWidth - griffBreite()); // so weit wandert der Griff
+
+  function anpassen() {
+    griff.style.width = griffBreite() + "px";
+    griff.style.left = (scroll.scrollLeft / Math.max(1, weg())) * spielraum() + "px";
+  }
+
+  let start = null;
+  griff.addEventListener("pointerdown", (ereignis) => {
+    ereignis.preventDefault();
+    ereignis.stopPropagation();
+    griff.setPointerCapture(ereignis.pointerId);
+    start = { x: ereignis.clientX, scrollLeft: scroll.scrollLeft };
+  });
+  griff.addEventListener("pointermove", (ereignis) => {
+    if (!start) return;
+    scroll.scrollLeft = start.scrollLeft + ((ereignis.clientX - start.x) / spielraum()) * weg();
+  });
+  const loslassen = () => (start = null);
+  griff.addEventListener("pointerup", loslassen);
+  griff.addEventListener("pointercancel", loslassen);
+
+  // Klick auf die Bahn: der Griff springt mit seiner Mitte an die Stelle.
+  bahn.addEventListener("pointerdown", (ereignis) => {
+    if (ereignis.target !== bahn) return;
+    const mitte = ereignis.clientX - bahn.getBoundingClientRect().left - griffBreite() / 2;
+    scroll.scrollTo({ left: (mitte / spielraum()) * weg(), behavior: bewegungReduziert ? "auto" : "smooth" });
+  });
+
+  return { element: bahn, anpassen };
 }
 
 // Mit der Maus ziehen (am Handy wischt man ohnehin). Wer gezogen hat, öffnet dabei kein Menü.

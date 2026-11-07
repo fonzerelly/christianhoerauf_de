@@ -69,35 +69,54 @@
     .zlStatus { padding: 14px 0; color: var(--gruen-blass); }
     .zlStatus button { margin-left: 10px; }
 
-    /* [‹] [verschiebbarer Inhalt] [›]
-                                [  ▾  ]   <- „›“ und der Klappknopf bilden ein gespiegeltes L */
+    /* [‹] [verschiebbarer Inhalt     ] [›]
+           [Bildlaufleiste][    ▾      ]   <- „›“ und der Klappknopf bilden ein gespiegeltes L */
     .zlRahmen {
+      --pfeil-breite: 34px; --fuss-breite: 84px; --fuss-hoehe: 22px;
       position: relative; display: grid; column-gap: 6px; row-gap: 0;
       grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto;
     }
-    .zlScroll { grid-column: 2; grid-row: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--linie) transparent; }
+    .zlRahmen.zu { --pfeil-breite: 28px; --fuss-breite: 72px; }
+    body[data-profile="handy"] .zlRahmen { --fuss-breite: 56px; --fuss-hoehe: 30px; }
+    /* Die Bildlaufleiste des Browsers ist aus; die eigene liegt in .zlUnten. */
+    .zlScroll { grid-column: 2; grid-row: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .zlScroll::-webkit-scrollbar { display: none; }
+    .zlUnten { grid-column: 2 / 4; grid-row: 2; display: flex; align-items: center; }
+    .zlLeiste { position: relative; flex: 1; min-width: 0; height: 6px; margin-right: 0; background: rgba(31, 122, 64, 0.35); border-radius: 3px 0 0 3px; cursor: pointer; touch-action: none; }
+    .zlGriff { position: absolute; top: 0; bottom: 0; background: var(--linie); border-radius: 3px; cursor: grab; touch-action: none; }
+    .zlGriff:hover, .zlGriff:active { background: var(--gruen); }
     .zlScroll.ziehbar { cursor: grab; }
     .zlScroll.zieht { cursor: grabbing; user-select: none; }
     .zlInhalt { position: relative; }
-    /* Pfeile und Klappknopf sind gefüllte Flächen ohne Rand; so verschmelzen „›“ und der Fuß
-       darunter zu einem Stück. */
+    /* Pfeile und Klappknopf sind umrandet. „›“ hat unten keinen Rand, der Fuß darunter oben nur
+       links davon (::before): so ergeben beide zusammen den Umriss eines gespiegelten L. */
     .zlPfeil, .zlKlapp {
       margin: 0; padding: 0; cursor: pointer; font-family: var(--mono);
-      color: var(--gruen-hell); background: #14502a; border: none; border-radius: 0;
+      color: var(--gruen); background: transparent; border: 1px solid var(--linie); border-radius: 0;
     }
-    .zlPfeil:hover, .zlKlapp:hover { color: #fff; background: #1f7a40; }
-    .zlPfeil:focus-visible, .zlKlapp:focus-visible { outline: 1px solid var(--gruen); outline-offset: -1px; }
-    .zlPfeil { width: 34px; font-size: 20px; line-height: 1; }
+    .zlPfeil:hover, .zlKlapp:hover { color: var(--gruen-hell); background: rgba(43, 220, 90, 0.08); }
+    .zlPfeil:focus-visible, .zlKlapp:focus-visible { outline: 1px solid var(--gruen); outline-offset: -2px; }
+    .zlPfeil { width: var(--pfeil-breite); font-size: 20px; line-height: 1; }
+    .zlRahmen.zu .zlPfeil { font-size: 16px; }
     .zlPfeil.frueher { grid-column: 1; grid-row: 1; }
-    .zlPfeil.spaeter { grid-column: 3; grid-row: 1; }
-    .zlRahmen.zu .zlPfeil { width: 28px; font-size: 16px; }
-    .zlPfeil:disabled { color: rgba(196, 255, 214, 0.3); background: #14502a; cursor: default; }
+    .zlPfeil.spaeter { grid-column: 3; grid-row: 1; border-bottom: none; }
+    /* Nur das Zeichen wird blass, nicht der Rand: sonst bräche der Umriss des L auf. */
+    .zlPfeil:disabled { color: rgba(43, 220, 90, 0.25); background: transparent; cursor: default; }
     body[data-profile="handy"] .zlPfeil { display: none; }
 
     /* Der Fuß des L: reicht unter „›“ bis an den rechten Rand und ein Stück nach links (Q42). */
-    .zlKlapp { grid-column: 2 / 4; grid-row: 2; justify-self: end; width: 84px; height: 22px; font-size: 14px; line-height: 22px; }
-    .zlRahmen.zu .zlKlapp { width: 72px; }
-    body[data-profile="handy"] .zlKlapp { width: 56px; height: 30px; line-height: 30px; font-size: 16px; }
+    .zlKlapp {
+      position: relative; flex: none; width: var(--fuss-breite); height: var(--fuss-hoehe);
+      font-size: 14px; line-height: 1; border-top: none;
+    }
+    .zlKlapp::before {
+      content: ""; position: absolute; top: 0; left: -1px; height: 1px; background: var(--linie);
+      width: calc(var(--fuss-breite) - var(--pfeil-breite) + 1px);
+    }
+    /* Ohne „›“ darüber (Inhalt passt, oder Handy): oben durchgehend. */
+    .zlRahmen.ohnePfeile .zlKlapp, body[data-profile="handy"] .zlKlapp { border-top: 1px solid var(--linie); }
+    .zlRahmen.ohnePfeile .zlKlapp::before, body[data-profile="handy"] .zlKlapp::before { display: none; }
+    body[data-profile="handy"] .zlKlapp { font-size: 16px; }
 
     /* Aufgeklappt: Die Linie wird beim Erscheinen von links nach rechts gezogen. */
     .zlAchse {

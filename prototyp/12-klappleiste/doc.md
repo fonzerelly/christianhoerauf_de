@@ -10,7 +10,9 @@ Prototyp 11, der zum Vergleich stehen bleibt. Keine Tests (Prototyp).
 - Die **Zeitleiste** klappt auf und zu. Start aufgeklappt mit der Begrüßung darunter. Zu klappt
   sie, sobald eine Frage abgeschickt oder im Stationsmenü eine Einstiegsfrage gewählt wird; auf
   nur von Hand über den Klappknopf. Er ist der Fuß unter dem Pfeil „›“: beide zusammen sehen aus
-  wie ein gespiegeltes L, darauf nur ▾ oder ▴. Auf dem Handy fehlen die Pfeile, dort bleibt nur der Fuß.
+  wie ein gespiegeltes L (umrandet, nicht gefüllt), darauf nur ▾ oder ▴. Links neben dem Fuß
+  liegt eine eigene Bildlaufleiste, die bündig an ihm endet. Auf dem Handy fehlen die Pfeile, dort
+  bleibt nur der Fuß.
 - **Aufgeklappt:** Stationen groß unter der Linie, nebeneinander, Abstände nach Zeit, jede
   mindestens so breit wie ihre Beschriftung; nichts wird nach oben oder unten versetzt. Die
   **Engagements** (Lehre, Ehrenamt, berufsbegleitendes Studium) stehen klein über der Linie: Ein
@@ -161,6 +163,7 @@ Ersetzt Funktionen aus `seite.js` und `labyrinth.js` durch Zuweisung.
 | `zeichneZugeklappt(scroll)` | Eine Zeile „Jahr Name“ nach Beginn sortiert (bei gleichem Beginn der Beruf vorn), Engagements blasser, am Ende „heute“. |
 | `klappknopfFuer(aufgeklappt)` | Der Fuß des L: nur ▴ (zuklappen) bzw. ▾ (aufklappen), Wortlaut in `aria-label`, dazu `aria-expanded`. Behält nach dem Klick den Fokus. |
 | `setzeZeitleisteAufgeklappt(aufgeklappt)` | Klappt um, zeichnet neu und blendet weich ein. Die Bühne bleibt, was darunter steht, rutscht mit. |
+| `bildlaufleisteFuer(scroll)` | Eigene Bildlaufleiste neben dem Fuß (die des Browsers ist ausgeblendet, sie lässt sich nicht dorthin legen): Bahn mit Griff so breit wie der sichtbare Anteil (mindestens 24 px). Griff ziehen mit Maus oder Finger; Klick auf die Bahn springt mit der Griffmitte dorthin. `anpassen()` setzt Breite und Lage nach jedem Verschieben. Für Screenreader verborgen, die Pfeilknöpfe übernehmen. |
 | `pfeilKnopf(..., klasse)` | Knopf („frueher“ oder „spaeter“, legt den Platz im Raster fest), der die Zeitleiste um 60 % ihrer Breite verschiebt (auf dem Handy ausgeblendet, dort wischt man). |
 | `macheZiehbar(scroll)` | Ziehen mit der Maus; wer gezogen hat, öffnet dabei kein Menü. |
 | `zeigeAufbau(inhalt, mitAufbau)` | Startet das Ziehen der Linie und das Einblenden (bei reduzierter Bewegung sofort). |
