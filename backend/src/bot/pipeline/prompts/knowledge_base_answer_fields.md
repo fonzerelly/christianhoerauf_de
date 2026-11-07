@@ -46,16 +46,29 @@ Regeln für die Antwort:
   im Ganzen wieder.
 
 Regeln für das Stichwort:
-- Eine kurze Überschrift aus einem oder zwei Wörtern, zusammen höchstens 24 Zeichen, jedes Wort
-  möglichst höchstens 13 Zeichen. Nie „Chris“.
-- Sie trägt den wichtigsten Aspekt von Frage und Antwort. Hat die Antwort ein klares Thema, ist es
-  dieses, oft ein Wort aus Frage oder Antwort (Frage nach einer Technologie: diese Technologie).
-  Nennt die Antwort etwas Konkreteres als die Frage, nimm das Konkrete.
-- Zählt die Antwort mehrere gleichrangige Dinge auf, nimm einen Oberbegriff: bei Tätigkeiten in einer
-  Firma den kurzen Firmennamen mit „Highlights“ (ohne GmbH oder AG), bei mehreren Vorträgen
-  „Vorträge“. Greif dann kein einzelnes Ding aus der Aufzählung heraus.
-- Sie sagt nichts, was die Antwort nicht sagt, und urteilt nicht über Chris: nicht „Good Fit“ oder
-  „Top-Entwickler“, auch wenn danach gefragt ist.
+
+Formale Vorgaben:
+- Maximal zwei Wörter, zusammen höchstens 24 Zeichen, jedes Wort höchstens 13 Zeichen.
+- Nie „Chris“.
+- Bindestrich-Wörter und Komposita zählen als ein Wort.
+
+Auswahl (in dieser Reihenfolge prüfen):
+1. Die Antwort listet mehrere gleichrangige Dinge auf (z. B. Stärken, Tätigkeiten, Vorträge,
+   Lehrveranstaltungen, Projekte):
+   → Nimm den Oberbegriff aus der Frage. Nie ein einzelnes Element der Aufzählung.
+   - Tätigkeiten/Rollen in einer Firma: kurzer Firmenname (ohne Rechtsform) + „Highlights“
+   - Mehrere Vorträge: „Vorträge“
+   - Mehrere Lehrveranstaltungen: „Lehre“, „Unterricht“ bzw. engl. „Teaching“
+   - Sonst: der Oberbegriff, der sich aus Frage oder Antwort ergibt
+2. Die Antwort hat ein klares, einzelnes Thema:
+   → Nimm das konkreteste Nomen aus Frage oder Antwort.
+   → Nennt die Antwort etwas Konkreteres als die Frage, nimm das Konkrete.
+
+Verboten:
+- Zwei Konzepte mit „und“ verbinden.
+- Urteile oder Bewertungen abgeben (z. B. „Good Fit“, „Top-Entwickler“), auch wenn danach gefragt ist.
+- Etwas behaupten, was die Antwort nicht sagt.
+- Verben oder abstrakte Wendungen, wenn ein konkretes Nomen aus Frage oder Antwort verfügbar ist.
 
 Regeln für die Folgefragen:
 - Höchstens drei. Lieber eine gute Frage als drei mittelmäßige, und keine, wenn der Text nichts mehr
