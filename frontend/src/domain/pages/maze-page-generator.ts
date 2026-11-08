@@ -48,6 +48,10 @@ export interface MazePage {
   readonly photo?: PagePhoto;
   /** Wo der Text waagrecht steht (Seiten mit Text). */
   readonly alignment?: TextAlignment;
+  /** Größe einer Zelle im Verhältnis zur Bühne, wenn die Seite ein feineres Raster hat (unter 1). */
+  readonly cellScale?: number;
+  /** Der Ausgang im Raster der Bühne, wenn die Seite ein eigenes Raster hat (für die nächste Antwort). */
+  readonly handOver?: Gate;
 }
 
 /**

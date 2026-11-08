@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cellOutside, entranceOppositeOf, outwardOf } from "./gate";
+import { gateInGrid } from "./gate";
 import type { Gate } from "./gate";
 
 describe("cellOutside", () => {
@@ -57,5 +58,34 @@ describe("entranceOppositeOf", () => {
       cell: { x: 5, y: 59 },
       side: "bottom",
     });
+  });
+});
+
+describe("gateInGrid", () => {
+  const STAGE = { columns: 85, rows: 15 };
+  const FINE = { columns: 124, rows: 22 };
+
+  it("rechnet ein Tor an der Seite in ein feineres Raster um: dieselbe Höhe, der Rand des neuen", () => {
+    // Mitte von Reihe 12 liegt bei 12,5 / 15 der Höhe; im Raster mit 22 Reihen in Reihe 18.
+    expect(gateInGrid({ cell: { x: 84, y: 12 }, side: "right" }, STAGE, FINE)).toEqual({
+      cell: { x: 123, y: 18 },
+      side: "right",
+    });
+    expect(gateInGrid({ cell: { x: 0, y: 12 }, side: "left" }, STAGE, FINE).cell.x).toBe(0);
+  });
+
+  it("rechnet zurück ins gröbere Raster und bleibt im Raster", () => {
+    expect(gateInGrid({ cell: { x: 123, y: 21 }, side: "right" }, FINE, STAGE).cell).toEqual({
+      x: 84,
+      y: 14,
+    });
+  });
+
+  it("rechnet ein Tor oben oder unten nach der Spalte um", () => {
+    expect(gateInGrid({ cell: { x: 42, y: 14 }, side: "bottom" }, STAGE, FINE)).toEqual({
+      cell: { x: 62, y: 21 }, // 42,5 × 124 / 85 = 62
+      side: "bottom",
+    });
+    expect(gateInGrid({ cell: { x: 42, y: 0 }, side: "top" }, STAGE, FINE).cell.y).toBe(0);
   });
 });

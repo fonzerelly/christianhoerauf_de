@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { itemAt } from "../lists";
 import { createDefaultFont } from "../font/font";
 import { Mulberry32 } from "../random/mulberry32";
+import { gateInGrid } from "../route/gate";
 import type { Gate } from "../route/gate";
 import { TextNormalizer } from "../text/text-normalizer";
 import { AnswerPaginator } from "./answer-paginator";
@@ -187,15 +188,65 @@ describe("AnswerPaginator", () => {
       expect(pages[0]?.entrance).toEqual({ cell: { x: 0, y: 12 }, side: "left" });
     });
 
-    it("schreibt das Stichwort, wenn das Bild nicht auf die Seite passt", () => {
-      const small = { ...SETTINGS, columns: 20, rows: 14 };
+    it("schreibt das Stichwort, wenn das Bild selbst in einem feineren Raster nicht passt (zu schmal)", () => {
+      const narrow = { ...SETTINGS, columns: 12, rows: 14 };
 
-      const { pages } = createPaginator(small).paginate(
+      const { pages } = createPaginator(narrow).paginate(
         { picture: "face_with_hand_over_mouth", keyword: "Ups" },
         1,
       );
 
-      expect(pages.flatMap((page) => page.lines)).toEqual(["UPS"]);
+      expect(pages.flatMap((page) => page.lines).join("")).toBe("UPS");
+    });
+
+    describe("das nicht auf die Bühne passt (ADR 0007)", () => {
+      const STAGE = { ...SETTINGS, columns: 85, rows: 15 };
+      const SMILEY = { picture: "face_with_hand_over_mouth", keyword: "Ups" } as const;
+
+      it("zeichnet es in einem feineren Raster mit so vielen Reihen, wie es braucht", () => {
+        const page = itemAt(createPaginator(STAGE).paginate(SMILEY, 1).pages, 0);
+
+        // 22 Reihen statt 15, die Spalten im selben Verhältnis: 85 × 22 / 15 = 124,7
+        expect([page.grid.columns, page.grid.rows]).toEqual([124, 22]);
+        expect(page.cellScale).toBeCloseTo(15 / 22);
+        expect(page.route.some(({ kind }) => kind === "letter")).toBe(true);
+      });
+
+      it("nennt seinen Ausgang auch im Raster der Bühne, für die nächste Antwort", () => {
+        const page = itemAt(createPaginator(STAGE).paginate(SMILEY, 1).pages, 0);
+
+        expect(page.handOver).toEqual(
+          gateInGrid(page.exit, { columns: 124, rows: 22 }, { columns: 85, rows: 15 }),
+        );
+      });
+
+      it("rechnet den Ausgang der vorigen Antwort in sein Raster um", () => {
+        const exitBefore: Gate = { cell: { x: 84, y: 12 }, side: "right" };
+
+        const { pages } = createPaginator(STAGE).paginate(SMILEY, 1, exitBefore);
+
+        expect(pages[0]?.entrance).toEqual({ cell: { x: 0, y: 18 }, side: "left" });
+      });
+
+      it("lässt ein Bild, das passt, im Raster der Bühne", () => {
+        const page = itemAt(createPaginator(STAGE).paginate(HEART, 1).pages, 0);
+
+        expect([page.grid.columns, page.grid.rows]).toEqual([85, 15]);
+        expect(page.cellScale).toBeUndefined();
+        expect(page.handOver).toBeUndefined();
+      });
+
+      it("macht es mit dem Foto ebenso", () => {
+        const low = { ...SETTINGS, columns: 85, rows: 9 };
+
+        const page = itemAt(
+          createPaginator(low).paginate({ photo: "chris", keyword: "Chris" }, 1).pages,
+          0,
+        );
+
+        expect([page.grid.columns, page.grid.rows]).toEqual([94, 10]);
+        expect(page.photo?.size).toBe(6);
+      });
     });
   });
 

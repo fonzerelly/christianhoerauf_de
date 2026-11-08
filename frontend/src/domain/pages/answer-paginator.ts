@@ -3,18 +3,39 @@ import { lastOf } from "../lists";
 import type { RandomSource } from "../random/random-source";
 import { runToEnd } from "../steps";
 import type { Steps } from "../steps";
-import { entranceOppositeOf } from "../route/gate";
+import { entranceOppositeOf, gateInGrid } from "../route/gate";
 import type { Gate } from "../route/gate";
 import { pickOne } from "../random/random-choices";
 import type { TextAlignment } from "../route/text-block-layout";
 import { LineWrapper } from "../text/line-wrapper";
 import type { TextNormalizer } from "../text/text-normalizer";
 import { MazePageGenerator } from "./maze-page-generator";
-import type { AnswerContent } from "./answer-content";
+import type { AnswerContent, PhotoAnswer, PictureAnswer } from "./answer-content";
 import type { MazePage, MazeSettings } from "./maze-page-generator";
-import { placePhoto } from "./photo-layout";
-import { placePicture } from "./picture-layout";
+import { placePhoto, ROWS_NEEDED_FOR_PHOTO } from "./photo-layout";
+import type { PlacedPhoto } from "./photo-layout";
+import { placePicture, rowsNeededForPicture } from "./picture-layout";
+import type { PlacedPicture } from "./picture-layout";
 import { textCapacityOf } from "./text-capacity";
+
+interface Grid {
+  readonly columns: number;
+  readonly rows: number;
+}
+
+/**
+ * Eine Seite im feineren Raster bekommt ihren Maßstab (`cellScale`) und ihren Ausgang im Raster der
+ * Bühne (`handOver`); eine Seite im Raster der Bühne bleibt, wie sie ist. Steht außerhalb des
+ * Generators, weil v8 eine Verzweigung nach `yield*` falsch zählt (-2 statt 0).
+ */
+function scaledToStage(page: MazePage, grid: Grid, stage: Grid): MazePage {
+  if (grid === stage) return page;
+  return {
+    ...page,
+    cellScale: stage.rows / grid.rows,
+    handOver: gateInGrid(page.exit, grid, stage),
+  };
+}
 
 export interface PaginatorSettings {
   /** Breite des Rasters einer Labyrinth-Seite in Zellen. */
@@ -82,20 +103,9 @@ export class AnswerPaginator {
     const firstEntrance =
       exitBefore === undefined ? undefined : entranceOppositeOf(exitBefore, columns, rows);
 
-    if ("picture" in answer) {
-      const placed = placePicture(answer.picture, columns, rows);
-      if (placed !== undefined) {
-        const page = yield* generator.generatePictureInSteps(placed, firstEntrance);
-        return { pages: [page], restingStepIndex: this.restingStepOf(page) };
-      }
-    }
-
-    if ("photo" in answer) {
-      const placed = placePhoto(answer.photo, columns, rows, random);
-      if (placed !== undefined) {
-        const page = yield* generator.generatePhotoInSteps(placed, firstEntrance);
-        return { pages: [page], restingStepIndex: this.restingStepOf(page) };
-      }
+    if ("picture" in answer || "photo" in answer) {
+      const page = yield* this.gimmickPageInSteps(answer, random, exitBefore);
+      if (page !== undefined) return { pages: [page], restingStepIndex: this.restingStepOf(page) };
     }
 
     const keyword = answer.keyword?.trim() ?? "";
@@ -126,5 +136,47 @@ export class AnswerPaginator {
     }
 
     return { pages, restingStepIndex: this.restingStepOf(lastOf(pages)) };
+  }
+
+  /**
+   * Die Seite mit Bild oder Foto (ADR 0007): im Raster der Bühne, wenn es dort passt. Sonst, wenn
+   * der Bühne Reihen fehlen, in einem feineren Raster auf derselben Fläche: so viele Reihen, wie
+   * das Gimmick mindestens braucht, und die Spalten im selben Verhältnis. Eine solche Seite trägt
+   * ihren Maßstab (`cellScale`) und ihren Ausgang im Raster der Bühne (`handOver`); der Ausgang der
+   * vorigen Antwort wird in ihr Raster umgerechnet. Passt es auch dort nicht: `undefined` (dann
+   * schreibt der Lichtpunkt das Stichwort).
+   */
+  private *gimmickPageInSteps(
+    answer: PictureAnswer | PhotoAnswer,
+    random: RandomSource,
+    exitBefore: Gate | undefined,
+  ): Steps<MazePage | undefined> {
+    const { columns, rows, maze } = this.settings;
+    const stage: Grid = { columns, rows };
+    const place = (grid: Grid): PlacedPicture | PlacedPhoto | undefined =>
+      "picture" in answer
+        ? placePicture(answer.picture, grid.columns, grid.rows)
+        : placePhoto(answer.photo, grid.columns, grid.rows, random);
+    const neededRows =
+      "picture" in answer ? rowsNeededForPicture(answer.picture) : ROWS_NEEDED_FOR_PHOTO;
+
+    let grid: Grid = stage;
+    let placed = place(grid);
+    if (placed === undefined && neededRows > rows) {
+      grid = { columns: Math.floor((columns * neededRows) / rows), rows: neededRows };
+      placed = place(grid);
+    }
+    if (placed === undefined) return undefined;
+
+    const generator = new MazePageGenerator(grid.columns, grid.rows, random, this.font, maze);
+    const entrance =
+      exitBefore === undefined
+        ? undefined
+        : entranceOppositeOf(gateInGrid(exitBefore, stage, grid), grid.columns, grid.rows);
+    const page =
+      "picture" in placed
+        ? yield* generator.generatePictureInSteps(placed, entrance)
+        : yield* generator.generatePhotoInSteps(placed, entrance);
+    return scaledToStage(page, grid, stage);
   }
 }

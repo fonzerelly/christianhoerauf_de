@@ -52,3 +52,30 @@ export function entranceOppositeOf(exit: Gate, columns: number, rows: number): G
       return { cell: { x, y: rows - 1 }, side };
   }
 }
+
+/** Eine Zelle anteilig in ein Raster mit `toCount` statt `fromCount` Zellen, an ihrer Mitte gemessen. */
+function scaled(index: number, fromCount: number, toCount: number): number {
+  return Math.min(toCount - 1, Math.floor(((index + 0.5) * toCount) / fromCount));
+}
+
+/**
+ * Ein Tor in einem Raster anderer Größe (Gimmick-Seite mit feineren Zellen, ADR 0007): dieselbe
+ * Stelle auf dem Bildschirm, gemessen an der Mitte der Zelle, am selben Rand des neuen Rasters. So
+ * läuft der Lichtpunkt beim Seitenwechsel auf derselben Höhe weiter.
+ */
+export function gateInGrid(
+  gate: Gate,
+  from: { readonly columns: number; readonly rows: number },
+  to: { readonly columns: number; readonly rows: number },
+): Gate {
+  const { side, cell } = gate;
+  const x =
+    side === "left"
+      ? 0
+      : side === "right"
+        ? to.columns - 1
+        : scaled(cell.x, from.columns, to.columns);
+  const y =
+    side === "top" ? 0 : side === "bottom" ? to.rows - 1 : scaled(cell.y, from.rows, to.rows);
+  return { cell: { x, y }, side };
+}
