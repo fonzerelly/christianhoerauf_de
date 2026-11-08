@@ -3,7 +3,6 @@ import { lastOf } from "../lists";
 import type { RandomSource } from "../random/random-source";
 import { runToEnd } from "../steps";
 import type { Steps } from "../steps";
-import { BorderCellPicker } from "../route/border-cell-picker";
 import { entranceOppositeOf } from "../route/gate";
 import type { Gate } from "../route/gate";
 import { pickOne } from "../random/random-choices";
@@ -32,21 +31,6 @@ export interface PaginatedAnswer {
   readonly pages: readonly MazePage[];
   /** Index des Wegstücks in der Route der letzten Seite, an dem der Lichtpunkt wartet (Haltepunkt). */
   readonly restingStepIndex: number;
-}
-
-/**
- * Der Eingang einer Seite: gegenüber dem Ausgang der vorigen Seite, oder ohne vorige Seite
- * gewürfelt.
- */
-function previousExitOrFirst(
-  previousExit: Gate | undefined,
-  borderCellPicker: BorderCellPicker,
-  columns: number,
-  rows: number,
-): Gate {
-  return previousExit
-    ? entranceOppositeOf(previousExit, columns, rows)
-    : borderCellPicker.pickFirstEntrance(columns, rows);
 }
 
 /** Macht aus einer Antwort die Folge ihrer Labyrinth-Seiten. */
@@ -94,14 +78,14 @@ export class AnswerPaginator {
     const random = this.createRandom(seed);
     // Die Lage des Worts zieht als Erstes: links, mittig oder rechts, für alle Seiten der Antwort.
     const alignment = pickOne<TextAlignment>(["left", "center", "right"], random);
-    const borderCellPicker = new BorderCellPicker(random);
     const generator = new MazePageGenerator(columns, rows, random, this.font, maze);
+    const firstEntrance =
+      exitBefore === undefined ? undefined : entranceOppositeOf(exitBefore, columns, rows);
 
     if ("picture" in answer) {
       const placed = placePicture(answer.picture, columns, rows);
       if (placed !== undefined) {
-        const entrance = previousExitOrFirst(exitBefore, borderCellPicker, columns, rows);
-        const page = yield* generator.generatePictureInSteps(placed, entrance);
+        const page = yield* generator.generatePictureInSteps(placed, firstEntrance);
         return { pages: [page], restingStepIndex: this.restingStepOf(page) };
       }
     }
@@ -109,14 +93,11 @@ export class AnswerPaginator {
     if ("photo" in answer) {
       const placed = placePhoto(answer.photo, columns, rows, random);
       if (placed !== undefined) {
-        const entrance = previousExitOrFirst(exitBefore, borderCellPicker, columns, rows);
-        const page = yield* generator.generatePhotoInSteps(placed, entrance);
+        const page = yield* generator.generatePhotoInSteps(placed, firstEntrance);
         return { pages: [page], restingStepIndex: this.restingStepOf(page) };
       }
     }
 
-    const firstEntrance =
-      exitBefore === undefined ? undefined : entranceOppositeOf(exitBefore, columns, rows);
     const keyword = answer.keyword?.trim() ?? "";
     if (keyword === "") {
       const page = yield* generator.generatePathInSteps(firstEntrance);

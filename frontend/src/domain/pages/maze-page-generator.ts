@@ -9,10 +9,9 @@ import type { RandomSource } from "../random/random-source";
 import { runToEnd } from "../steps";
 import type { Steps } from "../steps";
 import { AreaPathFinder } from "../route/area-path-finder";
-import { BorderCellPicker } from "../route/border-cell-picker";
 import type { Gate } from "../route/gate";
 import { LineChangePlanner } from "../route/line-change-planner";
-import { RouteBuilder } from "../route/route-builder";
+import { ROWS_BELOW_PICTURE, RouteBuilder } from "../route/route-builder";
 import type { RouteSettings } from "../route/route-builder";
 import type { RouteStep } from "../route/route-step";
 import { layoutTextBlock } from "../route/text-block-layout";
@@ -59,7 +58,6 @@ export interface MazePage {
  * Labyrinth um sie herum.
  */
 export class MazePageGenerator {
-  private readonly borderCellPicker: BorderCellPicker;
   private readonly routeBuilder: RouteBuilder;
   private readonly wallBreaker: WallBreaker;
   private readonly grower: MazeGrower;
@@ -77,7 +75,6 @@ export class MazePageGenerator {
       rows,
       new WindingPathFinder(this.grower, new PathFinder()),
     );
-    this.borderCellPicker = new BorderCellPicker(random);
     this.routeBuilder = new RouteBuilder(
       font,
       areaPathFinder,
@@ -171,7 +168,7 @@ export class MazePageGenerator {
    * Erzeugt eine Seite, auf der der Lichtpunkt statt eines Texts ein Bild zeichnet. Führt
    * `generatePictureInSteps` ohne Pause aus.
    */
-  public generatePicture(placed: PlacedPicture, entrance: Gate): MazePage {
+  public generatePicture(placed: PlacedPicture, entrance: Gate | undefined): MazePage {
     return runToEnd(this.generatePictureInSteps(placed, entrance));
   }
 
@@ -180,8 +177,14 @@ export class MazePageGenerator {
    * bauen, freibrechen, den Rest wachsen lassen. Lange Wände werden nicht unterbrochen; das gilt
    * nur den Grundlinien und Bändern eines Texts. Die Seite hat keine Zeilen.
    */
-  public *generatePictureInSteps(placed: PlacedPicture, entrance: Gate): Steps<MazePage> {
-    const exit = this.borderCellPicker.pickExit(entrance, this.columns, this.rows);
+  public *generatePictureInSteps(
+    placed: PlacedPicture,
+    givenEntrance: Gate | undefined,
+  ): Steps<MazePage> {
+    // Laufrichtung „gerade“ (ADR 0007): links herein, rechts hinaus, auf Höhe der untersten Reihe
+    // unter dem Bild, in der der Lichtpunkt zum Bild hinläuft.
+    const row = placed.top + placed.picture.height - 1 + ROWS_BELOW_PICTURE;
+    const { entrance, exit } = this.straightGates(givenEntrance, row);
     const { steps: route, lastGlyphEnd } = this.routeBuilder.buildPicture(
       placed.picture,
       placed.left,
@@ -204,7 +207,7 @@ export class MazePageGenerator {
    * Erzeugt eine Seite, auf der ein Foto liegt, das der Lichtpunkt umrundet. Führt
    * `generatePhotoInSteps` ohne Pause aus.
    */
-  public generatePhoto(placed: PlacedPhoto, entrance: Gate): MazePage {
+  public generatePhoto(placed: PlacedPhoto, entrance: Gate | undefined): MazePage {
     return runToEnd(this.generatePhotoInSteps(placed, entrance));
   }
 
@@ -215,14 +218,18 @@ export class MazePageGenerator {
    * Rahmen hin geschlossen; seine Wände sind der innere Rand des Rahmens. Da alle seine Zellen
    * schon erschlossen sind, wächst kein Gang hinein.
    */
-  public *generatePhotoInSteps(placed: PlacedPhoto, entrance: Gate): Steps<MazePage> {
-    const exit = this.borderCellPicker.pickExit(entrance, this.columns, this.rows);
+  public *generatePhotoInSteps(
+    placed: PlacedPhoto,
+    givenEntrance: Gate | undefined,
+  ): Steps<MazePage> {
     const frame = {
       left: placed.left - 1,
       right: placed.left + placed.size,
       top: placed.top - 1,
       bottom: placed.top + placed.size,
     };
+    // Laufrichtung „gerade“: auf Höhe der untersten Reihe des Rahmens.
+    const { entrance, exit } = this.straightGates(givenEntrance, frame.bottom);
     const {
       steps: route,
       lastGlyphEnd,
@@ -238,6 +245,20 @@ export class MazePageGenerator {
     this.grower.grow(grid, grid.touchedCells(), this.settings.windiness);
     const photo = { ...placed, lapEnds };
     return { grid, route, entrance, exit, lines: [], lastGlyphEnd, photo };
+  }
+
+  /**
+   * Ein- und Ausgang einer Seite mit Bild oder Foto: Der Eingang ist gegeben (gegenüber dem
+   * vorigen Ausgang) oder liegt links in `row`; der Ausgang liegt rechts in `row`.
+   */
+  private straightGates(
+    givenEntrance: Gate | undefined,
+    row: number,
+  ): { entrance: Gate; exit: Gate } {
+    return {
+      entrance: givenEntrance ?? { cell: { x: 0, y: row }, side: "left" },
+      exit: { cell: { x: this.columns - 1, y: row }, side: "right" },
+    };
   }
 
   /** Öffnet alle Wände zwischen den Zellen unter dem Foto; die Wände nach außen bleiben. */

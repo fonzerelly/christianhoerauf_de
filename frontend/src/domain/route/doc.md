@@ -10,7 +10,6 @@ danach um die Route herum.
 | `route-trace.ts`         | `RouteTrace`: die Route während des Baus.                                      |
 | `text-block-layout.ts`   | Lage und Maße des Textblocks.                                                  |
 | `gate.ts`                | `Gate` (Eingang/Ausgang), Randzellen außerhalb, Eingang gegenüber dem Ausgang. |
-| `border-cell-picker.ts`  | `BorderCellPicker`: wählt Eingang und Ausgang.                                 |
 | `territories.ts`         | `Territories`: teilt die Zellen in Anlauf, Text und Ablauf.                    |
 | `area-path-finder.ts`    | `AreaPathFinder`: gewundener Weg durch einen Teil des Rasters.                 |
 | `glyph-route.ts`         | `appendGlyph`: hängt den Weg durch eine Glyphe an die Route.                   |
@@ -52,14 +51,12 @@ außerhalb des Rasters), eine Art (`letter`, `connector`, `silent`) und `isDot`.
 | `cellOutside(gate, distance)`             | Die Zelle `distance` Schritte außerhalb des Rasters vor der Randzelle des Tors.                 |
 | `entranceOppositeOf(exit, columns, rows)` | Der Eingang der Folgeseite: gegenüberliegender Rand, gleiche Zeile bzw. Spalte wie der Ausgang. |
 
-## BorderCellPicker
+## Ein- und Ausgang
 
-| Methode                             | Was sie konkret tut                                                                                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pickFirstEntrance(columns, rows)`  | Wählt links, oben oder unten (oben/unten nur in der linken Hälfte) und eine Zelle am Rand.                                                              |
-| `pickExit(entrance, columns, rows)` | Wählt rechts, oben oder unten, wobei Ränder ohne Platz rechts vom Eingang übergangen werden, und eine Zelle am Rand (oben/unten in der rechten Hälfte). |
-| `pickBorderCell` (privat)           | Zieht immer Spalte und Zeile, auch wenn nur eine gebraucht wird (Reihenfolge wie im Prototyp).                                                          |
-| `exitColumnRange` (privat)          | Die Spalten, in denen ein Ausgang oben/unten liegen darf; am Rand des Eingangs rechts von ihm.                                                          |
+Seit Schritt 12.13 laufen alle Seiten gerade (ADR 0007): links herein, rechts hinaus, auf Höhe der
+Schrift bzw. der untersten Reihe eines Gimmicks; ohne vorige Seite liegt der Eingang links. Der
+frühere `BorderCellPicker` (zufällige Ränder wie in Prototyp 6) ist entfallen;
+`MazePageGenerator` setzt die Tore selbst.
 
 ## Territories
 

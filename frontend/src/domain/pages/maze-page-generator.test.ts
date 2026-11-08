@@ -3,6 +3,7 @@ import { createDefaultFont } from "../font/font";
 import { Mulberry32 } from "../random/mulberry32";
 import type { Gate } from "../route/gate";
 import { GLYPH_HEIGHT } from "../font/glyph";
+import { ROWS_BELOW_PICTURE } from "../route/route-builder";
 import { layoutTextBlock } from "../route/text-block-layout";
 import { MazePageGenerator } from "./maze-page-generator";
 import type { MazeSettings } from "./maze-page-generator";
@@ -161,6 +162,16 @@ describe("MazePageGenerator", () => {
       expect(route[lastGlyphEnd]?.y).toBe(placed.top + placed.picture.height - 1);
     });
 
+    it("läuft gerade: links herein und rechts hinaus auf Höhe der untersten Reihe unter dem Bild", () => {
+      const placed = placedHeart();
+      const row = placed.top + placed.picture.height - 1 + ROWS_BELOW_PICTURE;
+
+      const page = createGenerator(5).generatePicture(placed, undefined);
+
+      expect(page.entrance).toEqual({ cell: { x: 0, y: row }, side: "left" });
+      expect(page.exit).toEqual({ cell: { x: COLUMNS - 1, y: row }, side: "right" });
+    });
+
     it("pausiert in Stücken ebenfalls zweimal und liefert dieselbe Seite", () => {
       const steps = createGenerator(3).generatePictureInSteps(placedHeart(), ENTRANCE);
 
@@ -183,6 +194,17 @@ describe("MazePageGenerator", () => {
     function isOnPhoto(x: number, y: number): boolean {
       return x >= 11 && x < 19 && y >= 21 && y < 29;
     }
+
+    it("läuft gerade: links herein und rechts hinaus auf Höhe der untersten Reihe des Rahmens", () => {
+      const page = createGenerator(5).generatePhoto(PLACED, undefined);
+
+      expect(page.entrance).toEqual({ cell: { x: 0, y: 29 }, side: "left" });
+      expect(page.exit).toEqual({ cell: { x: COLUMNS - 1, y: 29 }, side: "right" });
+    });
+
+    it("geht auch mit einem gegebenen Eingang rechts hinaus", () => {
+      expect(createGenerator(5).generatePhoto(PLACED, ENTRANCE).exit.side).toBe("right");
+    });
 
     it("legt das Foto auf die Seite, umrundet es dreimal und erschließt jede Zelle", () => {
       const page = createGenerator(1).generatePhoto(PLACED, ENTRANCE);
