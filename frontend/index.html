@@ -10,8 +10,6 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <!-- Der Text steckt sonst nur im Canvas. Hier steht er für Screenreader und Suchmaschinen. -->
-    <h1 class="visually-hidden">Hier entsteht die Internetpräsenz von Christian Hörauf</h1>
     <noscript>
       <p class="noscript-hint">
         Hier entsteht die Internetpräsenz von Christian Hörauf.<br />
@@ -22,6 +20,15 @@
          Fragefeld, Hinweis. main.ts setzt die Höhe der Bühne und Anfang und Breite des Labyrinths
          (--maze-left, --maze-width); Zeitleiste und Fragefeld stehen bündig darunter. -->
     <main id="page">
+      <!-- Kopf: Name, Rolle, Kontakt (Q13, Q33). „Lebenslauf als PDF“ kommt, wenn es den Endpunkt
+           gibt (Q28). Am Handy steht „Kontakt“ in der Fußzeile. -->
+      <header id="header">
+        <h1>Christian Hörauf</h1>
+        <p id="role">Softwareentwickler · seit 2004</p>
+        <nav class="header-links" aria-label="Kontakt">
+          <a href="impressum.html#kontakt">Kontakt</a>
+        </nav>
+      </header>
       <div id="stage">
         <canvas id="maze" aria-hidden="true"></canvas>
       </div>
@@ -52,6 +59,7 @@
           persönlichen Daten eingeben.
         </p>
         <nav aria-label="Rechtliches">
+          <a class="footer-contact" href="impressum.html#kontakt">Kontakt</a>
           <a href="datenschutz.html">Datenschutz</a>
           <a href="impressum.html">Impressum</a>
         </nav>

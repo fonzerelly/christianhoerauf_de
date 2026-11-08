@@ -58,6 +58,29 @@ describe("Seitengerüst (ADR 0007)", () => {
   });
 });
 
+describe("Kopf und Fuß (Q13, Q28, Q33)", () => {
+  it("nennt oben Name und Rolle als sichtbare Überschrift", () => {
+    expect(index).toMatch(/<header id="header">\s*<h1>Christian Hörauf<\/h1>/);
+    expect(index).toContain("Softwareentwickler · seit 2004");
+    expect(index.indexOf('id="header"')).toBeLessThan(index.indexOf('id="stage"'));
+  });
+
+  it("verweist auf den Kontakt im Impressum, oben (Desktop) und in der Fußzeile (Handy)", () => {
+    const contactLinks =
+      index.match(/<a [^>]*href="impressum\.html#kontakt"[^>]*>Kontakt<\/a>/g) ?? [];
+
+    expect(contactLinks).toHaveLength(2);
+  });
+
+  it("hat im Impressum den Abschnitt Kontakt als Ziel", () => {
+    expect(imprint).toMatch(/<h2 id="kontakt">Kontakt<\/h2>/);
+  });
+
+  it("bietet den Lebenslauf als PDF noch nicht an (den Endpunkt gibt es noch nicht)", () => {
+    expect(index).not.toMatch(/<a [^>]*>Lebenslauf als PDF/);
+  });
+});
+
 describe("Fragefeld", () => {
   const field = /<input[^>]*id="question"[^>]*>/.exec(index)?.[0] ?? "";
 
