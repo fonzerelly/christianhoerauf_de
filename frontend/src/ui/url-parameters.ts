@@ -6,6 +6,8 @@ export interface UrlParameters {
   readonly seed?: number;
   /** `?profil=handy` oder `?profil=desktop`: erzwingt das Geräteprofil. */
   readonly profile?: ProfileName;
+  /** `?lebenslauf=test`: im Dev-Server der ausgedachte Lebenslauf der Tests (siehe `cvUrlOf`). */
+  readonly testCv?: true;
 }
 
 const PROFILE_NAMES: readonly string[] = ["desktop", "handy"];
@@ -15,11 +17,13 @@ export function readUrlParameters(query: string): UrlParameters {
   const parameters = new URLSearchParams(query);
   const seed = parameters.get("seed");
   const profile = parameters.get("profil");
+  const wantsTestCv = parameters.get("lebenslauf") === "test";
 
   return {
     ...(seed !== null && /^\d+$/.test(seed) ? { seed: Number(seed) } : {}),
     ...(profile !== null && PROFILE_NAMES.includes(profile)
       ? { profile: profile as ProfileName }
       : {}),
+    ...(wantsTestCv ? { testCv: true as const } : {}),
   };
 }

@@ -6,7 +6,7 @@ werden. `main.ts` übergibt die echten Elemente.
 
 | Datei                             | Was sie tut                                                                                                |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `url-parameters.ts`               | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
+| `url-parameters.ts`               | `readUrlParameters`: `?seed=`, `?profil=`, `?lebenslauf=test`.                                             |
 | `device-profile-selector.ts`      | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
 | `question-form.ts`                | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
 | `answer-area.ts`                  | `AnswerArea`: Antwortbereich (Frage, Antwort, Warten) und Folgefragen; der `aria-live`-Bereich.            |
@@ -31,7 +31,8 @@ werden. `main.ts` übergibt die echten Elemente.
 
 ## readUrlParameters, selectProfile
 
-`readUrlParameters(query)` liest `?seed=<ganze Zahl ab 0>` und `?profil=handy|desktop`. Fehlendes oder
+`readUrlParameters(query)` liest `?seed=<ganze Zahl ab 0>`, `?profil=handy|desktop` und
+`?lebenslauf=test` (`testCv: true`; nur der Wert `test` zählt). Fehlendes oder
 Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 `selectProfile(windowWidth, requested?)` gibt den Wunsch aus der Adresse zurück, sonst `desktop` ab
 700 px, darunter `handy`. Gewählt wird einmal beim Laden.

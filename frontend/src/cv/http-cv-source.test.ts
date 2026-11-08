@@ -111,4 +111,18 @@ describe("cvUrlOf", () => {
     expect(cvUrlOf(undefined, false)).toBeUndefined();
     expect(cvUrlOf("", true)).toBeUndefined();
   });
+
+  it("ist im Dev-Server auf Wunsch der ausgedachte Lebenslauf der Tests, auch ohne Backend", () => {
+    expect(cvUrlOf(undefined, true, true)).toBe("/tests/fixtures/lebenslauf.json");
+    expect(cvUrlOf("https://abc.lambda-url.eu-central-1.on.aws/", true, true)).toBe(
+      "/tests/fixtures/lebenslauf.json",
+    );
+  });
+
+  it("überhört den Wunsch nach dem ausgedachten Lebenslauf außerhalb des Dev-Servers", () => {
+    expect(cvUrlOf(undefined, false, true)).toBeUndefined();
+    expect(cvUrlOf("https://abc.lambda-url.eu-central-1.on.aws/", false, true)).toBe(
+      "https://abc.lambda-url.eu-central-1.on.aws/lebenslauf",
+    );
+  });
 });

@@ -62,12 +62,13 @@ npm run build && npm run preview             # der Produktionsbuild, wie er ausg
 ```
 
 Adress-Parameter: `?seed=123` (Startwert der Begrüßung; dasselbe Labyrinth bei gleicher Fenstergröße),
-`?profil=handy` oder `?profil=desktop` (erzwingt das Geräteprofil, etwa zum Ausprobieren am Rechner).
-Die Antworten stehen in `public/content.json`.
+`?profil=handy` oder `?profil=desktop` (erzwingt das Geräteprofil, etwa zum Ausprobieren am Rechner),
+`?lebenslauf=test` (nur im Entwicklungsserver: Zeitleiste mit dem ausgedachten Lebenslauf aus
+`tests/fixtures/lebenslauf.json`, auch ohne Backend).
+Ohne `VITE_ANSWER_URL` stehen die Antworten in `public/content.json`, und es gibt keine Zeitleiste.
 
-Ton: Der runde Knopf oben rechts auf der Bühne schaltet das Brummen der Bildröhre an und aus. Beim
-Laden ist es aus, die Wahl wird nicht gespeichert. Die Lautstärke (`humVolume`) steht in
-`src/config/tuning.ts`.
+Ton: Das Brummen der Bildröhre (`src/sound/`) ist seit Schritt 12.3 nicht eingebunden; der Ton-Knopf
+entfiel mit der flachen Bühne.
 
 Abhängigkeiten zeigen nur nach innen zur Domäne; `npm run test:architecture` prüft das.
 Jeder Ordner unter `src/` hat eine `doc.md`, die seine Klassen und Methoden beschreibt.

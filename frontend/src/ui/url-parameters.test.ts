@@ -12,6 +12,12 @@ describe("readUrlParameters", () => {
     expect(readUrlParameters("?profil=desktop").profile).toBe("desktop");
   });
 
+  it("liest den Wunsch nach dem ausgedachten Lebenslauf aus ?lebenslauf=test", () => {
+    expect(readUrlParameters("?lebenslauf=test").testCv).toBe(true);
+    expect(readUrlParameters("?lebenslauf=echt").testCv).toBeUndefined();
+    expect(readUrlParameters("").testCv).toBeUndefined();
+  });
+
   it("liest beide zugleich, in jeder Reihenfolge", () => {
     expect(readUrlParameters("?profil=handy&seed=7")).toEqual({ seed: 7, profile: "handy" });
   });

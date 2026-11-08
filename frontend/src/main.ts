@@ -284,8 +284,10 @@ document.addEventListener("click", (event) => {
 });
 
 // Die Zeitleiste mit den Stationen aus /lebenslauf, der Variante aus dem persönlichen Link (Q23).
-// Ohne Backend gibt es keine; ihr Platz bleibt versteckt.
-const cvUrl = testHooks?.cvUrl ?? cvUrlOf(answerUrl, import.meta.env.DEV);
+// Ohne Backend gibt es keine; ihr Platz bleibt versteckt. Im Dev-Server zeigt ?lebenslauf=test den
+// ausgedachten Lebenslauf der Tests.
+const cvUrl =
+  testHooks?.cvUrl ?? cvUrlOf(answerUrl, import.meta.env.DEV, urlParameters.testCv === true);
 const today = testHooks?.today ?? yearOfDate(new Date());
 const timeline =
   cvUrl === undefined

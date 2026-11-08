@@ -2,6 +2,8 @@ import type { Cv, CvEntry } from "../domain/cv/stations";
 
 /** Wo das Backend den Lebenslauf ausliefert, neben den Antworten (backend `handler.py`). */
 const CV_PATH = "/lebenslauf";
+/** Der ausgedachte Lebenslauf der Tests; der Dev-Server liefert ihn direkt aus dem Projekt. */
+const TEST_CV_PATH = "/tests/fixtures/lebenslauf.json";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -80,9 +82,16 @@ export class HttpCvSource {
 /**
  * Die Adresse von `/lebenslauf`: beim Backend der Antworten (`answerUrl`, aus `VITE_ANSWER_URL`).
  * Im Dev-Server die eigene Herkunft, denn das Backend erlaubt nur christianhoerauf.de; Vite leitet
- * `/lebenslauf` dorthin weiter (`vite.config.ts`). Ohne Backend: `undefined`.
+ * `/lebenslauf` dorthin weiter (`vite.config.ts`). Ohne Backend: `undefined`. Im Dev-Server auf
+ * Wunsch (`?lebenslauf=test`, `wantsTestCv`) der ausgedachte Lebenslauf der Tests, auch ohne
+ * Backend; außerhalb des Dev-Servers wird der Wunsch überhört.
  */
-export function cvUrlOf(answerUrl: string | undefined, isDevServer: boolean): string | undefined {
+export function cvUrlOf(
+  answerUrl: string | undefined,
+  isDevServer: boolean,
+  wantsTestCv = false,
+): string | undefined {
+  if (isDevServer && wantsTestCv) return TEST_CV_PATH;
   if (answerUrl === undefined || answerUrl === "") return undefined;
   return isDevServer ? CV_PATH : new URL(CV_PATH, answerUrl).toString();
 }
