@@ -103,6 +103,7 @@ function setup(options: { reduced?: boolean; scrollWidth?: number } = {}) {
   const later = new Arrow();
   const track = new Track();
   const thumb = new Thumb();
+  let scrolls = 0;
   const controls = new ScrollControls({
     frame,
     scroll,
@@ -111,8 +112,11 @@ function setup(options: { reduced?: boolean; scrollWidth?: number } = {}) {
     track,
     thumb,
     prefersReducedMotion: () => options.reduced ?? false,
+    onScroll: () => {
+      scrolls++;
+    },
   });
-  return { frame, scroll, earlier, later, track, thumb, controls };
+  return { frame, scroll, earlier, later, track, thumb, controls, scrolls: () => scrolls };
 }
 
 describe("ScrollControls", () => {
@@ -238,5 +242,13 @@ describe("ScrollControls", () => {
     scroll.fire("pointermove", { clientX: 400 });
 
     expect(scroll.scrollLeft).toBe(0);
+  });
+
+  it("meldet jedes Verschieben (ein offenes Stationsmenü schließt dann)", () => {
+    const { scroll, scrolls } = setup();
+
+    scroll.fire("scroll");
+
+    expect(scrolls()).toBe(1);
   });
 });

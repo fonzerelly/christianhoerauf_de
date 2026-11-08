@@ -47,7 +47,15 @@ function setup() {
   const container = new FakeElement("section");
   container.hidden = true;
   const connected: Record<string, FakeElement>[] = [];
+  const clicked: string[] = [];
+  let redraws = 0;
   const view = new TimelineView({
+    onStationClick: (station, button) => {
+      clicked.push(`${station.title} @ ${button.className}`);
+    },
+    onRedraw: () => {
+      redraws++;
+    },
     connectScrolling: (elements) => {
       connected.push({ ...elements });
     },
@@ -60,7 +68,7 @@ function setup() {
     minPixelsPerYear: 34,
     today: TODAY,
   });
-  return { container, view, connected };
+  return { container, view, connected, clicked, redraws: () => redraws };
 }
 
 describe("TimelineView", () => {
@@ -296,5 +304,43 @@ describe("TimelineView", () => {
 
     expect(first(container, "timeline-today").attributes.get("data-transition")).toBe("today");
     expect(first(container, "timeline-frame").className).toBe("timeline-frame expanded");
+  });
+
+  describe("Stationsmenü", () => {
+    it("meldet einen Klick auf eine Station, ein Engagement oder einen Eintrag der Zeile", () => {
+      const expanded = setup();
+      expanded.view.showStations(STATIONS, EXPANDED);
+      first(expanded.container, "timeline-station-button").click();
+      first(expanded.container, "timeline-engagement-button").click();
+
+      const collapsed = setup();
+      collapsed.view.showStations(STATIONS, { expanded: false, onToggle: () => undefined });
+      first(collapsed.container, "timeline-entry").click();
+
+      expect(expanded.clicked).toEqual([
+        "Schule @ timeline-station-button",
+        "Lehrauftrag, nebenher @ timeline-engagement-button",
+      ]);
+      expect(collapsed.clicked).toEqual(["Schule @ timeline-entry"]);
+    });
+
+    it("zeigt an jedem Knopf, dass sein Menü zu ist", () => {
+      const { container, view } = setup();
+
+      view.showStations(STATIONS, EXPANDED);
+
+      expect(first(container, "timeline-station-button").attributes.get("aria-expanded")).toBe(
+        "false",
+      );
+    });
+
+    it("meldet jedes Neuzeichnen (ein offenes Menü schließt dann)", () => {
+      const { view, redraws } = setup();
+
+      view.showStations(STATIONS, EXPANDED);
+      view.showStations(STATIONS, EXPANDED);
+
+      expect(redraws()).toBe(2);
+    });
   });
 });

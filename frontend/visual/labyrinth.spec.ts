@@ -225,6 +225,25 @@ test.describe("Frage und Antwort", () => {
   });
 });
 
+test.describe("Stationsmenü", () => {
+  test("offen unter einer Station; eine Wahl steht danach im Fragefeld, die Zeitleiste ist zu", async ({
+    page,
+  }) => {
+    await open(page, "zeichensatz-1");
+    await page.locator(".timeline-station-button").last().click();
+
+    await expect(page.locator("#station-menu")).toBeVisible();
+    await expect(page).toHaveScreenshot("stationsmenue-offen.png");
+
+    await page.locator(".station-menu-question").nth(1).click();
+    await expect(page.locator("#question")).toHaveValue(
+      "Erzähl mir mehr über „Datenstrecke mit Kafka“ bei Beispiel AG.",
+    );
+    await expect(page.locator(".timeline-frame")).toHaveClass(/collapsed/);
+    await expect(page.locator("#station-menu")).toBeHidden();
+  });
+});
+
 test.describe("Bildstörung", () => {
   test("mitten in einer Bildstörung", async ({ page }) => {
     // 100.000 Störungen pro Minute: Es läuft vom ersten Bild an eine, der Störbalken ist nach 0,25 s im Bild.

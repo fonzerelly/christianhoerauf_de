@@ -15,9 +15,10 @@ export interface ElementLike<Child> {
   append(...children: Child[]): void;
   replaceChildren(...children: Child[]): void;
   addEventListener(type: "click", listener: () => void): void;
+  focus(): void;
 }
 
 /** Legt neue Elemente an (im Browser `document`). */
 export interface ElementFactory<Element> {
-  createElement(tag: "p" | "button" | "div" | "span"): Element;
+  createElement(tag: "p" | "button" | "div" | "span" | "ul" | "li"): Element;
 }

@@ -9,6 +9,8 @@ export class FakeElement implements ElementLike<FakeElement> {
   public className = "";
   public hidden: boolean | string = false;
   public scrollLeft = 0;
+  /** Wie oft das Element den Fokus bekam. */
+  public focused = 0;
   public children: FakeElement[] = [];
   public readonly attributes = new Map<string, string>();
   private readonly styles = new Map<string, string>();
@@ -55,6 +57,10 @@ export class FakeElement implements ElementLike<FakeElement> {
 
   public addEventListener(_type: "click", listener: () => void): void {
     this.clickListeners.push(listener);
+  }
+
+  public focus(): void {
+    this.focused++;
   }
 
   /** Löst einen Klick aus. */

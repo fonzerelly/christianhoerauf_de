@@ -26,6 +26,7 @@ werden. `main.ts` übergibt die echten Elemente.
 | `timeline/scroll-controls.ts`     | `ScrollControls`: Pfeile, eigene Bildlaufleiste und Ziehen.                                                |
 | `timeline/fold-transition.ts`     | `FoldTransition`: der Übergang beim Klappen (Logik und Keyframes).                                         |
 | `timeline/dom-transition-port.ts` | `DomTransitionPort`: das DOM dazu (messen, klonen, Web Animations); nicht in der Abdeckung.                |
+| `timeline/station-menu.ts`        | `StationMenu`: Einstiegsfragen zu einer Station; Wahl trägt ins Fragefeld ein.                             |
 | `timeline/year-of-date.ts`        | `yearOfDate`: ein Datum als Jahr mit Nachkommastellen.                                                     |
 
 ## readUrlParameters, selectProfile
@@ -142,6 +143,16 @@ Pfeile), und übergibt diese Elemente an `connectScrolling` (in `main.ts`: `Scro
 | Griff                | Druck fängt den Zeiger (`setPointerCapture`), Ziehen verschiebt nach `scrollLeftForThumbDrag`, Loslassen oder Abbruch beendet.                                                                                                                    |
 | Bahn                 | Druck auf die Bahn (nicht auf den Griff): `scrollLeftForTrackClick`, sanft bzw. sofort.                                                                                                                                                           |
 | Inhalt ziehen        | Nur Maus, linke Taste: ab 4 px Bewegung gilt es als Ziehen (Klasse `dragging`) und verschiebt mit; Loslassen oder Verlassen beendet. Danach fängt der nächste Klick ab (keine Station öffnet sich). Mit dem Finger verschiebt der Browser selbst. |
+
+### Stationsmenü
+
+| `StationMenu`             | Was sie konkret tut                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `toggle(station, button)` | Ist das Menü schon das dieses Knopfs: schließen. Sonst schließen, neu füllen (Kopfzeile „Zeitraum · Titel · Organisation“, je Einstiegsfrage ein Knopf mit der Beschriftung und der ganzen Frage als `title`), zeigen, unter den Knopf legen (4 px darunter, links nie näher als `edge` an den Fensterrändern, Seitenkoordinaten), `aria-expanded="true"` am Knopf, Fokus auf die erste Frage. |
+| `close()`                 | Schließt, falls offen: `aria-expanded="false"`, versteckt. Auch beim Neuzeichnen (`onRedraw`) und Verschieben (`onScroll`) der Zeitleiste.                                                                                                                                                                                                                                                     |
+| `escape()`                | Schließt und gibt den Fokus an den Knopf zurück (Q21). Ohne offenes Menü nichts.                                                                                                                                                                                                                                                                                                               |
+| `documentClicked(target)` | Ein Klick auf der Seite außerhalb von Menü und Knopf schließt.                                                                                                                                                                                                                                                                                                                                 |
+| `choose` (privat)         | Trägt die Frage ins Fragefeld ein (schickt nicht ab, Q22), schließt, ruft `onChosen` (die Zeitleiste klappt zu) und setzt den Fokus ins Feld.                                                                                                                                                                                                                                                  |
 
 ### Übergang beim Klappen
 

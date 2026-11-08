@@ -40,15 +40,16 @@ Rechners. Auf den Abschnitt der Animation wartet der Test über `data-phase` an 
 
 ## Momente
 
-| Test                            | Was das Bild zeigt                                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `<Zeichensatz>-schreiben`       | Eine Sekunde, nachdem das Stichwort begonnen hat: Lichtpunkt mitten im Wort, die Leuchtspur dahinter.                     |
-| `<Zeichensatz>-haltepunkt`      | Der Lichtpunkt pulsiert am Haltepunkt; die Schrift steht, die Verbindungswege sind verglommen (ein Durchlauf, `ONE_RUN`). |
-| `mehrere-seiten-weiterschieben` | Mitten im Weiterschieben zur zweiten Seite.                                                                               |
-| `mehrere-seiten-haltepunkt`     | Haltepunkt der zweiten Seite.                                                                                             |
-| `frage-weiterschieben`          | Eine Frage am Haltepunkt: Der Lichtpunkt läuft hinaus, mitten im Weiterschieben zur Antwort.                              |
-| `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                                |
-| `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                         |
+| Test                            | Was das Bild zeigt                                                                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `<Zeichensatz>-schreiben`       | Eine Sekunde, nachdem das Stichwort begonnen hat: Lichtpunkt mitten im Wort, die Leuchtspur dahinter.                                                        |
+| `<Zeichensatz>-haltepunkt`      | Der Lichtpunkt pulsiert am Haltepunkt; die Schrift steht, die Verbindungswege sind verglommen (ein Durchlauf, `ONE_RUN`).                                    |
+| `mehrere-seiten-weiterschieben` | Mitten im Weiterschieben zur zweiten Seite.                                                                                                                  |
+| `mehrere-seiten-haltepunkt`     | Haltepunkt der zweiten Seite.                                                                                                                                |
+| `frage-weiterschieben`          | Eine Frage am Haltepunkt: Der Lichtpunkt läuft hinaus, mitten im Weiterschieben zur Antwort.                                                                 |
+| `stationsmenue-offen`           | Das Menü unter der letzten Station, über der Begrüßung. Der Test wählt danach eine Frage und prüft Fragefeld, zugeklappte Zeitleiste und geschlossenes Menü. |
+| `bildstoerung`                  | 0,25 s nach Beginn, mit 100.000 Störungen pro Minute: Der Störbalken steht mitten im Bild.                                                                   |
+| `weniger-bewegung-haltepunkt`   | Mit `prefers-reduced-motion`: ruhiges Leuchten statt Pulsieren, kein Flimmern, keine Bildstörung.                                                            |
 
 Seit Schritt 12.9 steht unter der Bühne die Zeitleiste: Die Test-Hooks nennen `cvUrl` und ein
 festes `today` (2026,5); Playwright liefert dort `tests/fixtures/lebenslauf.json` (ausgedacht).

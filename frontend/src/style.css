@@ -512,6 +512,76 @@ body[data-profile="handy"] .timeline-station-button .title {
   outline: none;
 }
 
+/* Das Stationsmenü (station-menu.ts): unter dem Knopf, über Antwort und Fragefeld (Q44). */
+#station-menu {
+  position: absolute;
+  z-index: 20;
+  width: min(460px, calc(100vw - 2 * 38px));
+  padding: 12px 0 8px;
+  background: #04140a;
+  border: 1px solid #1f7a40;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+body[data-profile="handy"] #station-menu {
+  width: calc(100vw - 2 * 14px);
+}
+
+.station-menu-header {
+  padding: 0 14px 8px;
+  font:
+    12px/1.4 ui-monospace,
+    "DejaVu Sans Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  color: #4fb36d;
+}
+
+#station-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.station-menu-question {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 7px 14px 7px 28px;
+  font:
+    15px/1.4 system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Ubuntu,
+    "DejaVu Sans",
+    sans-serif;
+  color: #c4ffd6;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.station-menu-question::before {
+  position: absolute;
+  left: 13px;
+  content: "›";
+  color: #ff2a2a;
+}
+
+.station-menu-question:hover,
+.station-menu-question:focus-visible {
+  background: rgba(43, 220, 90, 0.1);
+  outline: none;
+}
+
+#station-menu li:first-child .station-menu-question {
+  font-weight: 600;
+}
+
 /* Der Antwortbereich (ADR 0007): lesbarer Text in der Systemschrift, die Frage klein darüber. */
 #answer-area {
   max-width: 900px;

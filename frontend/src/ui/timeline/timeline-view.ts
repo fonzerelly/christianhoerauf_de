@@ -35,6 +35,10 @@ export interface TimelineViewParts<Element extends ElementLike<Element>> {
   readonly today: number;
   /** Verbindet Pfeile, Bildlaufleiste und Ziehen mit dem verschiebbaren Bereich (`ScrollControls`). */
   readonly connectScrolling: (elements: ScrollingElements<Element>) => void;
+  /** Ein Knopf einer Station wurde geklickt (das Stationsmenü öffnet sich). */
+  readonly onStationClick: (station: Station, button: Element) => void;
+  /** Die Zeitleiste wird neu gezeichnet (ein offenes Stationsmenü schließt). */
+  readonly onRedraw: () => void;
 }
 
 /** Aufgeklappt oder zugeklappt, und was ein Klick auf den Klappknopf tut. */
@@ -92,6 +96,7 @@ export class TimelineView<Element extends ElementLike<Element>> {
    * gehen an `connectScrolling`.
    */
   public showStations(stations: Stations, display: TimelineDisplayState): void {
+    this.parts.onRedraw();
     // Rahmen (Raster im CSS):  [‹] [verschiebbarer Inhalt] [›]
     //                              [Bahn mit Griff ][Klapp ]
     const scroll = this.element("div", "timeline-scroll");
@@ -260,11 +265,18 @@ export class TimelineView<Element extends ElementLike<Element>> {
     return { block, button };
   }
 
-  /** Ein Knopf zu einer Station; `data-station` nennt sie (für Stationsmenü und Übergang). */
+  /**
+   * Ein Knopf zu einer Station; `data-station` nennt sie (für den Übergang). Ein Klick öffnet ihr
+   * Stationsmenü; `aria-expanded` zeigt, ob es offen ist.
+   */
   private button(className: string, station: Station): Element {
     const button = this.element("button", className);
     button.setAttribute("type", "button");
     button.setAttribute("data-station", String(station.id));
+    button.setAttribute("aria-expanded", "false");
+    button.addEventListener("click", () => {
+      this.parts.onStationClick(station, button);
+    });
     return button;
   }
 

@@ -40,6 +40,7 @@ import { StageSizeWatcher } from "./ui/stage-size-watcher";
 import { DomTransitionPort } from "./ui/timeline/dom-transition-port";
 import { FoldTransition } from "./ui/timeline/fold-transition";
 import { ScrollControls } from "./ui/timeline/scroll-controls";
+import { StationMenu } from "./ui/timeline/station-menu";
 import { Timeline } from "./ui/timeline/timeline";
 import { TimelineView } from "./ui/timeline/timeline-view";
 import { yearOfDate } from "./ui/timeline/year-of-date";
@@ -68,6 +69,7 @@ document.body.dataset.profile = profile;
 const pageElement = requireElement(document, "page", HTMLElement);
 const stageElement = requireElement(document, "stage", HTMLElement);
 const timelineElement = requireElement(document, "timeline", HTMLElement);
+const stationMenuElement = requireElement(document, "station-menu", HTMLElement);
 const canvas = requireElement(document, "maze", HTMLCanvasElement);
 const form = requireElement(document, "ask-form", HTMLFormElement);
 const questionInput = requireElement(document, "question", HTMLInputElement);
@@ -256,6 +258,30 @@ canvas.addEventListener("contextrestored", () => {
   stage.refresh();
 });
 
+// Das Stationsmenü: Einstiegsfragen zu einer Station; eine Wahl trägt sie ins Fragefeld ein und
+// klappt die Zeitleiste zu (Q21, Q22, Q44). Esc und ein Klick daneben schließen es.
+const stationMenu = new StationMenu({
+  document,
+  menu: stationMenuElement,
+  questionInput,
+  onChosen: () => {
+    timeline?.collapse();
+  },
+  buttonRect: (button) => button.getBoundingClientRect(),
+  menuWidth: (menu) => menu.offsetWidth,
+  viewportWidth: () => document.documentElement.clientWidth,
+  pageScroll: () => ({ x: window.scrollX, y: window.scrollY }),
+  // Der Rand der Seite (#page), damit das Menü nicht näher an den Fensterrand rückt.
+  edge: Number.parseFloat(getComputedStyle(pageElement).paddingLeft),
+  contains: (element, target) => target instanceof Node && element.contains(target),
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") stationMenu.escape();
+});
+document.addEventListener("click", (event) => {
+  stationMenu.documentClicked(event.target);
+});
+
 // Die Zeitleiste mit den Stationen aus /lebenslauf, der Variante aus dem persönlichen Link (Q23).
 // Ohne Backend gibt es keine; ihr Platz bleibt versteckt.
 const cvUrl = testHooks?.cvUrl ?? cvUrlOf(answerUrl, import.meta.env.DEV);
@@ -279,7 +305,19 @@ const timeline =
           minPixelsPerYear: tuning.timelineMinPixelsPerYear,
           today,
           connectScrolling: (elements) => {
-            new ScrollControls({ ...elements, prefersReducedMotion: () => motion.isReduced });
+            new ScrollControls({
+              ...elements,
+              prefersReducedMotion: () => motion.isReduced,
+              onScroll: () => {
+                stationMenu.close();
+              },
+            });
+          },
+          onStationClick: (station, button) => {
+            stationMenu.toggle(station, button);
+          },
+          onRedraw: () => {
+            stationMenu.close();
           },
         }),
         today,

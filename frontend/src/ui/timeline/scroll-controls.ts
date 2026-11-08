@@ -54,6 +54,8 @@ export interface ScrollControlsParts {
     Styled & { readonly clientWidth: number; getBoundingClientRect(): { left: number } };
   readonly thumb: Listening & Styled & { setPointerCapture(pointerId: number): void };
   readonly prefersReducedMotion: () => boolean;
+  /** Der Inhalt wurde verschoben. */
+  readonly onScroll: () => void;
 }
 
 const px = (value: number): string => `${String(value)}px`;
@@ -83,6 +85,7 @@ export class ScrollControls {
     });
     scroll.addEventListener("scroll", () => {
       this.update();
+      parts.onScroll();
     });
     this.connectThumb();
     this.connectTrack();
