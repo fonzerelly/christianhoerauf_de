@@ -176,7 +176,7 @@ const stage = new Stage({
 // (beim Bauen aus VITE_ANSWER_URL) fragt die Seite das Backend. Die Begrüßung baut die Seite selbst.
 const ANSWER_TIMEOUT_MILLIS = 15_000;
 const staticAnswers = new StaticContentAnswerSource(() => fetchJson("content.json", fetch));
-const answerUrl = import.meta.env.VITE_ANSWER_URL;
+const answerUrl = testHooks?.answerUrl ?? import.meta.env.VITE_ANSWER_URL;
 const answerSource: AnswerSource =
   answerUrl === undefined || answerUrl === ""
     ? staticAnswers

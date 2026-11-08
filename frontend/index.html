@@ -10,6 +10,12 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <script>
+      // Das Geräteprofil schon vor dem ersten Bild, damit beim Laden nichts springt (das Layout
+      // hängt an data-profile). main.ts setzt es danach endgültig, auch mit ?profile=. Die Grenze
+      // ist DESKTOP_FROM_WIDTH aus config/tuning.ts.
+      document.body.dataset.profile = window.innerWidth >= 700 ? "desktop" : "handy";
+    </script>
     <noscript>
       <p class="noscript-hint">
         Hier entsteht die Internetpräsenz von Christian Hörauf.<br />

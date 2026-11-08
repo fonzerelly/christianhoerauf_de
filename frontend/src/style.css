@@ -112,11 +112,20 @@ body:not([data-profile="handy"]) #notice .footer-contact {
   display: none;
 }
 
-/* Die Bühne ist so hoch wie ihre Reihen; main.ts setzt die Höhe (Reihen × Zellgröße). */
+/* Die Bühne ist so hoch wie ihre Reihen; main.ts setzt die Höhe (Reihen × Zellgröße). Bis dahin
+   hält das CSS ungefähr so viel Platz frei, sonst springt beim Laden alles darunter nach unten
+   (Lighthouse: Layout-Verschiebung). Die Zahlen folgen config/tuning.ts: Desktop 15 Reihen zu
+   16 px, Handy 45 Spalten und 18 Reihen. */
 #stage {
   position: relative;
   width: 100%;
+  height: 240px;
   overflow: hidden;
+}
+
+body[data-profile="handy"] #stage {
+  height: auto;
+  aspect-ratio: 45 / 18;
 }
 
 #maze {

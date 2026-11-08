@@ -33,8 +33,27 @@ const LONG_TRAIL = { holdSeconds: 25, fadeSeconds: 5, keywordRuns: 1 };
 /** Längste Zeit in Sekunden, die auf einen Abschnitt gewartet wird. */
 const LONGEST_WAIT_SECONDS = 180;
 
+/** Was ein Test außer der Antwort-Datei vorgeben kann. */
+interface OpenOptions {
+  /** Abstimmungswerte, die die des Geräteprofils ersetzen. */
+  readonly tuning?: Record<string, number>;
+  /** Liefert der Lebenslauf einen Fehler (503) statt der ausgedachten Datei? */
+  readonly cvFails?: boolean;
+  /** Antworten wie vom Backend (`HttpAnswerSource`), mit diesem Status, statt aus der Datei. */
+  readonly answerStatus?: number;
+}
+
+/** Wohin die Seite ihre Fragen schickt, wenn der Test Antworten wie vom Backend will. */
+const TEST_ANSWER_URL = "test-antwort";
+
 /** Läuft in der Seite, bevor ihre Skripte laufen: Uhr und Bildtakt, die nur der Test weiterstellt, und Aufgaben ohne Verzögerung. */
-function installTestHooks(tuning: Record<string, number>): void {
+function installTestHooks({
+  tuning,
+  answerUrl,
+}: {
+  tuning: Record<string, number>;
+  answerUrl: string | undefined;
+}): void {
   let time = 0;
   let pendingFrame: (() => void) | undefined;
   (window as unknown as { labyrinthTestHooks: unknown }).labyrinthTestHooks = {
@@ -52,6 +71,7 @@ function installTestHooks(tuning: Record<string, number>): void {
     // die Zeitleiste weder vom Backend noch vom Datum ab.
     cvUrl: "test-lebenslauf.json",
     today: 2026.5,
+    ...(answerUrl === undefined ? {} : { answerUrl }),
     /** Stellt die Uhr um `seconds` weiter, in Bildern zu höchstens `step` Sekunden. */
     advance: (seconds: number, step = 0.05) => {
       let left = seconds;
@@ -68,24 +88,27 @@ function installTestHooks(tuning: Record<string, number>): void {
 }
 
 /** Öffnet die Seite mit der Begrüßung aus der Datei und wartet, bis der Lichtpunkt zu schreiben beginnt. */
-async function open(
-  page: Page,
-  fixture: string,
-  tuning: Record<string, number> = {},
-): Promise<void> {
+async function open(page: Page, fixture: string, options: OpenOptions = {}): Promise<void> {
+  const { tuning = {}, cvFails = false, answerStatus } = options;
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
 
-  await page.addInitScript(installTestHooks, tuning);
+  const answerUrl = answerStatus === undefined ? undefined : TEST_ANSWER_URL;
+  await page.addInitScript(installTestHooks, { tuning, answerUrl });
   await page.route("**/content.json", (route) =>
     route.fulfill({ path: `visual/fixtures/${fixture}.json` }),
   );
   await page.route("**/test-lebenslauf.json", (route) =>
-    route.fulfill({ path: "tests/fixtures/lebenslauf.json" }),
+    cvFails
+      ? route.fulfill({ status: 503 })
+      : route.fulfill({ path: "tests/fixtures/lebenslauf.json" }),
   );
+  if (answerStatus !== undefined) {
+    await page.route(`**/${TEST_ANSWER_URL}`, (route) => route.fulfill({ status: answerStatus }));
+  }
   await page.goto("/");
   // Bilder anstoßen, bis die Begrüßung da ist: Sie kommt über das Netz, die Uhr steht still.
   await page.waitForFunction(() => {
@@ -93,7 +116,9 @@ async function open(
     hooks.advance(0);
     return document.getElementById("stage")?.dataset.phase === "writing";
   });
-  expect(errors).toEqual([]);
+  // Ein Fehler, den der Test selbst bestellt hat, meldet der Browser auch in der Konsole.
+  const ordered = (error: string) => cvFails && error.includes("503");
+  expect(errors.filter((error) => !ordered(error))).toEqual([]);
 }
 
 /** Stellt die Uhr der Seite um `seconds` weiter. */
@@ -170,7 +195,7 @@ for (const fixture of SINGLE_PAGE_FIXTURES) {
     });
 
     test("am Haltepunkt, die Spur bleibt stehen", async ({ page }) => {
-      await open(page, fixture, ONE_RUN);
+      await open(page, fixture, { tuning: ONE_RUN });
       await askToShow(page);
 
       await advanceUntil(page, "resting");
@@ -203,7 +228,7 @@ test.describe("mehrere-seiten", () => {
 
   test("am Haltepunkt der zweiten Seite, die Spur bleibt stehen", async ({ page }) => {
     test.setTimeout(90_000); // das Verglimmen der ersten Seite sind mehrere hundert Bilder
-    await open(page, "mehrere-seiten", LONG_TRAIL);
+    await open(page, "mehrere-seiten", { tuning: LONG_TRAIL });
     await askToShow(page);
 
     await advanceUntil(page, "resting");
@@ -226,7 +251,7 @@ const GIMMICKS = [
 test.describe("Gimmicks", () => {
   for (const { question, name } of GIMMICKS) {
     test(`${name}: fertig gezeichnet, der Lichtpunkt am Haltepunkt`, async ({ page }) => {
-      await open(page, "gimmicks", LONG_TRAIL);
+      await open(page, "gimmicks", { tuning: LONG_TRAIL });
       await askToShow(page, question);
 
       await advanceUntil(page, "resting");
@@ -240,7 +265,7 @@ test.describe("Gimmicks", () => {
     page,
   }) => {
     test.setTimeout(90_000); // das Verglimmen des Smileys sind mehrere hundert Bilder
-    await open(page, "gimmicks", LONG_TRAIL);
+    await open(page, "gimmicks", { tuning: LONG_TRAIL });
     await askToShow(page, "smiley");
 
     await ask(page, "herz");
@@ -248,6 +273,35 @@ test.describe("Gimmicks", () => {
     await advance(page, 0.6);
 
     await expect(page).toHaveScreenshot("smiley-zum-herz-weiterschieben.png");
+  });
+});
+
+test.describe("Abschluss (Schritt 12.14)", () => {
+  test("Begrüßung, die Zeitleiste aufgeklappt", async ({ page }) => {
+    await open(page, "zeichensatz-1");
+
+    await advance(page, 1);
+
+    await expect(page).toHaveScreenshot("begruessung-aufgeklappt.png");
+  });
+
+  test("der Lebenslauf ist nicht erreichbar", async ({ page }) => {
+    await open(page, "zeichensatz-1", { cvFails: true });
+    await expect(page.getByText("Die Stationen sind gerade nicht erreichbar.")).toBeVisible();
+
+    await advance(page, 1);
+
+    await expect(page).toHaveScreenshot("lebenslauf-nicht-erreichbar.png");
+  });
+
+  test("das Backend antwortet mit 503: der Lichtpunkt schreibt den Status", async ({ page }) => {
+    await open(page, "zeichensatz-1", { answerStatus: 503, tuning: ONE_RUN });
+    await askToShow(page);
+
+    await advanceUntil(page, "resting");
+    await advance(page, 0.8);
+
+    await expect(page).toHaveScreenshot("fehler-503.png");
   });
 });
 
@@ -285,7 +339,7 @@ test.describe("Stationsmenü", () => {
 test.describe("Bildstörung", () => {
   test("mitten in einer Bildstörung", async ({ page }) => {
     // 100.000 Störungen pro Minute: Es läuft vom ersten Bild an eine, der Störbalken ist nach 0,25 s im Bild.
-    await open(page, "zeichensatz-1", { glitchesPerMinute: 100_000 });
+    await open(page, "zeichensatz-1", { tuning: { glitchesPerMinute: 100_000 } });
 
     await advance(page, 0.25);
 
@@ -299,7 +353,7 @@ test.describe("weniger Bewegung gewünscht", () => {
   test("der Lichtpunkt leuchtet am Haltepunkt ruhig, ohne Flimmern und Bildstörung", async ({
     page,
   }) => {
-    await open(page, "zeichensatz-1", ONE_RUN);
+    await open(page, "zeichensatz-1", { tuning: ONE_RUN });
     await askToShow(page);
 
     await advanceUntil(page, "resting");

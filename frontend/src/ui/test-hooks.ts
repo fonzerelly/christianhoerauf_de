@@ -19,6 +19,8 @@ export interface TestHooks {
   readonly tuning: Partial<Tuning>;
   /** Woher die Zeitleiste den Lebenslauf holt (statt vom Backend); fehlt, wenn der Test keine will. */
   readonly cvUrl?: string;
+  /** Wo die Antworten herkommen (wie `VITE_ANSWER_URL`); fehlt, wenn der Test `content.json` will. */
+  readonly answerUrl?: string;
   /** Ein festes „heute“ als Jahr, damit die Zeitleiste nicht vom Datum abhängt. */
   readonly today?: number;
 }
@@ -32,7 +34,16 @@ export function readTestHooks(scope: object): TestHooks | undefined {
   const hooks = (scope as { labyrinthTestHooks?: unknown }).labyrinthTestHooks;
   if (!isRecord(hooks)) return undefined;
 
-  const { clock, requestFrame, scheduleTask, randomSeed, tuning = {}, cvUrl, today } = hooks;
+  const {
+    clock,
+    requestFrame,
+    scheduleTask,
+    randomSeed,
+    tuning = {},
+    cvUrl,
+    answerUrl,
+    today,
+  } = hooks;
   const hasClock = isRecord(clock) && typeof clock.now === "function";
   if (
     !hasClock ||
@@ -41,6 +52,7 @@ export function readTestHooks(scope: object): TestHooks | undefined {
     typeof randomSeed !== "number" ||
     !isRecord(tuning) ||
     (cvUrl !== undefined && typeof cvUrl !== "string") ||
+    (answerUrl !== undefined && typeof answerUrl !== "string") ||
     (today !== undefined && typeof today !== "number")
   ) {
     return undefined;
@@ -52,6 +64,7 @@ export function readTestHooks(scope: object): TestHooks | undefined {
     scheduleTask: scheduleTask as TestHooks["scheduleTask"],
     randomSeed,
     ...(cvUrl === undefined ? {} : { cvUrl }),
+    ...(answerUrl === undefined ? {} : { answerUrl }),
     ...(today === undefined ? {} : { today }),
   };
 }

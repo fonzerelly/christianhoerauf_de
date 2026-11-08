@@ -36,6 +36,11 @@ Ungültiges (`seed=abc`, `-3`, `1.5`, `profil=tablet`) fehlt im Ergebnis.
 `selectProfile(windowWidth, requested?)` gibt den Wunsch aus der Adresse zurück, sonst `desktop` ab
 700 px, darunter `handy`. Gewählt wird einmal beim Laden.
 
+Schon vorher setzt ein kleines Skript am Anfang von `index.html` `data-profile` nach derselben
+Grenze, damit das Layout vor dem ersten Bild stimmt (sonst springt beim Laden alles unter dem
+Kopf, Lighthouse: Layout-Verschiebung). `main.ts` setzt den Wert danach endgültig. Bis `main.ts`
+die Bühne ausmisst, hält `style.css` ihre ungefähre Höhe frei (Desktop 240 px, Handy 45 : 18).
+
 ## QuestionForm
 
 | Name                                             | Was sie konkret tut                                                                                                                                                                                                                               |
@@ -180,5 +185,5 @@ zeichnet `refresh` neu.
 
 `requireElement(root, id, type)` liefert das Element oder scheitert mit `Auf der Seite fehlt das Element
 "<id>"` bzw. `… ist von der falschen Art`. `readTestHooks(scope)` liest `scope.labyrinthTestHooks`
-(`clock`, `requestFrame`, `scheduleTask`, `randomSeed` und optional `tuning`, Abstimmungswerte, die den des Profils ersetzen, `cvUrl`, woher die Zeitleiste den Lebenslauf holt, und `today`, ein festes „heute“ als Jahr), das nur ein Test per Playwright-`addInitScript` setzt; fehlt es
+(`clock`, `requestFrame`, `scheduleTask`, `randomSeed` und optional `tuning`, Abstimmungswerte, die den des Profils ersetzen, `cvUrl`, woher die Zeitleiste den Lebenslauf holt, `answerUrl`, woher die Antworten kommen (statt `VITE_ANSWER_URL`, damit ein Bildtest Antworten des Backends wie einen Fehler 503 nachstellen kann), und `today`, ein festes „heute“ als Jahr), das nur ein Test per Playwright-`addInitScript` setzt; fehlt es
 oder ist es unvollständig: `undefined`.
