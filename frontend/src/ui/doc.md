@@ -4,27 +4,29 @@ Die Verbindung zur Seite: Fragefeld, Bühne, Takt, Fenstergröße. Die Klassen n
 statt echter DOM-Elemente (`{ addEventListener }`, `{ textContent }` …), damit sie ohne Browser getestet
 werden. `main.ts` übergibt die echten Elemente.
 
-| Datei                         | Was sie tut                                                                                                |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `url-parameters.ts`           | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
-| `device-profile-selector.ts`  | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
-| `question-form.ts`            | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
-| `answer-area.ts`              | `AnswerArea`: Antwortbereich (Frage, Antwort, Warten) und Folgefragen; der `aria-live`-Bereich.            |
-| `dom-like.ts`                 | `ElementLike`, `ElementFactory`: der Ausschnitt des DOM, mit dem `AnswerArea` baut.                        |
-| `conversation.ts`             | `Conversation`: Frage → Antwortquelle → Bühne und Antwortbereich.                                          |
-| `stage.ts`                    | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe.                                |
-| `step-runner.ts`              | `runInTasks`: rechnet eine Berechnung in Stücken, jedes in einer eigenen Aufgabe.                          |
-| `prepared-page-source.ts`     | `PreparedPageSource`: die Seitenquelle der Bühne (Seiten in Stücken erzeugen, erste Seite vorab zeichnen). |
-| `phase-indicator.ts`          | `PhaseIndicator`: Abschnitt der Animation als `data-phase`.                                                |
-| `stage-size-watcher.ts`       | `StageSizeWatcher`: baut neu, wenn die Bühne anders breit wird.                                            |
-| `stage-frame.ts`              | `applyStageLayout`: Höhe der Bühne und Anfang/Breite des Labyrinths an die Seite.                          |
-| `animation-loop.ts`           | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                                                     |
-| `required-element.ts`         | `requireElement`: Element der Seite holen und prüfen.                                                      |
-| `test-hooks.ts`               | `readTestHooks`: Uhr, Bildtakt und Startwert, die ein Test mitgibt.                                        |
-| `timeline/timeline-view.ts`   | `TimelineView`: baut, misst und legt die Zeitleiste; Laden und Fehler.                                     |
-| `timeline/timeline.ts`        | `Timeline`: lädt den Lebenslauf, zeigt Stationen oder Fehler, „Nochmal versuchen“.                         |
-| `timeline/scroll-controls.ts` | `ScrollControls`: Pfeile, eigene Bildlaufleiste und Ziehen.                                                |
-| `timeline/year-of-date.ts`    | `yearOfDate`: ein Datum als Jahr mit Nachkommastellen.                                                     |
+| Datei                             | Was sie tut                                                                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `url-parameters.ts`               | `readUrlParameters`: `?seed=` und `?profil=`.                                                              |
+| `device-profile-selector.ts`      | `selectProfile`: Geräteprofil nach Fensterbreite.                                                          |
+| `question-form.ts`                | `QuestionForm`: Fragefeld und „Senden“.                                                                    |
+| `answer-area.ts`                  | `AnswerArea`: Antwortbereich (Frage, Antwort, Warten) und Folgefragen; der `aria-live`-Bereich.            |
+| `dom-like.ts`                     | `ElementLike`, `ElementFactory`: der Ausschnitt des DOM, mit dem `AnswerArea` baut.                        |
+| `conversation.ts`                 | `Conversation`: Frage → Antwortquelle → Bühne und Antwortbereich.                                          |
+| `stage.ts`                        | `Stage`: Renderer, Ablauf, wann gezeichnet wird, Neuaufbau bei neuer Größe.                                |
+| `step-runner.ts`                  | `runInTasks`: rechnet eine Berechnung in Stücken, jedes in einer eigenen Aufgabe.                          |
+| `prepared-page-source.ts`         | `PreparedPageSource`: die Seitenquelle der Bühne (Seiten in Stücken erzeugen, erste Seite vorab zeichnen). |
+| `phase-indicator.ts`              | `PhaseIndicator`: Abschnitt der Animation als `data-phase`.                                                |
+| `stage-size-watcher.ts`           | `StageSizeWatcher`: baut neu, wenn die Bühne anders breit wird.                                            |
+| `stage-frame.ts`                  | `applyStageLayout`: Höhe der Bühne und Anfang/Breite des Labyrinths an die Seite.                          |
+| `animation-loop.ts`               | `AnimationLoop`: der Takt (ein Bild nach dem anderen).                                                     |
+| `required-element.ts`             | `requireElement`: Element der Seite holen und prüfen.                                                      |
+| `test-hooks.ts`                   | `readTestHooks`: Uhr, Bildtakt und Startwert, die ein Test mitgibt.                                        |
+| `timeline/timeline-view.ts`       | `TimelineView`: baut, misst und legt die Zeitleiste; Laden und Fehler.                                     |
+| `timeline/timeline.ts`            | `Timeline`: lädt den Lebenslauf, zeigt Stationen oder Fehler, „Nochmal versuchen“.                         |
+| `timeline/scroll-controls.ts`     | `ScrollControls`: Pfeile, eigene Bildlaufleiste und Ziehen.                                                |
+| `timeline/fold-transition.ts`     | `FoldTransition`: der Übergang beim Klappen (Logik und Keyframes).                                         |
+| `timeline/dom-transition-port.ts` | `DomTransitionPort`: das DOM dazu (messen, klonen, Web Animations); nicht in der Abdeckung.                |
+| `timeline/year-of-date.ts`        | `yearOfDate`: ein Datum als Jahr mit Nachkommastellen.                                                     |
 
 ## readUrlParameters, selectProfile
 
@@ -140,6 +142,24 @@ Pfeile), und übergibt diese Elemente an `connectScrolling` (in `main.ts`: `Scro
 | Griff                | Druck fängt den Zeiger (`setPointerCapture`), Ziehen verschiebt nach `scrollLeftForThumbDrag`, Loslassen oder Abbruch beendet.                                                                                                                    |
 | Bahn                 | Druck auf die Bahn (nicht auf den Griff): `scrollLeftForTrackClick`, sanft bzw. sofort.                                                                                                                                                           |
 | Inhalt ziehen        | Nur Maus, linke Taste: ab 4 px Bewegung gilt es als Ziehen (Klasse `dragging`) und verschiebt mit; Loslassen oder Verlassen beendet. Danach fängt der nächste Klick ab (keine Station öffnet sich). Mit dem Finger verschiebt der Browser selbst. |
+
+### Übergang beim Klappen
+
+`Timeline` klappt über `transition.run(render)` und beendet mit `transition.finish()` einen
+laufenden Übergang, bevor sie wegen einer anderen Breite neu zeichnet.
+
+| `FoldTransition` | Was sie konkret tut                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run(render)`    | Beendet einen laufenden Übergang, hält das Aussehen fest (`capture`; bei weniger Bewegung nicht), zeichnet mit `render` neu, hält das neue Aussehen fest und spielt: Ebene über dem sichtbaren Bereich; Ebene und Zeitleiste gleiten auf die neue Höhe; das Gerippe (Linie ohne Texte) wischt beim Zuklappen nach links weg, beim Aufklappen von links herein (`clip-path`, Deckkraft 0,3); je Eintrag in beiden Zuständen gleiten altes und neues Abbild gemeinsam von der alten zur neuen Stelle, das alte bis 60 % ausgeblendet, das neue ab 30 % eingeblendet; was es nur in einem Zustand gibt, blendet an Ort und Stelle aus bzw. ab der Hälfte ein. 450 ms, `cubic-bezier(0.4, 0, 0.2, 1)`. War vorher oder nachher nichts zu sehen: nur neu zeichnen. |
+| `finish()`       | Beendet sofort: alle Animationen abbrechen, Ebene weg, Zeitleiste wieder normal; nur einmal, auch wenn danach noch das Ende gemeldet wird.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+`DomTransitionPort` erledigt das DOM: Einträge über `data-station` (Schlüssel `station-<n>`) und
+`data-transition` finden, messen (`getBoundingClientRect`) und klonen (mit den berechneten Stilen
+für Schrift, Farbe, Innenabstand …, weil die Regeln am Ort hängen); das Gerippe ist der Inhalt mit
+unsichtbaren Texten. Die Ebene `timeline-transition` liegt in `body`; währenddessen hat
+`#timeline` die Klasse `transitioning`, und der echte neue Inhalt ist versteckt. Ohne eigene
+Entscheidungen und ohne Browser nicht prüfbar, deshalb nicht in der Unit-Test-Abdeckung
+(`vitest.config.ts`); angesehen in Zeitlupe am 08.11.
 
 `main.ts` baut die Zeitleiste nur, wenn es eine Adresse für den Lebenslauf gibt (`cvUrlOf`, im
 Test `cvUrl` aus den Test-Hooks); sonst bleibt `#timeline` versteckt. Wird die Bühne anders breit,

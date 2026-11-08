@@ -411,6 +411,29 @@ body[data-profile="handy"] .timeline-station-button .title {
   font-size: 13px;
 }
 
+/* Während des Übergangs beim Klappen (fold-transition.ts): Die Zeitleiste gleitet auf ihre neue
+   Höhe, die Knöpfe am Rand dehnen sich mit; darüber liegt die Ebene mit den Abbildern. */
+#timeline.transitioning {
+  overflow: hidden;
+}
+
+#timeline.transitioning .timeline-frame {
+  height: 100%;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.timeline-transition {
+  position: absolute;
+  z-index: 15;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.timeline-skeleton {
+  position: absolute;
+  inset: 0;
+}
+
 /* Zugeklappt (Q48): eine Zeile „Jahr Name“, Engagements blasser, ohne Linie. */
 .timeline-line {
   display: flex;

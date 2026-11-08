@@ -35,7 +35,16 @@ function setup(results: (() => Promise<Cv>)[]) {
   const source = {
     load: () => (results[call++] ?? (() => Promise.reject(new Error("keine"))))(),
   };
-  const timeline = new Timeline(source, view, 2026);
+  const transition = {
+    run: (render: () => void) => {
+      shown.push("Übergang:");
+      render();
+    },
+    finish: () => {
+      shown.push("Übergang beendet");
+    },
+  };
+  const timeline = new Timeline(source, view, 2026, transition);
   return {
     timeline,
     shown,
@@ -80,7 +89,7 @@ describe("Timeline", () => {
 
     timeline.refresh();
 
-    expect(shown).toEqual(["lädt", "auf: Entwicklerin", "auf: Entwicklerin"]);
+    expect(shown).toEqual(["lädt", "auf: Entwicklerin", "Übergang beendet", "auf: Entwicklerin"]);
   });
 
   it("zeichnet nichts neu, solange keine Stationen da sind", () => {
@@ -88,7 +97,7 @@ describe("Timeline", () => {
 
     timeline.refresh();
 
-    expect(shown).toEqual([]);
+    expect(shown).toEqual(["Übergang beendet"]);
   });
 
   it("klappt per Klappknopf zu und wieder auf", async () => {
@@ -99,7 +108,14 @@ describe("Timeline", () => {
     toggle();
     toggle();
 
-    expect(shown).toEqual(["lädt", "auf: Entwicklerin", "zu: Entwicklerin", "auf: Entwicklerin"]);
+    expect(shown).toEqual([
+      "lädt",
+      "auf: Entwicklerin",
+      "Übergang:",
+      "zu: Entwicklerin",
+      "Übergang:",
+      "auf: Entwicklerin",
+    ]);
   });
 
   it("klappt zu, wenn jemand fragt (Q43); ist sie schon zu, passiert nichts", async () => {
@@ -110,7 +126,7 @@ describe("Timeline", () => {
     timeline.collapse();
     timeline.collapse();
 
-    expect(shown).toEqual(["lädt", "auf: Entwicklerin", "zu: Entwicklerin"]);
+    expect(shown).toEqual(["lädt", "auf: Entwicklerin", "Übergang:", "zu: Entwicklerin"]);
   });
 
   it("merkt sich das Zuklappen, wenn die Stationen noch laden", async () => {
@@ -120,6 +136,7 @@ describe("Timeline", () => {
     timeline.collapse();
     await settle();
 
-    expect(shown).toEqual(["lädt", "zu: Entwicklerin"]);
+    // Der Übergang läuft ins Leere (vorher war nichts zu sehen), die Stationen kommen zugeklappt.
+    expect(shown).toEqual(["lädt", "Übergang:", "zu: Entwicklerin"]);
   });
 });

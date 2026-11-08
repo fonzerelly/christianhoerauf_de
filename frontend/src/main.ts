@@ -37,6 +37,8 @@ import { Stage } from "./ui/stage";
 import type { ScheduleTask } from "./ui/step-runner";
 import { applyStageLayout } from "./ui/stage-frame";
 import { StageSizeWatcher } from "./ui/stage-size-watcher";
+import { DomTransitionPort } from "./ui/timeline/dom-transition-port";
+import { FoldTransition } from "./ui/timeline/fold-transition";
 import { ScrollControls } from "./ui/timeline/scroll-controls";
 import { Timeline } from "./ui/timeline/timeline";
 import { TimelineView } from "./ui/timeline/timeline-view";
@@ -281,6 +283,10 @@ const timeline =
           },
         }),
         today,
+        new FoldTransition(
+          new DomTransitionPort(timelineElement, document),
+          () => motion.isReduced,
+        ),
       );
 timeline?.load();
 
