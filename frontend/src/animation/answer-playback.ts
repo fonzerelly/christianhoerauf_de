@@ -1,4 +1,4 @@
-import { itemAt, lastOf } from "../domain/lists";
+import { itemAt } from "../domain/lists";
 import type { Position } from "../domain/maze/position";
 import type { AnswerContent } from "../domain/pages/answer-content";
 import type { MazePage } from "../domain/pages/maze-page-generator";
@@ -230,7 +230,9 @@ export class AnswerPlayback implements Playback {
    * (der Lichtpunkt pulsiert am Haltepunkt, oder es steht still).
    */
   private acceptAnswer(content: AnswerContent, question: number): void {
-    const exitBefore = this.pages.length > 0 ? lastOf(this.pages).exit : undefined;
+    // Eine Seite im feineren Raster (Gimmick) übergibt ihren Ausgang im Raster der Bühne.
+    const lastPage = this.pages.at(-1);
+    const exitBefore = lastPage === undefined ? undefined : (lastPage.handOver ?? lastPage.exit);
     const seed = this.settings.seed + this.arrivedAnswers;
 
     void this.pageSource.paginate(content, seed, exitBefore).then(({ pages }) => {
@@ -287,8 +289,13 @@ export class AnswerPlayback implements Playback {
     const target = this.targetStep(walker, page);
     const isRushing = this.isRushingPage(page);
 
-    const { stepsDoneBefore, stepsDoneNow } = walker.walk(seconds, target, (kind) =>
-      paceOf(kind, isRushing, this.settings),
+    // Feinere Zellen: entsprechend mehr Zellen pro Sekunde, damit der Lichtpunkt auf dem
+    // Bildschirm gleich schnell bleibt.
+    const cellScale = page.cellScale ?? 1;
+    const { stepsDoneBefore, stepsDoneNow } = walker.walk(
+      seconds,
+      target,
+      (kind) => paceOf(kind, isRushing, this.settings) / cellScale,
     );
     this.trail.markWalked(stepsDoneBefore, stepsDoneNow, this.clock);
 

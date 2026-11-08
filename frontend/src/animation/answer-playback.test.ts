@@ -111,6 +111,36 @@ describe("AnswerPlayback", () => {
     });
   });
 
+  describe("Bild im feineren Raster", () => {
+    async function finePicturePlayback() {
+      const source = new FakePageSource();
+      source.gimmickCellScale = 0.5;
+      const playback = new AnswerPlayback(source, SETTINGS);
+      playback.request(Promise.resolve({ picture: "heart" }));
+      await settle();
+      return { source, playback };
+    }
+
+    it("läuft doppelt so viele Zellen pro Sekunde, wenn die Zellen halb so groß sind", async () => {
+      const { playback } = await finePicturePlayback();
+
+      playback.advance(TO_RESTING / 2);
+
+      expect(playback.phase).toBe("resting");
+    });
+
+    it("gibt der nächsten Antwort den Ausgang im Raster der Bühne weiter (handOver)", async () => {
+      const { playback, source } = await finePicturePlayback();
+      const handOver = playback.currentPage?.handOver;
+
+      playback.request(Promise.resolve(written("B")));
+      await settle();
+
+      expect(handOver).toBeDefined();
+      expect(source.requests[1]?.exitBefore).toBe(handOver);
+    });
+  });
+
   describe("Begrüßung", () => {
     it("beginnt zu schreiben, sobald die Antwort da ist, mit dem Startwert der Einstellungen", async () => {
       const { playback, source } = await playbackWithGreeting("Hallo");

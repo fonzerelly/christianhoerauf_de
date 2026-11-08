@@ -34,6 +34,12 @@ export class FakePageSource implements PageSource {
     exitBefore: Gate | undefined;
   }[] = [];
 
+  /**
+   * Ist das gesetzt, liegt die Seite eines Bilds oder Fotos in einem feineren Raster: Sie trägt
+   * diesen Maßstab (`cellScale`) und als `handOver` einen eigenen Ausgang im Raster der Bühne.
+   */
+  public gimmickCellScale: number | undefined;
+
   private pagesCreated = 0;
   private isHolding = false;
   private readonly held: (() => void)[] = [];
@@ -51,7 +57,10 @@ export class FakePageSource implements PageSource {
     } else this.requests.push({ text, seed, exitBefore });
     const isWritten = "maxLinesPerPage" in answer && text !== "";
     const isPath = "maxLinesPerPage" in answer && text === "";
-    const pages = isWritten ? Array.from(text, () => this.createPage()) : [this.createPage(isPath)];
+    const isGimmick = !("maxLinesPerPage" in answer);
+    const pages = isWritten
+      ? Array.from(text, () => this.createPage())
+      : [this.inGimmickGrid(this.createPage(isPath), isGimmick)];
     const result = { pages, restingStepIndex: RESTING_STEP };
     if (!this.isHolding) return Promise.resolve(result);
     return new Promise((resolve) => {
@@ -76,6 +85,12 @@ export class FakePageSource implements PageSource {
 
   public restingStepOf(page: MazePage): number {
     return page.lastGlyphEnd + 2;
+  }
+
+  private inGimmickGrid(page: MazePage, isGimmick: boolean): MazePage {
+    const cellScale = this.gimmickCellScale;
+    if (!isGimmick || cellScale === undefined) return page;
+    return { ...page, cellScale, handOver: { cell: { x: 1, y: 1 }, side: "right" } };
   }
 
   /** Eine Seite mit Schrift auf allen Wegstücken; ein Pfad (`isPath`) hat nur Verbindungswege. */
