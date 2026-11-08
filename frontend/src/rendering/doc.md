@@ -4,23 +4,23 @@ Zeichnen. Dieser Ordner liest den Zustand der Animation (`PlaybackView` aus `ani
 ihn auf ein Canvas. Das Canvas selbst steckt hinter dem schmalen `DrawingContext`; im Test steht
 eine Attrappe dafür, die jeden Aufruf aufzeichnet (`test-support/recording-context.ts`).
 
-| Datei                  | Was sie tut                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------- |
-| `renderer.ts`          | Port `Renderer`: `resize`, `prepare`, `draw`, `discardPreparedImages`, `isGlitching`. |
-| `canvas-renderer.ts`   | `CanvasRenderer`: der Adapter, der alles zu einem Bild zusammensetzt.                 |
-| `drawing-context.ts`   | `DrawingContext`, `Layer` (mit `flush`), `LayerFactory`, `CanvasSurface`.             |
-| `render-settings.ts`   | `RenderSettings`: Farben, Wände, Leuchtspur, Monitor.                                 |
-| `stage-layout.ts`      | `StageLayout`, `layoutStage`, `pageLayoutOf`, `cellCenterOn`: Einteilung der Bühne.   |
-| `scaled-look.ts`       | `scaledLook`: dünnere Linien für feinere Zellen.                                      |
-| `scroll-shifts.ts`     | `scrollShiftsOf`: Verschiebung beider Seiten beim Weiterschieben.                     |
-| `wall-layer.ts`        | `WallLayer`, `traceWalls`: Wände vorab gezeichnet, mit Lichthof.                      |
-| `trail-painter.ts`     | `TrailPainter`: Leuchtspur nach Helligkeitsstufen gebündelt.                          |
-| `dot-painter.ts`       | `DotPainter`: Lichtpunkt, am Haltepunkt pulsierend.                                   |
-| `photo-painter.ts`     | `PhotoPainter`, `PhotoImages`: das Foto einer Seite, je Runde schärfer.               |
-| `monitor-effects.ts`   | `MonitorEffects`: Glasscheibe, Flimmern, Bildstörung.                                 |
-| `glitch-scheduler.ts`  | `GlitchScheduler`: würfelt, wann eine Bildstörung beginnt.                            |
-| `motion-preference.ts` | Port `MotionPreference` und `MediaQueryMotionPreference`.                             |
-| `test-settings.ts`     | Einfache Zahlen für die Tests des Zeichnens (kein Produktionscode).                   |
+| Datei                  | Was sie tut                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `renderer.ts`          | Port `Renderer`: `resize`, `prepare`, `draw`, `discardPreparedImages`, `isGlitching`.             |
+| `canvas-renderer.ts`   | `CanvasRenderer`: der Adapter, der alles zu einem Bild zusammensetzt.                             |
+| `drawing-context.ts`   | `DrawingContext`, `Layer` (mit `flush`), `LayerFactory`, `CanvasSurface`.                         |
+| `render-settings.ts`   | `RenderSettings`: Farben, Wände, Leuchtspur, Monitor.                                             |
+| `stage-layout.ts`      | `StageLayout`, `layoutStage`, `fineGridOn`, `pageLayoutOf`, `cellCenterOn`: Einteilung der Bühne. |
+| `scaled-look.ts`       | `scaledLook`: dünnere Linien für feinere Zellen.                                                  |
+| `scroll-shifts.ts`     | `scrollShiftsOf`: Verschiebung beider Seiten beim Weiterschieben.                                 |
+| `wall-layer.ts`        | `WallLayer`, `traceWalls`: Wände vorab gezeichnet, mit Lichthof.                                  |
+| `trail-painter.ts`     | `TrailPainter`: Leuchtspur nach Helligkeitsstufen gebündelt.                                      |
+| `dot-painter.ts`       | `DotPainter`: Lichtpunkt, am Haltepunkt pulsierend.                                               |
+| `photo-painter.ts`     | `PhotoPainter`, `PhotoImages`: das Foto einer Seite, je Runde schärfer.                           |
+| `monitor-effects.ts`   | `MonitorEffects`: Glasscheibe, Flimmern, Bildstörung.                                             |
+| `glitch-scheduler.ts`  | `GlitchScheduler`: würfelt, wann eine Bildstörung beginnt.                                        |
+| `motion-preference.ts` | Port `MotionPreference` und `MediaQueryMotionPreference`.                                         |
+| `test-settings.ts`     | Einfache Zahlen für die Tests des Zeichnens (kein Produktionscode).                               |
 
 ## Reihenfolge eines Bildes
 
@@ -31,13 +31,14 @@ Glasscheibe.
 Bei weniger Bewegung (`prefers-reduced-motion`) entfallen Flimmern und Bildstörung; der Lichtpunkt
 leuchtet am Haltepunkt ruhig statt zu pulsieren.
 
-## layoutStage, pageLayoutOf, cellCenterOn
+## layoutStage, fineGridOn, pageLayoutOf, cellCenterOn
 
-| Funktion                                                                | Was sie konkret tut                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `layoutStage(viewWidth, devicePixelRatio, maxPixelRatio, sizing, rows)` | Pixeldichte = Gerät, höchstens `maxPixelRatio`. Feste Spaltenzahl (`{ columns }`): Zellgröße = Breite mal Dichte durch Spalten, abgerundet auf ganze Geräte-Pixel, geteilt durch die Dichte. Feste Zellgröße (`{ cellSize }`): Spalten = Breite durch Zelle, mindestens 10. Genau `rows` Reihen; die Höhe der Bühne (`viewHeight`) ist Reihen × Zelle (ADR 0007). Der Rand zentriert das Raster waagrecht, oben ist es bündig.                                                                          |
-| `pageLayoutOf(layout, grid, cellScale)`                                 | Die Einteilung, mit der eine Seite gezeichnet wird. Ohne `cellScale` (Raster der Bühne) die der Bühne selbst. Mit (Gimmick im feineren Raster): die größte Zelle, mit der `grid` in die Labyrinth-Fläche der Bühne passt (Breite und Höhe je durch Spalten bzw. Reihen, auf ganze Geräte-Pixel abgerundet, das Kleinere), und Ränder, die das Raster darin mittig stellen. Beispiel Desktop 85 × 15 zu 16 px bei Pixeldichte 2, Smiley 124 × 22: Zelle 10,5 px, 29 px weiter rechts, 4 px weiter unten. |
-| `cellCenterOn(layout, cell)`                                            | Mittelpunkt einer Zelle auf der Bühne, auch für Stellen zwischen zwei Zellen.                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Funktion                                                                | Was sie konkret tut                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `layoutStage(viewWidth, devicePixelRatio, maxPixelRatio, sizing, rows)` | Pixeldichte = Gerät, höchstens `maxPixelRatio`. Feste Spaltenzahl (`{ columns }`): Zellgröße = Breite mal Dichte durch Spalten, abgerundet auf ganze Geräte-Pixel, geteilt durch die Dichte. Feste Zellgröße (`{ cellSize }`): Spalten = Breite durch Zelle, mindestens 10. Genau `rows` Reihen; die Höhe der Bühne (`viewHeight`) ist Reihen × Zelle (ADR 0007). Der Rand zentriert das Raster waagrecht, oben ist es bündig.                                                                                                |
+| `pageLayoutOf(layout, grid, cellScale)`                                 | Die Einteilung, mit der eine Seite gezeichnet wird. Ohne `cellScale` (Raster der Bühne) die der Bühne selbst. Mit (Gimmick im feineren Raster): die größte Zelle, mit der `grid` in die Labyrinth-Fläche der Bühne passt (Breite und Höhe je durch Spalten bzw. Reihen, auf ganze Geräte-Pixel abgerundet, das Kleinere), und Ränder, die das Raster darin mittig stellen. Beispiel Desktop 85 × 15 zu 16 px bei Pixeldichte 2, Smiley 124 × 22: Zelle 10,5 px, 29 px weiter rechts, 4 px weiter unten.                       |
+| `fineGridOn(layout, rows)`                                              | Das feinere Raster für ein Gimmick mit mindestens `rows` Reihen (wie Prototyp 12): Zelle = Höhe der Labyrinth-Fläche durch `rows`, auf ganze Geräte-Pixel abgerundet; dann so viele Spalten und Reihen, wie davon auf die Fläche passen. So füllt das Raster die ganze Breite. Unter 4 px je Zelle: `undefined` (Stichwort statt Gimmick). Beispiel Desktop 85 × 15 zu 16 px, Smiley (22 Reihen): Pixeldichte 1 → Zelle 10 px, 136 × 24; Pixeldichte 2 → 10,5 px, 129 × 22. `main.ts` gibt es dem Paginator als `fineGridOf`. |
+| `cellCenterOn(layout, cell)`                                            | Mittelpunkt einer Zelle auf der Bühne, auch für Stellen zwischen zwei Zellen.                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ## scaledLook
 

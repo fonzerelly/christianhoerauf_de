@@ -121,15 +121,15 @@ async function advanceUntil(page: Page, phase: Phase): Promise<void> {
 }
 
 /**
- * Stellt die Frage „zeige“ und wartet, bis der Lichtpunkt das Stichwort der Antwort zu schreiben
+ * Stellt die Frage (sonst „zeige“) und wartet, bis der Lichtpunkt die Antwort zu schreiben
  * beginnt (nach dem Weiterschieben von der Begrüßung).
  *
  * Gefragt wird erst, wenn die Begrüßung am Haltepunkt steht. Bis die Antwort über das Netz da ist,
  * steht die Uhr still (Bilder ohne Zeit); `waitForFunction` lässt dem Browser zwischen zwei
  * Prüfungen Luft dafür. So ist jedes Bild unabhängig davon, wie schnell die Antwort kommt.
  */
-async function askToShow(page: Page): Promise<void> {
-  await ask(page, "zeige");
+async function askToShow(page: Page, question = "zeige"): Promise<void> {
+  await ask(page, question);
   await advanceUntil(page, "scrolling");
   await advanceUntil(page, "writing");
 }
@@ -210,6 +210,44 @@ test.describe("mehrere-seiten", () => {
     await advance(page, 0.8);
 
     await expect(page).toHaveScreenshot("mehrere-seiten-haltepunkt.png");
+  });
+});
+
+/**
+ * Die Gimmicks aus `fixtures/gimmicks.json`. Das Herz passt ins Raster der Bühne; der Smiley braucht
+ * 22 Reihen und bekommt ein feineres Raster (Desktop 15, Handy 18 Reihen); das Foto braucht 10.
+ */
+const GIMMICKS = [
+  { question: "herz", name: "herz" },
+  { question: "smiley", name: "smiley" },
+  { question: "foto", name: "foto" },
+];
+
+test.describe("Gimmicks", () => {
+  for (const { question, name } of GIMMICKS) {
+    test(`${name}: fertig gezeichnet, der Lichtpunkt am Haltepunkt`, async ({ page }) => {
+      await open(page, "gimmicks", LONG_TRAIL);
+      await askToShow(page, question);
+
+      await advanceUntil(page, "resting");
+      await advance(page, 0.8);
+
+      await expect(page).toHaveScreenshot(`${name}-haltepunkt.png`);
+    });
+  }
+
+  test("beim Weiterschieben vom Smiley (feineres Raster) zum Herz (Raster der Bühne)", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000); // das Verglimmen des Smileys sind mehrere hundert Bilder
+    await open(page, "gimmicks", LONG_TRAIL);
+    await askToShow(page, "smiley");
+
+    await ask(page, "herz");
+    await advanceUntil(page, "scrolling");
+    await advance(page, 0.6);
+
+    await expect(page).toHaveScreenshot("smiley-zum-herz-weiterschieben.png");
   });
 });
 

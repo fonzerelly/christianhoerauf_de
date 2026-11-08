@@ -17,6 +17,12 @@ describe("parseContent", () => {
     expect(parseContent({ ...VALID, answers }).answers).toEqual(answers);
   });
 
+  it("liest das Gimmick eines Eintrags, wenn er eins hat", () => {
+    const answers = [{ matchTerms: ["herz"], answer: "Text", gimmick: "heart" }];
+
+    expect(parseContent({ ...VALID, answers }).answers).toEqual(answers);
+  });
+
   it("lässt eine leere Tabelle zu", () => {
     expect(parseContent({ ...VALID, answers: [] }).answers).toEqual([]);
   });
@@ -46,6 +52,11 @@ describe("parseContent", () => {
       "Stichwort ist kein Text",
       { ...VALID, answers: [{ matchTerms: ["a"], answer: "A", keyword: 5 }] },
       "answers[0].keyword",
+    ],
+    [
+      "Gimmick ist kein Text",
+      { ...VALID, answers: [{ matchTerms: ["a"], answer: "A", gimmick: { type: "heart" } }] },
+      "answers[0].gimmick",
     ],
   ])("lehnt ab: %s", (_name, json, field) => {
     expect(() => parseContent(json)).toThrow(field);

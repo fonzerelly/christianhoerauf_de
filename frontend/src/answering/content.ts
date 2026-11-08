@@ -29,8 +29,9 @@ function parseEntry(entry: unknown, index: number): MatchTermEntry {
     throw invalid(`${path}.matchTerms`, "eine Liste von Texten");
   }
   const answer = textAt(entry, "answer", `${path}.answer`);
-  if (entry.keyword === undefined) return { matchTerms, answer };
-  return { matchTerms, answer, keyword: textAt(entry, "keyword", `${path}.keyword`) };
+  const optional = (field: "keyword" | "gimmick") =>
+    entry[field] === undefined ? {} : { [field]: textAt(entry, field, `${path}.${field}`) };
+  return { matchTerms, answer, ...optional("keyword"), ...optional("gimmick") };
 }
 
 /**

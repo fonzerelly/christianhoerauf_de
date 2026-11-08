@@ -18,7 +18,8 @@ import { placePicture, rowsNeededForPicture } from "./picture-layout";
 import type { PlacedPicture } from "./picture-layout";
 import { textCapacityOf } from "./text-capacity";
 
-interface Grid {
+/** Die Größe eines Rasters in Zellen. */
+export interface Grid {
   readonly columns: number;
   readonly rows: number;
 }
@@ -45,6 +46,12 @@ export interface PaginatorSettings {
   /** Wie viele Wegstücke hinter der letzten Glyphe der Haltepunkt liegt. */
   readonly restingDistance: number;
   readonly maze: MazeSettings;
+  /**
+   * Das feinere Raster auf der Fläche der Bühne mit mindestens `rows` Reihen, für ein Gimmick,
+   * das nicht ins Raster der Bühne passt. Hängt an den Pixeln der Bühne, deshalb kommt es von
+   * außen (`fineGridOn` beim Zeichnen). Fehlt es: die Spalten im selben Verhältnis wie die Reihen.
+   */
+  readonly fineGridOf?: (rows: number) => Grid | undefined;
 }
 
 /** Die Labyrinth-Seiten einer Antwort und wo der Lichtpunkt danach wartet. */
@@ -151,7 +158,7 @@ export class AnswerPaginator {
     random: RandomSource,
     exitBefore: Gate | undefined,
   ): Steps<MazePage | undefined> {
-    const { columns, rows, maze } = this.settings;
+    const { columns, rows, maze, fineGridOf } = this.settings;
     const stage: Grid = { columns, rows };
     const place = (grid: Grid): PlacedPicture | PlacedPhoto | undefined =>
       "picture" in answer
@@ -160,13 +167,17 @@ export class AnswerPaginator {
     const neededRows =
       "picture" in answer ? rowsNeededForPicture(answer.picture) : ROWS_NEEDED_FOR_PHOTO;
 
-    let grid: Grid = stage;
+    const sameRatio = (needed: number): Grid => ({
+      columns: Math.floor((columns * needed) / rows),
+      rows: needed,
+    });
+    let grid: Grid | undefined = stage;
     let placed = place(grid);
     if (placed === undefined && neededRows > rows) {
-      grid = { columns: Math.floor((columns * neededRows) / rows), rows: neededRows };
-      placed = place(grid);
+      grid = (fineGridOf ?? sameRatio)(neededRows);
+      placed = grid === undefined ? undefined : place(grid);
     }
-    if (placed === undefined) return undefined;
+    if (grid === undefined || placed === undefined) return undefined;
 
     const generator = new MazePageGenerator(grid.columns, grid.rows, random, this.font, maze);
     const entrance =

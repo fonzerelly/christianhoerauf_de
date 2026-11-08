@@ -39,8 +39,11 @@ export class StaticContentAnswerSource implements AnswerSource {
   private answerFor(question: string, content: Content): Answer {
     const entry = new MatchTermMatcher(content.answers).find(question);
     if (entry === undefined) return { text: content.unknownAnswer };
-    return entry.keyword === undefined
-      ? { text: entry.answer }
-      : { text: entry.answer, keyword: entry.keyword };
+    const { answer, keyword, gimmick } = entry;
+    return {
+      text: answer,
+      ...(keyword === undefined ? {} : { keyword }),
+      ...(gimmick === undefined ? {} : { gimmick: { type: gimmick } }),
+    };
   }
 }

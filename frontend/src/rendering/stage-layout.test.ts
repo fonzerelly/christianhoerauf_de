@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cellCenterOn, layoutStage, pageLayoutOf } from "./stage-layout";
+import { cellCenterOn, fineGridOn, layoutStage, pageLayoutOf } from "./stage-layout";
 
 describe("layoutStage", () => {
   it("teilt eine Handy-Bühne mit fester Spaltenzahl ein: Zellgröße aus der Breite, auf ganze Geräte-Pixel gerundet", () => {
@@ -87,5 +87,29 @@ describe("pageLayoutOf", () => {
       offsetX: 3 + 29, // (1360 - 124 × 10,5) / 2 = 29
       offsetY: 4, // (240 - 22 × 10,5) / 2 = 4,5, abgerundet
     });
+  });
+});
+
+describe("fineGridOn", () => {
+  it("nimmt die Zelle aus der Höhe und füllt mit ihr die ganze Fläche (Pixeldichte 1)", () => {
+    // 240 / 22 = 10,9 => 10 px; 1360 / 10 = 136 Spalten, 240 / 10 = 24 Reihen
+    const stage = layoutStage(1366, 1, 2, { cellSize: 16 }, 15);
+
+    expect(fineGridOn(stage, 22)).toEqual({ columns: 136, rows: 24 });
+  });
+
+  it("gibt keins, wenn die Zellen kleiner als 4 px würden (dann verschwimmen die Wände)", () => {
+    // 240 / 61 = 3,9 px
+    const stage = layoutStage(1366, 1, 2, { cellSize: 16 }, 15);
+
+    expect(fineGridOn(stage, 60)).toEqual({ columns: 340, rows: 60 });
+    expect(fineGridOn(stage, 61)).toBeUndefined();
+  });
+
+  it("rundet die Zelle auf ganze Geräte-Pixel ab (Pixeldichte 2)", () => {
+    // 480 / 22 = 21,8 => 21 Geräte-Pixel = 10,5 px; 1360 / 10,5 = 129,5; 240 / 10,5 = 22,9
+    const stage = layoutStage(1366, 2, 2, { cellSize: 16 }, 15);
+
+    expect(fineGridOn(stage, 22)).toEqual({ columns: 129, rows: 22 });
   });
 });

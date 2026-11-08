@@ -4,6 +4,8 @@ export interface MatchTermEntry {
   readonly answer: string;
   /** Das Stichwort, das der Lichtpunkt zu dieser Antwort schreibt (darf fehlen). */
   readonly keyword?: string;
+  /** Der Typ eines Gimmicks, etwa `"heart"` (wie `gimmick.type` beim Backend; darf fehlen). */
+  readonly gimmick?: string;
 }
 
 /**

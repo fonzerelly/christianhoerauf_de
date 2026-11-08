@@ -1,0 +1,23 @@
+{
+  "unknownAnswer": "Weiß ich nicht",
+  "answers": [
+    {
+      "matchTerms": ["herz"],
+      "answer": "Ein Herz.",
+      "keyword": "HERZ",
+      "gimmick": "heart"
+    },
+    {
+      "matchTerms": ["smiley"],
+      "answer": "Hoppla.",
+      "keyword": "HUPS",
+      "gimmick": "face_with_hand_over_mouth"
+    },
+    {
+      "matchTerms": ["foto"],
+      "answer": "Das bin ich.",
+      "keyword": "CHRIS",
+      "gimmick": "photo"
+    }
+  ]
+}

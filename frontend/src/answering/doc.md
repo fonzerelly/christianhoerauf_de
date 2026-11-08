@@ -33,7 +33,7 @@ jeweils samt Stichwort (falls es nicht passt). Ohne Gimmick oder mit einem unbek
 ## parseContent
 
 `parseContent(json)` macht aus dem rohen JSON einen `Content` (`unknownAnswer`, `answers`
-mit je `matchTerms` (Suchwörter), `answer` und optional `keyword` (Stichwort, ein Text)). Fehlt etwas oder hat es die falsche Form, wirft sie einen
+mit je `matchTerms` (Suchwörter), `answer`, optional `keyword` (Stichwort, ein Text) und optional `gimmick` (der Typ eines Gimmicks wie `"heart"`, ein Text)). Fehlt etwas oder hat es die falsche Form, wirft sie einen
 Fehler, der das Feld nennt (`content.json: answers[2].matchTerms muss eine Liste von Texten sein`). Unbekannte Felder
 werden ignoriert.
 
@@ -56,12 +56,12 @@ sucht, heißen Suchwörter (`matchTerms`).
 
 ## StaticContentAnswerSource
 
-| Methode                    | Was sie konkret tut                                                                                                                                                                                                    |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `constructor(loadContent)` | Nimmt eine Funktion, die den rohen JSON-Inhalt liefert (in `main.ts`: `fetchJson("/content.json", fetch)`).                                                                                                            |
-| `answer(question)`         | Die Antwort des passenden Suchworts samt seinem Stichwort, sonst die Standardantwort (ohne Stichwort). Schlägt das Laden oder Prüfen fehl: `UNAVAILABLE_ANSWER` („Das klappt gerade nicht …“) mit Stichwort `OFFLINE`. |
-| `loadOnce` (privat)        | Lädt und prüft den Inhalt beim ersten Mal und behält das Ergebnis (auch bei gleichzeitigen Fragen nur ein Aufruf). Bei einem Fehler wird nichts behalten: die nächste Frage versucht es erneut.                        |
-| `answerFor` (privat)       | Wählt die Antwort für Frage und Inhalt.                                                                                                                                                                                |
+| Methode                    | Was sie konkret tut                                                                                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `constructor(loadContent)` | Nimmt eine Funktion, die den rohen JSON-Inhalt liefert (in `main.ts`: `fetchJson("/content.json", fetch)`).                                                                                                                                                                     |
+| `answer(question)`         | Die Antwort des passenden Suchworts samt seinem Stichwort, sonst die Standardantwort (ohne Stichwort). Schlägt das Laden oder Prüfen fehl: `UNAVAILABLE_ANSWER` („Das klappt gerade nicht …“) mit Stichwort `OFFLINE`.                                                          |
+| `loadOnce` (privat)        | Lädt und prüft den Inhalt beim ersten Mal und behält das Ergebnis (auch bei gleichzeitigen Fragen nur ein Aufruf). Bei einem Fehler wird nichts behalten: die nächste Frage versucht es erneut.                                                                                 |
+| `answerFor` (privat)       | Wählt die Antwort für Frage und Inhalt: Text, dazu Stichwort und Gimmick, wenn der Eintrag welche hat. Das Gimmick kommt wie beim Backend als `{ type }`, damit `contentOf` es gleich behandelt (so lassen sich Bild und Foto auch ohne Backend zeigen, etwa in den Bildtests). |
 
 ## HttpAnswerSource
 

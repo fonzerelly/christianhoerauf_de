@@ -6,6 +6,7 @@ import { gateInGrid } from "../route/gate";
 import type { Gate } from "../route/gate";
 import { TextNormalizer } from "../text/text-normalizer";
 import { AnswerPaginator } from "./answer-paginator";
+import type { PaginatorSettings } from "./answer-paginator";
 
 const SETTINGS = {
   columns: 34,
@@ -14,7 +15,7 @@ const SETTINGS = {
   maze: { windiness: 0.7, detour: 0.3, returnBandRows: 2, returnWindiness: 0.5, maxWallRun: 4 },
 };
 
-function createPaginator(settings = SETTINGS): AnswerPaginator {
+function createPaginator(settings: PaginatorSettings = SETTINGS): AnswerPaginator {
   const font = createDefaultFont();
   return new AnswerPaginator(
     font,
@@ -210,6 +211,23 @@ describe("AnswerPaginator", () => {
         expect([page.grid.columns, page.grid.rows]).toEqual([124, 22]);
         expect(page.cellScale).toBeCloseTo(15 / 22);
         expect(page.route.some(({ kind }) => kind === "letter")).toBe(true);
+      });
+
+      it("nimmt das feinere Raster aus den Einstellungen, wenn sie eins vorgeben (aus den Pixeln der Bühne)", () => {
+        const fineGridOf = (rows: number) => ({ columns: 136, rows: rows + 2 });
+
+        const page = itemAt(createPaginator({ ...STAGE, fineGridOf }).paginate(SMILEY, 1).pages, 0);
+
+        expect([page.grid.columns, page.grid.rows]).toEqual([136, 24]);
+        expect(page.cellScale).toBeCloseTo(15 / 24);
+      });
+
+      it("schreibt das Stichwort, wenn die Einstellungen kein feineres Raster hergeben", () => {
+        const fineGridOf = () => undefined;
+
+        const { pages } = createPaginator({ ...STAGE, fineGridOf }).paginate(SMILEY, 1);
+
+        expect(pages.flatMap((page) => page.lines).join("")).toBe("UPS");
       });
 
       it("nennt seinen Ausgang auch im Raster der Bühne, für die nächste Antwort", () => {

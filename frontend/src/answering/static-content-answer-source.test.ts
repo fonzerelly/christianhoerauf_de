@@ -6,6 +6,7 @@ const CONTENT = {
   answers: [
     { matchTerms: ["hallo"], answer: "HALLO" },
     { matchTerms: ["kafka"], answer: "Über Kafka", keyword: "KAFKA" },
+    { matchTerms: ["herz"], answer: "Ein Herz", keyword: "<3", gimmick: "heart" },
   ],
 };
 
@@ -34,6 +35,16 @@ describe("StaticContentAnswerSource", () => {
     await expect(source.answer("Was ist Kafka?")).resolves.toEqual({
       text: "Über Kafka",
       keyword: "KAFKA",
+    });
+  });
+
+  it("liefert das Gimmick des Eintrags mit, wenn er eins hat (wie das Backend: mit `type`)", async () => {
+    const source = new StaticContentAnswerSource(loader(() => Promise.resolve(CONTENT)).load);
+
+    await expect(source.answer("Ein Herz?")).resolves.toEqual({
+      text: "Ein Herz",
+      keyword: "<3",
+      gimmick: { type: "heart" },
     });
   });
 

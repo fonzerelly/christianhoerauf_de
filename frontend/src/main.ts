@@ -22,7 +22,7 @@ import { Mulberry32 } from "./domain/random/mulberry32";
 import { TextNormalizer } from "./domain/text/text-normalizer";
 import { CanvasRenderer } from "./rendering/canvas-renderer";
 import { MediaQueryMotionPreference } from "./rendering/motion-preference";
-import { layoutStage } from "./rendering/stage-layout";
+import { fineGridOn, layoutStage } from "./rendering/stage-layout";
 import type { StageLayout } from "./rendering/stage-layout";
 import { AnimationLoop } from "./ui/animation-loop";
 import { AnswerArea } from "./ui/answer-area";
@@ -160,6 +160,7 @@ const stage = new Stage({
           rows: layout.rows,
           restingDistance: tuning.restingDistance,
           maze: tuning,
+          fineGridOf: (rows) => fineGridOn(layout, rows),
         }),
         renderer,
         scheduleTask,

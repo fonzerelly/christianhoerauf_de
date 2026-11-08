@@ -1,5 +1,8 @@
 import type { Position } from "../domain/maze/position";
 
+/** Kleiner wird keine Zelle gezeichnet: darunter verschwimmen die Wände (Prototyp 12). */
+const SMALLEST_CELL = 4;
+
 /** Schmaler darf das Raster nie werden: so viel braucht ein einzelnes Zeichen samt freien Rändern. */
 const MIN_COLUMNS = 10;
 
@@ -92,5 +95,26 @@ export function pageLayoutOf(
     rows: grid.rows,
     offsetX: layout.offsetX + Math.floor((areaWidth - grid.columns * cellSize) / 2),
     offsetY: layout.offsetY + Math.floor((areaHeight - grid.rows * cellSize) / 2),
+  };
+}
+
+/**
+ * Das feinere Raster mit mindestens `rows` Reihen auf der Labyrinth-Fläche der Bühne (wie
+ * Prototyp 12): die Zelle aus der Höhe, auf ganze Geräte-Pixel abgerundet; dann so viele Spalten
+ * und Reihen, wie davon auf die Fläche passen. So füllt das Raster die ganze Breite. Würde die
+ * Zelle kleiner als 4 px: `undefined` (dann schreibt der Lichtpunkt das Stichwort).
+ */
+export function fineGridOn(
+  layout: StageLayout,
+  rows: number,
+): { readonly columns: number; readonly rows: number } | undefined {
+  const { pixelRatio } = layout;
+  const areaWidth = layout.columns * layout.cellSize;
+  const areaHeight = layout.rows * layout.cellSize;
+  const cellSize = Math.floor((areaHeight * pixelRatio) / rows) / pixelRatio;
+  if (cellSize < SMALLEST_CELL) return undefined;
+  return {
+    columns: Math.floor(areaWidth / cellSize),
+    rows: Math.floor(areaHeight / cellSize),
   };
 }
