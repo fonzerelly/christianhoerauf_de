@@ -1,14 +1,19 @@
 import { integerBetween } from "../random/random-choices";
 import type { RandomSource } from "../random/random-source";
 import type { PhotoName } from "./answer-content";
-import { FREE_COLUMNS_BESIDE_TEXT, FREE_ROWS_AROUND_TEXT } from "./text-capacity";
+import { GIMMICK_FREE_ROWS } from "./picture-layout";
+import { FREE_COLUMNS_BESIDE_TEXT } from "./text-capacity";
 
-/** So viel der kürzeren Seite des Rasters nimmt ein Foto ein. */
-const PHOTO_SHARE = 2 / 5;
 /** Kleiner als so viele Zellen ist auf einem Foto nichts mehr zu erkennen. */
 const SMALLEST_PHOTO_SIZE = 6;
 /** Der Rahmen, auf dem der Lichtpunkt das Foto umrundet, ist eine Zelle breit. */
 const FRAME_WIDTH = 1;
+/** Abstand des Fotos zum Rand der Seite: freie Spalten bzw. Reihen und der Rahmen. */
+const COLUMN_MARGIN = FREE_COLUMNS_BESIDE_TEXT + FRAME_WIDTH;
+const ROW_MARGIN = GIMMICK_FREE_ROWS + FRAME_WIDTH;
+
+/** So viele Reihen braucht das Foto in seiner kleinsten Größe mindestens. */
+export const ROWS_NEEDED_FOR_PHOTO = SMALLEST_PHOTO_SIZE + 2 * ROW_MARGIN;
 
 /** Ein Foto und wo es auf der Seite liegt: linke obere Zelle und Kantenlänge in Zellen. */
 export interface PlacedPhoto {
@@ -19,13 +24,10 @@ export interface PlacedPhoto {
 }
 
 /**
- * Legt ein quadratisches Foto an eine zufällige Stelle der Seite. Es ist zwei Fünftel so groß wie
- * die kürzere Seite des Rasters (abgerundet). Um das Foto läuft ein Rahmen von einer Zelle, und
- * um den Rahmen bleibt so viel Rand wie um einen Text (3 Spalten, 2 Zeilen), damit An- und Ablauf
- * vorbeikommen. Gezogen wird erst die Spalte, dann die Zeile.
- *
- * Würde das Foto kleiner als `SMALLEST_PHOTO_SIZE`, gibt es keins: `undefined`, dann schreibt
- * der Lichtpunkt den Text. Ein Test prüft, dass ab dieser Größe der Rand immer reicht.
+ * Das größte quadratische Foto, das auf die Seite passt (ADR 0007): Um das Foto läuft ein Rahmen
+ * von einer Zelle, um den Rahmen bleiben 3 Spalten und 1 Reihe frei. Die Spalte wird gewürfelt,
+ * senkrecht liegt es mittig. Würde es kleiner als `SMALLEST_PHOTO_SIZE`, gibt es keins:
+ * `undefined`, dann schreibt der Lichtpunkt das Stichwort.
  */
 export function placePhoto(
   photo: PhotoName,
@@ -33,12 +35,9 @@ export function placePhoto(
   rows: number,
   random: RandomSource,
 ): PlacedPhoto | undefined {
-  const size = Math.floor(Math.min(columns, rows) * PHOTO_SHARE);
+  const size = Math.min(rows - 2 * ROW_MARGIN, columns - 2 * COLUMN_MARGIN);
   if (size < SMALLEST_PHOTO_SIZE) return undefined;
 
-  const columnMargin = FREE_COLUMNS_BESIDE_TEXT + FRAME_WIDTH;
-  const rowMargin = FREE_ROWS_AROUND_TEXT + FRAME_WIDTH;
-  const left = integerBetween(columnMargin, columns - columnMargin - size, random);
-  const top = integerBetween(rowMargin, rows - rowMargin - size, random);
-  return { photo, left, top, size };
+  const left = integerBetween(COLUMN_MARGIN, columns - COLUMN_MARGIN - size, random);
+  return { photo, left, top: Math.floor((rows - size) / 2), size };
 }

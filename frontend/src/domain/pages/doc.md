@@ -36,19 +36,19 @@ Haltepunkt danach außerhalb (der Lichtpunkt geht hinaus).
 
 ## placePicture
 
-`placePicture(name, columns, rows)` macht das Bild etwa zwei Drittel so breit wie die kürzere
-Seite des Rasters, abgerundet auf eine ungerade Zahl (damit es eine mittlere Spalte gibt), und
-setzt es samt den 3 Zeilen für An- und Ablauf darunter in die Mitte. Wäre es kleiner als
-`SMALLEST_SIZE`, liefert es `undefined`. Um das Bild bleibt dann immer so viel Rand wie um
-einen Text.
+`placePicture(name, columns, rows)` macht das Bild so groß, wie es passt (seit Schritt 12.13, ADR
+0007): die größte ungerade Breite, höchstens so breit wie das Raster ohne je 3 Spalten Rand, bei
+der das Bild samt 3 Zeilen für An- und Ablauf und je einer freien Reihe darüber und darunter
+(`GIMMICK_FREE_ROWS`) ins Raster passt. Es steht waagrecht und senkrecht mittig. Wäre es kleiner
+als `SMALLEST_SIZE`, liefert es `undefined`. `rowsNeededForPicture(name)`: so viele Reihen braucht
+die kleinste Größe (Herz 15, Smiley 22).
 
 ## placePhoto
 
-`placePhoto(photo, columns, rows, random)` macht das Foto quadratisch und zwei Fünftel so groß
-wie die kürzere Seite des Rasters (abgerundet; am Desktop etwa 14 Zellen). Unter 6 Zellen gibt
-es kein Foto (`undefined`), und es wird nichts gezogen. Sonst zieht es erst die Spalte, dann die
-Zeile der linken oberen Zelle, so dass um den Rahmen (eine Zelle ums Foto) mindestens 3 Spalten
-und 2 Zeilen frei bleiben.
+`placePhoto(photo, columns, rows, random)` macht das Foto quadratisch und so groß, wie es samt
+Rahmen (1 Zelle), 3 freien Spalten und 1 freien Reihe ringsum passt. Unter 6 Zellen gibt es kein
+Foto (`undefined`), und es wird nichts gezogen. Sonst zieht es die Spalte; senkrecht liegt es
+mittig. `ROWS_NEEDED_FOR_PHOTO` (10): so viele Reihen braucht das kleinste Foto.
 
 ## MazePageGenerator
 

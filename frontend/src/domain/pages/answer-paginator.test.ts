@@ -208,8 +208,8 @@ describe("AnswerPaginator", () => {
 
       expect(pages).toHaveLength(1);
       expect(page.lines).toEqual([]);
-      // zwei Fünftel von 34 Spalten
-      expect(page.photo?.size).toBe(13);
+      // so groß, wie es passt: 34 Spalten ohne je 3 Spalten Rand und den Rahmen
+      expect(page.photo?.size).toBe(26);
       expect(page.photo?.lapEnds).toHaveLength(3);
       expect(restingStepIndex).toBe(page.lastGlyphEnd + 2);
     });
@@ -217,7 +217,8 @@ describe("AnswerPaginator", () => {
     it("legt das Foto je nach Startwert an eine andere Stelle", () => {
       const places = new Set(
         [1, 2, 3, 4, 5].map((seed) => {
-          const photo = createPaginator().paginate(CHRIS, seed).pages[0]?.photo;
+          const wide = createPaginator({ ...SETTINGS, columns: 85, rows: 15 });
+          const photo = wide.paginate(CHRIS, seed).pages[0]?.photo;
           return `${String(photo?.left)},${String(photo?.top)}`;
         }),
       );
@@ -234,11 +235,12 @@ describe("AnswerPaginator", () => {
     });
 
     it("schreibt das Stichwort, wenn das Foto nicht auf die Seite passt", () => {
-      const small = { ...SETTINGS, columns: 40, rows: 14 };
+      const narrow = { ...SETTINGS, columns: 12, rows: 60 };
 
-      const { pages } = createPaginator(small).paginate(CHRIS, 1);
+      const { pages } = createPaginator(narrow).paginate(CHRIS, 1);
 
-      expect(pages.flatMap((page) => page.lines)).toEqual(["DAS IST", "CHRIS."]);
+      // 12 Spalten fassen ein Zeichen je Zeile
+      expect(pages.flatMap((page) => page.lines).join("")).toBe("DASISTCHRIS.");
       expect(pages[0]?.photo).toBeUndefined();
     });
   });
