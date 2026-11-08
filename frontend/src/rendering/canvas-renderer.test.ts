@@ -294,6 +294,67 @@ describe("CanvasRenderer", () => {
     });
   });
 
+  describe("Seite im feineren Raster (Gimmick)", () => {
+    // 12 × 9 Zellen auf der Fläche von 8 × 6 Zellen zu 10 px: 160 / 12 und 120 / 9 Geräte-Pixel
+    // => 13 Geräte-Pixel = 6,5 px je Zelle; mittig: 5 + (80 - 78) / 2 = 6 und 5 + 0,75 => 5.
+    const FINE_PAGE = {
+      ...mazePage({
+        columns: 12,
+        rows: 9,
+        route: routeOf("letter", [0, 0], [1, 0], [2, 0]),
+        exit: { cell: { x: 11, y: 4 }, side: "right" },
+      }),
+      cellScale: 6 / 9,
+    };
+
+    it("zeichnet Wände, Leuchtspur und Lichtpunkt mit den kleineren Zellen, dünner und mittig", () => {
+      const { renderer, calls } = setup();
+      const view = playbackView({
+        currentPage: FINE_PAGE,
+        progress: 1,
+        isDotVisible: true,
+        dot: { x: 1, y: 0 },
+      });
+
+      renderer.draw(view, 0);
+
+      // Rand fürs Leuchten: 2 × 0,65 + 2 × 3 × 0,65 = 5,2 => 6; Bild 12 × 6,5 + 12 mal 9 × 6,5 + 12
+      expect(calls).toContain("drawImage(<Fläche 1>, 0, -1, 90, 70.5)");
+      expect(calls).toContain("rect(6, 5, 78, 58.5)");
+      expect(calls.some((call) => call.startsWith("arc(15.75, 8.25,"))).toBe(true);
+    });
+
+    it("zeichnet die Wände vorab mit den kleineren Zellen", () => {
+      const { renderer, calls, layers } = setup();
+      const prepare = renderer.prepare(FINE_PAGE);
+      while (prepare.next().done !== true) {
+        // alle Stücke abarbeiten
+      }
+
+      renderer.draw(playbackView({ currentPage: FINE_PAGE }), 0);
+
+      expect(layers.created).toHaveLength(2); // Glasscheibe und Wände, nichts neu
+      expect(calls).toContain("drawImage(<Fläche 2>, 0, -1, 90, 70.5)");
+    });
+
+    it("schiebt um die Fläche der Bühne weiter, nicht um die Breite des feineren Rasters", () => {
+      const { renderer, calls } = setup();
+
+      renderer.draw(
+        playbackView({
+          currentPage: FINE_PAGE,
+          nextPage: NEXT_PAGE,
+          isScrolling: true,
+          scrollPart: 0.5,
+        }),
+        0,
+      );
+
+      expect(calls).toContain("translate(-40, 0)");
+      expect(calls).toContain("translate(40, 0)");
+    });
+  });
+
   describe("Monitor", () => {
     it("lässt das Bild flimmern, solange die Animation läuft", () => {
       const { renderer, calls } = setup({ random: [0, 0.5] });

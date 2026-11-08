@@ -66,3 +66,31 @@ export function cellCenterOn(layout: StageLayout, cell: Position): Position {
     y: layout.offsetY + (cell.y + 0.5) * layout.cellSize,
   };
 }
+
+/**
+ * Die Einteilung für eine Seite: Im Raster der Bühne (`cellScale` fehlt) ist es die der Bühne.
+ * Eine Seite im feineren Raster (Gimmick, ADR 0007) bekommt die größte Zelle, mit der ihr Raster
+ * auf die Labyrinth-Fläche der Bühne passt, auf ganze Geräte-Pixel abgerundet, und steht darin
+ * mittig.
+ */
+export function pageLayoutOf(
+  layout: StageLayout,
+  grid: { readonly columns: number; readonly rows: number },
+  cellScale: number | undefined,
+): StageLayout {
+  if (cellScale === undefined) return layout;
+  const { pixelRatio } = layout;
+  const areaWidth = layout.columns * layout.cellSize;
+  const areaHeight = layout.rows * layout.cellSize;
+  const fitting = (length: number, cells: number): number =>
+    Math.floor((length * pixelRatio) / cells) / pixelRatio;
+  const cellSize = Math.min(fitting(areaWidth, grid.columns), fitting(areaHeight, grid.rows));
+  return {
+    ...layout,
+    cellSize,
+    columns: grid.columns,
+    rows: grid.rows,
+    offsetX: layout.offsetX + Math.floor((areaWidth - grid.columns * cellSize) / 2),
+    offsetY: layout.offsetY + Math.floor((areaHeight - grid.rows * cellSize) / 2),
+  };
+}

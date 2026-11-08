@@ -13,7 +13,9 @@ import type { Renderer } from "./renderer";
 import type { RenderSettings } from "./render-settings";
 import { scrollShiftsOf } from "./scroll-shifts";
 import type { Shift } from "./scroll-shifts";
+import { pageLayoutOf } from "./stage-layout";
 import type { StageLayout } from "./stage-layout";
+import { scaledLook } from "./scaled-look";
 import { TrailPainter } from "./trail-painter";
 import { WallLayer } from "./wall-layer";
 
@@ -82,7 +84,8 @@ export class CanvasRenderer implements Renderer {
   public *prepare(page: MazePage): Steps<void> {
     this.monitor.prepareOverlay(this.layout, this.parts.settings);
     yield;
-    yield* this.walls.prepare(page, this.layout, this.parts.settings);
+    const { layout, settings } = this.lookOf(page);
+    yield* this.walls.prepare(page, layout, settings);
   }
 
   public draw(view: PlaybackView, seconds: number): void {
@@ -121,7 +124,8 @@ export class CanvasRenderer implements Renderer {
     const page = view.currentPage;
     if (page === undefined) return;
 
-    const { columns, rows } = page.grid;
+    // Weitergeschoben wird um die Labyrinth-Fläche der Bühne, auch bei einer Seite im feineren Raster.
+    const { columns, rows } = page.cellScale === undefined ? page.grid : this.layout;
     const shifts = scrollShiftsOf(
       page.exit.side,
       columns,
@@ -144,8 +148,8 @@ export class CanvasRenderer implements Renderer {
    * Lichtpunkt noch nicht gelaufen, ihr Foto also noch ganz grob.
    */
   private drawPage(page: MazePage, shift: Shift, view: PlaybackView | undefined): void {
-    const { context, settings, motion } = this.parts;
-    const { layout } = this;
+    const { context, motion } = this.parts;
+    const { layout, settings } = this.lookOf(page);
 
     context.save();
     context.translate(shift.x, shift.y);
@@ -167,5 +171,15 @@ export class CanvasRenderer implements Renderer {
       context.restore();
     }
     context.restore();
+  }
+
+  /**
+   * Einteilung und Aussehen, mit denen eine Seite gezeichnet wird: die der Bühne, oder bei einer
+   * Seite im feineren Raster (Gimmick) kleinere Zellen mit entsprechend dünneren Linien.
+   */
+  private lookOf(page: MazePage): { layout: StageLayout; settings: RenderSettings } {
+    const layout = pageLayoutOf(this.layout, page.grid, page.cellScale);
+    const factor = layout.cellSize / this.layout.cellSize;
+    return { layout, settings: scaledLook(this.parts.settings, factor) };
   }
 }
