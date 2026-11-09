@@ -4,3 +4,7 @@ coverage/
 reports/
 test-results/
 playwright-report/
+
+# Lokale Einstellungen (Backend-Adresse); Vorlage: .env.example
+.env.local
+.env.*.local

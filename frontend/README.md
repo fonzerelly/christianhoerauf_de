@@ -66,6 +66,8 @@ Adress-Parameter: `?seed=123` (Startwert der Begrüßung; dasselbe Labyrinth bei
 `?lebenslauf=test` (nur im Entwicklungsserver: Zeitleiste mit dem ausgedachten Lebenslauf aus
 `tests/fixtures/lebenslauf.json`, auch ohne Backend).
 Ohne `VITE_ANSWER_URL` stehen die Antworten in `public/content.json`, und es gibt keine Zeitleiste.
+Für das echte Backend `cp .env.example .env.local` und dort die Adresse eintragen; `.env.local` ist
+nicht eingecheckt.
 
 Ton: Das Brummen der Bildröhre (`src/sound/`) ist seit Schritt 12.3 nicht eingebunden; der Ton-Knopf
 entfiel mit der flachen Bühne.
