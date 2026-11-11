@@ -36,23 +36,17 @@ export function greetingKeyword(link: PersonalLink, options: GreetingKeywordOpti
 }
 
 /**
- * Der Text der Begrüßung als Absätze: die Anrede (mit gültigem Link der volle Name), was die Seite
- * kann, wie die Zeitleiste hilft; bei kaputtem Link ein Satz dazu. Entwurf aus Prototyp 12,
- * Christian gibt den Wortlaut frei.
+ * Der Text der Begrüßung als Absätze: die Anrede (mit gültigem Link der volle Name, sonst nur
+ * „Hallo,“), wer hier antwortet und wie man fragt. Ohne Link und bei kaputtem Link derselbe Text
+ * ohne Namen. Wortlaut von Christian.
  */
 export function greetingParagraphs(link: PersonalLink): string[] {
-  const paragraphs = [
+  return [
     link.kind === "valid" ? `${HELLO} ${link.name},` : `${HELLO},`,
-    "schön, dass Sie vorbeischauen. Hier können Sie Chris ausfragen: Ein Chatbot antwortet auf " +
-      "Ihre Fragen, und zwar nur aus Chris' eigenen Unterlagen.",
-    "Ein Klick auf eine Station der Zeitleiste schlägt passende Fragen vor. Die gewählte Frage " +
-      "steht dann im Eingabefeld, und Sie können sie noch ändern, bevor Sie sie abschicken.",
+    "es freut mich, dass Sie den Weg zu mir gefunden haben. Ich bin ChrisBot und kann hoffentlich " +
+      "zu allem Auskunft geben, was Sie über Christian Hörauf wissen möchten.",
+    "Sie können entweder freie Fragen stellen, oder Sie lassen sich durch die Beispielfragen aus " +
+      "dem Werdegang von Herrn Hörauf inspirieren. Klicken Sie dafür einfach auf das Thema aus dem " +
+      "Werdegang, das Sie interessiert, und eine passende Frage erscheint im Eingabefeld.",
   ];
-  if (link.kind === "broken") {
-    paragraphs.push(
-      "Ihr Link sollte diese Seite eigentlich für Sie persönlich einrichten. Das hat leider nicht " +
-        "geklappt – alles andere funktioniert aber ganz normal.",
-    );
-  }
-  return paragraphs;
 }

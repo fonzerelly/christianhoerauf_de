@@ -25,8 +25,8 @@ Browser und in Node, ein DOM braucht es nicht.
 
 ## greeting.ts
 
-| Name                             | Was sie konkret tut                                                                                                                                                                                         |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `addressAndSurname(name)`        | „Frau Erika Muster“ → „Frau Muster“ (Anrede Frau/Herr, das letzte Wort als Nachname). Ohne Anrede, oder nur zwei Wörter: der Name mit einfachen Leerzeichen.                                                |
-| `greetingKeyword(link, options)` | Das Stichwort: mit gültigem Link Anrede und Nachname, mit `withHello` (Desktop) „Hallo“ davor in eigener Zeile (`\n` = erzwungener Umbruch). Sonst, oder wenn `canWrite` nein sagt: „Hallo“.                |
-| `greetingParagraphs(link)`       | Der Text als Absätze: „Hallo <voller Name>,“ bzw. „Hallo,“, dann zwei Absätze zur Seite; bei kaputtem Link ein vierter, dass das Einrichten nicht geklappt hat. Wortlaut: Entwurf, Christian gibt ihn frei. |
+| Name                             | Was sie konkret tut                                                                                                                                                                                                                           |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `addressAndSurname(name)`        | „Frau Erika Muster“ → „Frau Muster“ (Anrede Frau/Herr, das letzte Wort als Nachname). Ohne Anrede, oder nur zwei Wörter: der Name mit einfachen Leerzeichen.                                                                                  |
+| `greetingKeyword(link, options)` | Das Stichwort: mit gültigem Link Anrede und Nachname, mit `withHello` (Desktop) „Hallo“ davor in eigener Zeile (`\n` = erzwungener Umbruch). Sonst, oder wenn `canWrite` nein sagt: „Hallo“.                                                  |
+| `greetingParagraphs(link)`       | Der Text als Absätze: „Hallo <voller Name>,“ (gültiger Link) bzw. „Hallo,“ (kein oder kaputter Link), dann wer antwortet (ChrisBot) und wie man fragt (frei oder über den Werdegang). Ohne Namen sonst derselbe Text. Wortlaut von Christian. |

@@ -50,25 +50,27 @@ describe("greetingKeyword", () => {
 });
 
 describe("greetingParagraphs", () => {
+  const INTRODUCTION =
+    "es freut mich, dass Sie den Weg zu mir gefunden haben. Ich bin ChrisBot und kann hoffentlich " +
+    "zu allem Auskunft geben, was Sie über Christian Hörauf wissen möchten.";
+  const HOW_TO_ASK =
+    "Sie können entweder freie Fragen stellen, oder Sie lassen sich durch die Beispielfragen aus " +
+    "dem Werdegang von Herrn Hörauf inspirieren. Klicken Sie dafür einfach auf das Thema aus dem " +
+    "Werdegang, das Sie interessiert, und eine passende Frage erscheint im Eingabefeld.";
+
   it("spricht mit gültigem Link mit vollem Namen an und erklärt die Seite", () => {
-    const paragraphs = greetingParagraphs(ERIKA);
-
-    expect(paragraphs[0]).toBe("Hallo Frau Erika Muster,");
-    expect(paragraphs.slice(1).join(" ")).toContain("Chris ausfragen");
-    expect(paragraphs.slice(1).join(" ")).toContain("Zeitleiste");
-    expect(paragraphs).toHaveLength(3);
+    expect(greetingParagraphs(ERIKA)).toEqual([
+      "Hallo Frau Erika Muster,",
+      INTRODUCTION,
+      HOW_TO_ASK,
+    ]);
   });
 
-  it("ohne Link ohne Namen", () => {
-    expect(greetingParagraphs({ kind: "none" })[0]).toBe("Hallo,");
-    expect(greetingParagraphs({ kind: "none" })).toHaveLength(3);
+  it("ohne Link derselbe Text ohne Namen", () => {
+    expect(greetingParagraphs({ kind: "none" })).toEqual(["Hallo,", INTRODUCTION, HOW_TO_ASK]);
   });
 
-  it("sagt bei kaputtem Link, dass die Seite nicht persönlich eingerichtet werden konnte", () => {
-    const paragraphs = greetingParagraphs({ kind: "broken" });
-
-    expect(paragraphs[0]).toBe("Hallo,");
-    expect(paragraphs).toHaveLength(4);
-    expect(paragraphs[3]).toContain("nicht geklappt");
+  it("bei kaputtem Link derselbe Text ohne Namen", () => {
+    expect(greetingParagraphs({ kind: "broken" })).toEqual(["Hallo,", INTRODUCTION, HOW_TO_ASK]);
   });
 });
