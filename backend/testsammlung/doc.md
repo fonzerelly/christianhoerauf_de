@@ -7,6 +7,7 @@ Gehört nicht ins Lambda-Paket. Zwei Teile:
   Start mit `scripts/trainiere.sh` und `scripts/messe.sh`, Stand mit `scripts/tuersteher_stand.sh`.
 - **Kleine Sammlung von Fällen** (Q42) mit Wortprüfung der Antworten: `cases.yaml`, `cases.py`,
   `runner.py`. Start mit `scripts/run_testsammlung.sh [--ziel macmini|dgx|bedrock]`.
+- **Lokales Backend** für `npm run dev` im Frontend: `local_backend.py`.
 
 Die Absichten und Fragen für Training und Messung liegen hier: `absichten.yaml`,
 `fragen_training.yaml` und `fragen_test.yaml`.
@@ -349,6 +350,23 @@ durch Leerzeichen getrennt, die alle als richtig gelten), optional `group: arith
 | `summarize(results)` | Text mit Trefferquote je Hauptabsicht, jedem Fehlgriff (mit allen erlaubten Absichten) und dem Ergebnis der Rechenfragen samt falschen Antworten. |
 | `build_model(target)` | Das Modell auf dem Ziel (`build_target_model`, Zeitlimit 120 s, ohne eigene `temperature`): `macmini`, `dgx` oder `bedrock` (Bedrock Frankfurt wie im Bot, mit den AWS-Zugangsdaten des Aufrufers). Anderes Ziel: `ValueError`. Auch von `backstop.py` benutzt. |
 | `main(argv, model_factory)` | Liest `--ziel` (Standard `macmini`) und `--cases`, lässt alle Fälle mit dem exportierten Türsteher (`intent_program.json`) und dem allgemeinen Antwort-Prompt laufen, druckt die Zusammenfassung, gibt 0 zurück. Ein Modell für beide Schritte, ohne eigene `temperature`. |
+
+## local_backend.py (11.11.2026)
+
+Das Backend hinter `npm run dev` im Frontend (`frontend/scripts/dev.sh`): derselbe Bot wie im
+Lambda, aber ohne AWS. Gemma läuft in LM Studio auf dem Mac mini (Standard) oder mit `--ziel dgx`
+auf der DGX. Zähler und Zwischenspeicher liegen im Arbeitsspeicher, ein Neustart leert sie. Das
+Protokoll steht als JSON-Zeilen im Terminal, wie in CloudWatch. Von Hand im Ordner `backend/`:
+`uv run python -m testsammlung.local_backend [--ziel dgx] [--port 8787]`.
+
+| Name | Was es konkret tut |
+|---|---|
+| `local_environ(target, knowledge_base, cv_folder)` | Die Umgebung für `assemble_bot` und `load_cv_data`: Adresse und Modell des Rechners aus `LM_STUDIO_HOSTS`, `LLM_AUTH=none`, Zeitlimit 120 s (im Lambda 10 s), `VISITOR_SECRET` „lokal“, `WISSENSBASIS_DIR` und `LEBENSLAUF_DIR`. |
+| `LocalBackend(bot, cv_data)` | Hält Bot und Lebenslauf-Daten. |
+| `LocalBackend.respond(method, path, body)` | Baut aus der HTTP-Anfrage ein Ereignis wie das einer Lambda Function URL (Pfad, Abfrageparameter, Inhalt, Methode) und gibt die Antwort von `handle_cv` (bei `GET /lebenslauf`, Weiche `is_cv_request`) oder `handle` zurück. Jede Anfrage bekommt die Absenderadresse `lokal-<Nummer>`: Lokal kommt alles von 127.0.0.1, die Besuchergrenze von 10 Antworten am Tag würde sonst greifen. |
+| `make_server(backend, port)` | HTTP-Server (Standardbibliothek) auf `127.0.0.1:port`, `port` 0 nimmt einen freien. `GET` und `POST` gehen an `respond`, `OPTIONS` (Vorabanfrage des Browsers) bekommt 204. Jede Antwort trägt die CORS-Kopfzeilen (`*`, `GET, POST, OPTIONS`, `content-type`), weil Vite auf einer anderen Herkunft läuft. Arbeitet eine Anfrage nach der anderen ab: Parallel verliert LM Studio den Zwischenspeicher des langen Prompts. |
+| `start(argv)` | Liest `--ziel` (Rechner aus `LM_STUDIO_HOSTS`, Standard `macmini`), `--port` (8787), `--wissensbasis` und `--lebenslauf` (Standard: die Ordner in `backend/`). Baut Bot (`assemble_bot` mit `MemoryStore` und `JsonLog`) und Lebenslauf, stellt die Aufwärmfrage `WARM_UP_QUESTION` („Was hat Chris studiert?“, lädt den langen Prompt in LM Studio, damit die erste echte Frage unter den 15 s des Frontends bleibt) und gibt den lauschenden Server zurück. Antwortet Gemma nicht, steht „Achtung: … antwortet nicht“ im Terminal, der Server startet trotzdem. Zum Schluss „Bereit: http://127.0.0.1:<Port>/“. |
+| `__main__` | `start`, dann `serve_forever` bis Strg+C oder `kill`. Unbekanntes Ziel: argparse beendet mit Code 2. |
 
 ## backstop.py
 

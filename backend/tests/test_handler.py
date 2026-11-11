@@ -9,7 +9,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from bot.adapters.memory_store import MemoryStore
-from bot.handler import build_bot, cache_version, handle, language_model
+from bot.handler import assemble_bot, build_bot, cache_version, handle, language_model
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
@@ -167,6 +167,25 @@ def test_build_bot_assembles_a_bot_from_the_environment(monkeypatch: pytest.Monk
 
     assert isinstance(build_bot(environ), Bot)
     assert isinstance(build_bot({**environ, "LLM_AUTH": "none"}), Bot)
+
+
+def test_assemble_bot_uses_the_given_store_and_log_and_needs_no_table(server: FakeServer) -> None:
+    server.body = reply_body(KNOWLEDGE)
+    environ = {"VISITOR_SECRET": "geheim", "LLM_BASE_URL": server.base_url, "LLM_AUTH": "none"}
+    counted: list[str] = []
+
+    class CountingStore(MemoryStore):
+        def increment(self, key: str) -> int:
+            counted.append(key.split(":")[0])
+            return super().increment(key)
+
+    log = ListLog()
+
+    bot = assemble_bot(environ, CountingStore(), log)
+    bot.ask("Wie hoch ist die Zugspitze?", IP)
+
+    assert [record["question"] for record in log.records] == ["Wie hoch ist die Zugspitze?"]
+    assert counted == ["daily", "visitor"]
 
 
 def test_language_model_talks_to_the_model_server_from_the_environment(server: FakeServer) -> None:

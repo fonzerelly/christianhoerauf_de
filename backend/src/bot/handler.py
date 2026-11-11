@@ -39,6 +39,8 @@ from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, IntentClassifier
 from bot.pipeline.prompts import knowledge_base_system_prompt, load_intent_program, load_prompt
+from bot.ports.counter_store import CounterStore
+from bot.ports.log import Log
 
 MAX_QUESTION_LENGTH = 500
 # Im Lambda-Paket liegt die Wissensbasis neben `bot/` (scripts/build_package.sh).
@@ -113,13 +115,26 @@ def language_model(
 
 
 def build_bot(environ: Mapping[str, str]) -> Bot:
-    """Steckt den Bot aus der Umgebung des Lambdas zusammen. Fehlt `TABLE_NAME` oder
-    `VISITOR_SECRET`, bricht das mit `KeyError` ab. Optional: `LLM_BASE_URL`, `LLM_MODEL`,
-    `LLM_TIMEOUT_SECONDS`, `LLM_AUTH=none` (kein Schlüssel, etwa für LM Studio) und
-    `WISSENSBASIS_DIR` (Ordner der Wissensbasis, sonst der im Paket)."""
+    """Der Bot des Lambdas: `assemble_bot` mit DynamoDB als Speicher und der Standardausgabe
+    (CloudWatch) als Protokoll. Fehlt `TABLE_NAME` oder `VISITOR_SECRET`, bricht das mit
+    `KeyError` ab."""
     table = environ["TABLE_NAME"]
-    secret = environ["VISITOR_SECRET"]
     region = environ.get("AWS_REGION", BEDROCK_REGION)
+    store = DynamoDbStore(
+        boto3.client("dynamodb", region_name=region),
+        table,
+        _STORE_TTL_SECONDS,
+        now=time.time,
+    )
+    return assemble_bot(environ, store, JsonLog())
+
+
+def assemble_bot(environ: Mapping[str, str], store: CounterStore, log: Log) -> Bot:
+    """Steckt den Bot aus der Umgebung zusammen, mit `store` für Zähler und Zwischenspeicher und
+    `log` fürs Protokoll. Fehlt `VISITOR_SECRET`, bricht das mit `KeyError` ab. Optional:
+    `LLM_BASE_URL`, `LLM_MODEL`, `LLM_TIMEOUT_SECONDS`, `LLM_AUTH=none` (kein Schlüssel, etwa für
+    LM Studio) und `WISSENSBASIS_DIR` (Ordner der Wissensbasis, sonst der im Paket)."""
+    secret = environ["VISITOR_SECRET"]
 
     def make_model(
         temperature: float | None = None, max_tokens: int | None = None
@@ -148,14 +163,9 @@ def build_bot(environ: Mapping[str, str]) -> Bot:
         ),
         GeneralAnswerer(make_model(), load_prompt("general_answer"), clock=clock),
         GeneralAnswerer(make_model(), load_prompt("task_answer")),
-        DynamoDbStore(
-            boto3.client("dynamodb", region_name=region),
-            table,
-            _STORE_TTL_SECONDS,
-            now=time.time,
-        ),
+        store,
         clock,
-        JsonLog(),
+        log,
         secret,
         cache_version=cache_version(environ),
         knowledge_answerer=knowledge_answerer,
@@ -176,7 +186,7 @@ def _json_response(status: int, body: object, headers: Mapping[str, str]) -> dic
     }
 
 
-def _is_cv_request(event: Mapping[str, Any]) -> bool:
+def is_cv_request(event: Mapping[str, Any]) -> bool:
     method = event.get("requestContext", {}).get("http", {}).get("method")
     return method == "GET" and event.get("rawPath") == CV_PATH
 
@@ -219,7 +229,7 @@ _cv_data: CvData | None = None
 def handler(event: dict[str, Any], context: object) -> dict[str, object]:
     """Einstieg für AWS Lambda. `GET /lebenslauf` liefert den Lebenslauf, ohne den Bot zu bauen;
     alles andere geht an den Bot, der beim ersten Aufruf gebaut und behalten wird."""
-    if _is_cv_request(event):
+    if is_cv_request(event):
         return _serve_cv(event)
     global _bot  # Lambda behält Modulzustand zwischen Aufrufen (warmer Start)
     if _bot is None:
