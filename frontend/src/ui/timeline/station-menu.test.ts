@@ -58,7 +58,7 @@ describe("StationMenu", () => {
       "Prozess-Reviews",
     ]);
     expect(items[1]?.attributes.get("title")).toBe(
-      "Erzähl mir mehr über „Prozess-Reviews“ bei Muster AG.",
+      "Erzähl mir mehr über Chris und „Prozess-Reviews“ bei Muster AG.",
     );
     expect(button.attributes.get("aria-expanded")).toBe("true");
     expect(items[0]?.focused).toBe(1);
@@ -84,7 +84,7 @@ describe("StationMenu", () => {
 
     menu.findAll("station-menu-question")[1]?.click();
 
-    expect(input.value).toBe("Erzähl mir mehr über „Prozess-Reviews“ bei Muster AG.");
+    expect(input.value).toBe("Erzähl mir mehr über Chris und „Prozess-Reviews“ bei Muster AG.");
     expect(input.focused).toBe(1);
     expect(chosen()).toBe(1);
     expect(menu.hidden).toBe(true);

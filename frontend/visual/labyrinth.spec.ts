@@ -329,7 +329,7 @@ test.describe("Stationsmenü", () => {
 
     await page.locator(".station-menu-question").nth(1).click();
     await expect(page.locator("#question")).toHaveValue(
-      "Erzähl mir mehr über „Datenstrecke mit Kafka“ bei Beispiel AG.",
+      "Erzähl mir mehr über Chris und „Datenstrecke mit Kafka“ bei Beispiel AG.",
     );
     await expect(page.locator(".timeline-frame")).toHaveClass(/collapsed/);
     await expect(page.locator("#station-menu")).toBeHidden();

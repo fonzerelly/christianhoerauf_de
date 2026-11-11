@@ -116,7 +116,9 @@ export function engagementLabel(station: Station): string {
 
 /**
  * Die Einstiegsfragen einer Station (Q21): eine allgemeine („Was hat Chris bei … gemacht?“, ohne
- * Organisation „in der Zeit „Titel““), dann je Stichpunkt eine („Erzähl mir mehr über „…“ bei …“).
+ * Organisation „in der Zeit „Titel““), dann je Stichpunkt eine („Erzähl mir mehr über Chris und
+ * „…“ bei …“). „Chris“ steht in jeder Frage, sonst hält der Bot einen Stichpunkt wie „Abschluss
+ * Diplom-Ingenieur“ für eine allgemeine Wissensfrage und sagt nichts über ihn (Protokoll 11.11.).
  */
 export function entryQuestions(station: Station): EntryQuestion[] {
   const { organization, title } = station;
@@ -124,8 +126,8 @@ export function entryQuestions(station: Station): EntryQuestion[] {
   const general = `Was hat Chris ${place} gemacht?`;
   const about = (point: string): string =>
     organization === undefined
-      ? `Erzähl mir mehr über „${point}“ (${title}).`
-      : `Erzähl mir mehr über „${point}“ bei ${organization}.`;
+      ? `Erzähl mir mehr über Chris und „${point}“ (${title}).`
+      : `Erzähl mir mehr über Chris und „${point}“ bei ${organization}.`;
   return [
     { label: general, question: general },
     ...station.bulletPoints.map((point) => ({ label: point, question: about(point) })),

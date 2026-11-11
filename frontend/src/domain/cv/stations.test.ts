@@ -179,11 +179,11 @@ describe("entryQuestions", () => {
       },
       {
         label: "Datenstrecke mit Kafka",
-        question: "Erzähl mir mehr über „Datenstrecke mit Kafka“ bei Beispiel AG.",
+        question: "Erzähl mir mehr über Chris und „Datenstrecke mit Kafka“ bei Beispiel AG.",
       },
       {
         label: "Neues Frontend",
-        question: "Erzähl mir mehr über „Neues Frontend“ bei Beispiel AG.",
+        question: "Erzähl mir mehr über Chris und „Neues Frontend“ bei Beispiel AG.",
       },
     ]);
   });
@@ -193,7 +193,7 @@ describe("entryQuestions", () => {
 
     expect(entryQuestions(withPoint).map(({ question }) => question)).toEqual([
       "Was hat Chris in der Zeit „Zivildienst“ gemacht?",
-      "Erzähl mir mehr über „Pflege“ (Zivildienst).",
+      "Erzähl mir mehr über Chris und „Pflege“ (Zivildienst).",
     ]);
   });
 });
