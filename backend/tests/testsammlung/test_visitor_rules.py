@@ -136,3 +136,11 @@ def test_a_suggestion_leading_back_to_a_question_of_the_path_fails_p4() -> None:
     )
 
     assert failed(findings) == [("P4", False)]
+
+
+@pytest.mark.parametrize(
+    "suggestion",
+    ["Wo schrieb Chris seine Diplomarbeit?", "Wann begann Chris sein Studium?"],
+)
+def test_chris_with_his_own_possessive_as_subject_is_fine(suggestion: str) -> None:
+    assert failed(rule_findings(node(suggestions=(suggestion,)))) == []

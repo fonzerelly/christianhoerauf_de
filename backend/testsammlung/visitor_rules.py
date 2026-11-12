@@ -18,8 +18,9 @@ MAX_SUGGESTION_LENGTH = 120
 # Wörter, mit denen eine vorgeschlagene Folgefrage dem Bot Anweisungen unterschieben könnte.
 INSTRUCTION_WORDS = ("ignorier", "vergiss", "anweisung", "prompt", "systemnachricht", "ignore")
 _CLUMSY = (
-    # „von Chris seiner Firma“, „Chris sein Projekt“: Umgangssprache statt Genitiv.
-    (re.compile(r"\bChris seine?[mnrs]?\b", re.IGNORECASE), "„Chris sein…“ statt Genitiv"),
+    # „von Chris seiner Diplomarbeit“: Umgangssprache statt Genitiv. Ohne „von“ ist es meist richtig
+    # („Wo schrieb Chris seine Diplomarbeit?“).
+    (re.compile(r"\bvon Chris seine?[mnrs]?\b", re.IGNORECASE), "„von Chris sein…“ statt Genitiv"),
     (re.compile(r"\b(\w+)\s+\1\b", re.IGNORECASE), "doppeltes Wort"),
 )
 _SENTENCE_END = re.compile(r"[.!?…\"“”»)]\s*$")
