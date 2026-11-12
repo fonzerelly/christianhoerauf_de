@@ -127,7 +127,9 @@ mit allen Optionen (etwa `--tiefe 1 --persona personalerin`), danach `python -m
 testsammlung.visitor_review versuche/besucherpfade/aufzeichnung.dgx.jsonl --richter dgx`.
 `aufzeichnen …` und `bewerten …` starten nur den einen Schritt mit den Optionen dahinter, etwa auf
 dem Mac mini (dort zwischen den Schritten in LM Studio Gemma entladen und Qwen laden). Ergebnisse in
-`versuche/besucherpfade/`. Exit 0 ohne Muss-Verstoß, 1 mit, 2 bei falschem Aufruf.
+`versuche/besucherpfade/`. Nach einem Abbruch setzen `aufzeichnen --ziel dgx --fortsetzen` und
+`bewerten <aufzeichnung> --fortsetzen` dort fort, wo sie waren. Exit 0 ohne Muss-Verstoß, 1 mit, 2
+bei falschem Aufruf.
 
 ## eiche_richter.sh, pruefe_sollwerte.sh
 

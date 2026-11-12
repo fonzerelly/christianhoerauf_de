@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from pathlib import Path
 
-from testsammlung.visitor_paths import Node, explore, read_nodes, write_nodes
+from testsammlung.visitor_paths import Node, explore, read_nodes, with_replay, write_nodes
 from testsammlung.visitor_scenarios import Persona, StartQuestion
 
 CAREER = "christian/career"
@@ -155,3 +155,42 @@ def test_written_nodes_are_read_back_unchanged(tmp_path: Path) -> None:
     write_nodes(nodes, file)
 
     assert read_nodes(file) == nodes
+
+
+def test_resuming_replays_recorded_questions_and_asks_only_the_rest() -> None:
+    answers = {
+        "Was hat Chris studiert?": answered("Medientechnik.", "Wo studierte Chris?"),
+        "Wo studierte Chris?": answered("In Ansbach."),
+        "Was ist Medientechnik?": answered("Ein Fach.", intent="general/knowledge"),
+    }
+    personas = [persona(StartQuestion("Was hat Chris studiert?", "wissensbasis"))]
+    full = run(FakeSite(answers, branches={"Medientechnik.": ["Was ist Medientechnik?"]}), personas)
+    site = FakeSite(answers)  # erfindet keine Abzweigungen mehr: die kommen aus der Aufzeichnung
+    replayed: list[str] = []
+
+    ask, classify, invent = with_replay(
+        full[:1], site.ask, site.classify, site.invent, lambda node: replayed.append(node.question)
+    )
+    resumed = list(explore(personas, ask, classify, invent, depth=2))
+
+    assert resumed == full[:1] + [node for node in full[1:] if node.kind != "abzweigung"]
+    assert [question for question, _ in site.asked] == ["Wo studierte Chris?"]
+    assert site.classified == []  # die Folgefrage von Frage 1 stuft die Aufzeichnung schon ein
+    assert replayed == ["Was hat Chris studiert?"]
+
+
+def test_resuming_takes_the_recorded_branches_of_a_replayed_answer() -> None:
+    answers = {
+        "Was hat Chris studiert?": answered("Medientechnik."),
+        "Was ist Medientechnik?": answered("Ein Fach.", intent="general/knowledge"),
+    }
+    personas = [persona(StartQuestion("Was hat Chris studiert?", "wissensbasis"))]
+    full = run(FakeSite(answers, branches={"Medientechnik.": ["Was ist Medientechnik?"]}), personas)
+    site = FakeSite(answers)
+
+    ask, classify, invent = with_replay(
+        full, site.ask, site.classify, site.invent, lambda node: None
+    )
+
+    assert list(explore(personas, ask, classify, invent, depth=2)) == full
+    assert site.asked == []

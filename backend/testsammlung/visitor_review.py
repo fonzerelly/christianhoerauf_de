@@ -13,7 +13,7 @@ import argparse
 import json
 import sys
 from collections import Counter
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -131,9 +131,18 @@ def _visible_text(node: Node) -> str:
     return "\n".join(lines)
 
 
-def review(nodes: Iterable[Node], judge: PathJudge | None) -> Iterator[Reviewed]:
-    """Je Knoten die Regel-Befunde und, mit `judge`, die des Richters."""
+def review(
+    nodes: Iterable[Node],
+    judge: PathJudge | None,
+    done: Mapping[int, tuple[Finding, ...]] | None = None,
+) -> Iterator[Reviewed]:
+    """Je Knoten die Regel-Befunde und, mit `judge`, die des Richters. Knoten, deren Nummer in
+    `done` steht (Befunde eines abgebrochenen Laufs), werden nicht neu bewertet."""
+    done = done or {}
     for node in nodes:
+        if node.number in done:
+            yield Reviewed(node, done[node.number])
+            continue
         findings = rule_findings(node)
         if judge is not None:
             findings += judge.findings(node)
@@ -176,35 +185,53 @@ def _level(must: bool) -> str:
 
 
 def write_review(reviewed: Sequence[Reviewed], path: Path) -> None:
-    """Alle Knoten mit allen Befunden als JSON, Schlüssel deutsch."""
-    entries = [
-        {
-            "nr": item.node.number,
-            "persona": item.node.persona,
-            "art": item.node.kind,
-            "erwartet": item.node.expected,
-            "pfad": list(item.node.path),
-            "frage": item.node.question,
-            "antwort": item.node.record.get("answer"),
-            "befunde": [
-                {"kriterium": f.criterion, "muss": f.must, "bestanden": f.passed, "grund": f.note}
-                for f in item.findings
-            ],
-        }
-        for item in reviewed
-    ]
+    """Alle Knoten mit allen Befunden als JSON-Liste (Einträge wie `_entry`)."""
+    entries = [_entry(item) for item in reviewed]
     path.write_text(json.dumps(entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _entry(item: Reviewed) -> dict[str, object]:
+    """Ein Knoten mit Befunden, Schlüssel deutsch: `nr`, `persona`, `art`, `erwartet`, `pfad`,
+    `frage`, `antwort`, `befunde` (je `kriterium`, `muss`, `bestanden`, `grund`)."""
+    return {
+        "nr": item.node.number,
+        "persona": item.node.persona,
+        "art": item.node.kind,
+        "erwartet": item.node.expected,
+        "pfad": list(item.node.path),
+        "frage": item.node.question,
+        "antwort": item.node.record.get("answer"),
+        "befunde": [
+            {"kriterium": f.criterion, "muss": f.must, "bestanden": f.passed, "grund": f.note}
+            for f in item.findings
+        ],
+    }
+
+
+def read_partial(path: Path) -> dict[int, tuple[Finding, ...]]:
+    """Die Befunde je Knotennummer aus der Teildatei eines abgebrochenen Laufs (eine JSON-Zeile
+    je Knoten wie `_entry`)."""
+    done = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        entry = json.loads(line)
+        done[entry["nr"]] = tuple(
+            Finding(f["kriterium"], f["muss"], f["bestanden"], f["grund"]) for f in entry["befunde"]
+        )
+    return done
 
 
 def main(argv: Sequence[str]) -> int:
     """Liest die Aufzeichnung, bewertet sie mit Regeln und (außer bei `--richter aus`) Qwen auf
     dem gewählten Rechner, druckt den Bericht und schreibt alle Befunde neben die Aufzeichnung
-    (`….bewertung.json`). Exit 0 ohne Muss-Verstoß, sonst 1; unbekannter Richter: 2."""
+    (`….bewertung.json`, unterwegs je Knoten in `….bewertung.teil.jsonl`). Mit `--fortsetzen`
+    werden Knoten aus der Teildatei übernommen statt neu bewertet. Exit 0 ohne Muss-Verstoß,
+    sonst 1; unbekannter Richter: 2."""
     parser = argparse.ArgumentParser(description="Besucherpfade bewerten (Phase 2)")
     parser.add_argument("aufzeichnung", type=Path)
     parser.add_argument("--richter", choices=[*JUDGE_HOSTS, NO_JUDGE], default="dgx")
     parser.add_argument("--wissensbasis", type=Path, default=BACKEND / "wissensbasis")
     parser.add_argument("--aus", type=Path)
+    parser.add_argument("--fortsetzen", action="store_true")
     args = parser.parse_args(argv)
 
     nodes = read_nodes(args.aufzeichnung)
@@ -217,11 +244,20 @@ def main(argv: Sequence[str]) -> int:
         )
         judge = PathJudge(model, knowledge_texts(args.wissensbasis))
 
-    reviewed = []
-    for item in review(nodes, judge):
-        reviewed.append(item)
-        print(f"{len(reviewed):4}/{len(nodes)} {item.node.question}", flush=True)
     out = args.aus or args.aufzeichnung.with_name(f"{args.aufzeichnung.stem}.bewertung.json")
+    # Jeder bewertete Knoten sofort in die Teildatei; nach einem Abbruch setzt --fortsetzen dort an.
+    partial = out.with_name(f"{out.stem}.teil.jsonl")
+    done = read_partial(partial) if args.fortsetzen and partial.exists() else {}
+    if done:
+        print(f"Setze fort: {len(done)} Fragen sind schon bewertet.", flush=True)
+    reviewed = []
+    with partial.open("a" if done else "w", encoding="utf-8") as file:
+        for item in review(nodes, judge, done):
+            reviewed.append(item)
+            if item.node.number not in done:
+                file.write(json.dumps(_entry(item), ensure_ascii=False) + "\n")
+                file.flush()
+            print(f"{len(reviewed):4}/{len(nodes)} {item.node.question}", flush=True)
     write_review(reviewed, out)
     print(summary(reviewed))
     print(f"Alle Befunde: {out}")

@@ -14,7 +14,7 @@ from tests.fakes import FakeLanguageModel
 from tests.testsammlung.test_visitor_rules import node
 from testsammlung.answer_score import Finding
 from testsammlung.targets import JUDGE_HOSTS, LmStudioHost
-from testsammlung.visitor_paths import write_nodes
+from testsammlung.visitor_paths import Node, write_nodes
 from testsammlung.visitor_review import PathJudge, Reviewed, main, review, summary
 
 BACKEND = Path(__file__).resolve().parents[2]
@@ -180,3 +180,34 @@ def test_called_as_a_module_an_unknown_judge_ends_with_exit_code_2(tmp_path: Pat
 
     assert result.returncode == 2
     assert "bedrock" in result.stderr
+
+
+def test_main_resumes_and_judges_only_the_nodes_not_yet_reviewed(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer, tmp_path: Path
+) -> None:
+    monkeypatch.setitem(JUDGE_HOSTS, "attrappe", LmStudioHost(server.base_url, "qwen"))
+    server.body = reply_body(YES)
+    general = node(expected="allgemein", intent="general/knowledge", keyword=None, suggestions=())
+    second = Node(**{**general.__dict__, "number": 2, "question": "Wie spät ist es?"})
+    file = tmp_path / "aufzeichnung.dgx.jsonl"
+    write_nodes([general, second], file)
+    partial = tmp_path / "aufzeichnung.dgx.bewertung.teil.jsonl"
+    partial.write_text(
+        json.dumps(
+            {
+                "nr": 1,
+                "befunde": [{"kriterium": "P6", "muss": False, "bestanden": False, "grund": "alt"}],
+            }
+        )
+        + "\n",
+        "utf-8",
+    )
+
+    main([str(file), "--richter", "attrappe", "--wissensbasis", str(tmp_path), "--fortsetzen"])
+
+    written = json.loads((tmp_path / "aufzeichnung.dgx.bewertung.json").read_text("utf-8"))
+    assert [
+        finding["grund"] for finding in written[0]["befunde"] if finding["kriterium"] == "P6"
+    ] == ["alt"]
+    assert len(server.requests) == 1  # nur die zweite Frage geht an den Richter
+    assert len(partial.read_text("utf-8").splitlines()) == 2

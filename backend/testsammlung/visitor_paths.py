@@ -8,7 +8,7 @@ später (`visitor_review.py`), damit Gemma und der Richter nicht zugleich gelade
 """
 
 import json
-from collections.abc import Callable, Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -160,3 +160,43 @@ def read_nodes(path: Path) -> list[Node]:
             )
         )
     return nodes
+
+
+def with_replay(
+    previous: Sequence[Node],
+    ask: Ask,
+    classify: Classify,
+    invent: Invent,
+    remember: Callable[[Node], None],
+) -> tuple[Ask, Classify, Invent]:
+    """Zum Fortsetzen eines abgebrochenen Laufs: `ask`, `classify` und `invent`, die für Fragen aus
+    `previous` (der bisherigen Aufzeichnung) deren Ergebnis zurückgeben, statt ein Modell zu fragen.
+    Weil dieselben Ergebnisse herauskommen, läuft `explore` dieselben Pfade in derselben Reihenfolge
+    nach und fragt erst danach neu. Für jede so übernommene Frage ruft es `remember` auf: Dort muss
+    der Aufrufer nachholen, was der Bot sich beim echten Fragen gemerkt hätte (die Folgefragen)."""
+    by_question = {_normalized(node.question): node for node in previous}
+    gate = {suggestion: intent for node in previous for suggestion, intent in node.gate.items()}
+    branches: dict[int, list[str]] = {}
+    for node in previous:
+        if node.kind == "abzweigung" and node.parent is not None:
+            branches.setdefault(node.parent, []).append(node.question)
+
+    def replayed_ask(question: str, visitor: str) -> Mapping[str, object]:
+        old = by_question.get(_normalized(question))
+        if old is None:
+            return ask(question, visitor)
+        remember(old)
+        return old.record
+
+    def replayed_classify(question: str) -> str:
+        return gate[question] if question in gate else classify(question)
+
+    def replayed_invent(question: str, answer: str) -> list[str]:
+        # Ohne aufgezeichnete Abzweigung neu erfinden: Der Lauf kann abgebrochen sein, nachdem
+        # sie erfunden, aber bevor sie gestellt waren.
+        old = by_question.get(_normalized(question))
+        if old is not None and old.number in branches:
+            return branches[old.number]
+        return invent(question, answer)
+
+    return replayed_ask, replayed_classify, replayed_invent

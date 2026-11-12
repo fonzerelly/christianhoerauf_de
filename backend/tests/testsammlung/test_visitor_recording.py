@@ -17,7 +17,7 @@ from tests.conftest import FakeServer, reply_body
 from tests.fakes import FakeClock, FakeLanguageModel
 from tests.test_handler import KNOWLEDGE
 from testsammlung.targets import LM_STUDIO_HOSTS, LmStudioHost
-from testsammlung.visitor_paths import read_nodes
+from testsammlung.visitor_paths import Node, read_nodes, write_nodes
 from testsammlung.visitor_recording import (
     RecordingLog,
     bot_asker,
@@ -132,3 +132,59 @@ def test_main_rejects_an_unknown_persona_with_exit_code_2(tmp_path: Path) -> Non
         main(["--szenarien", str(scenarios), "--persona", "konditor"])
 
     assert raised.value.code == 2
+
+
+def test_main_resumes_a_recording_and_a_replayed_suggestion_still_skips_the_gate(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer, tmp_path: Path
+) -> None:
+    monkeypatch.setitem(LM_STUDIO_HOSTS, "attrappe", LmStudioHost(server.base_url, "gemma"))
+    knowledge_base = tmp_path / "wissensbasis"
+    (knowledge_base / "stationen").mkdir(parents=True)
+    (knowledge_base / "stationen" / "baeckerei.md").write_text("Chris backt Brot.", "utf-8")
+    scenarios = tmp_path / "szenarien.yaml"
+    scenarios.write_text(
+        "- persona: baeckerin\n  beschreibung: d\n  fragen:\n"
+        '    - {frage: "Kann Chris backen?", erwartet: wissensbasis}\n',
+        "utf-8",
+    )
+    out = tmp_path / "aufzeichnung.jsonl"
+    start = Node(
+        1,
+        None,
+        "baeckerin",
+        "start",
+        "wissensbasis",
+        (),
+        "Kann Chris backen?",
+        {
+            "intent": "christian/career",
+            "outcome": "answered",
+            "answer": "Ja.",
+            "suggestions": ["Was backt Chris?"],
+        },
+        {"Was backt Chris?": "christian/career"},
+    )
+    write_nodes([start], out)
+    server.body = reply_body("Brezen.")  # als Türsteher unlesbar: gibberish
+
+    main(
+        [
+            "--ziel",
+            "attrappe",
+            "--szenarien",
+            str(scenarios),
+            "--aus",
+            str(out),
+            "--wissensbasis",
+            str(knowledge_base),
+            "--tiefe",
+            "1",
+            "--fortsetzen",
+        ]
+    )
+
+    nodes = read_nodes(out)
+    assert nodes[0] == start
+    assert nodes[1].question == "Was backt Chris?"
+    assert nodes[1].record.get("suggested") is True
+    assert nodes[1].record.get("answer") == "Brezen."

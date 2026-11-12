@@ -15,6 +15,8 @@ from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 
 from bot.adapters.memory_store import MemoryStore
+from bot.adapters.system_clock import SystemClock
+from bot.domain.cost_protection import suggestion_key
 from bot.handler import assemble_bot, language_model
 from bot.pipeline.bot import Bot
 from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, IntentClassifier
@@ -22,7 +24,16 @@ from bot.pipeline.prompts import load_intent_program
 from bot.ports.language_model import LanguageModel, LanguageModelError
 from testsammlung.local_backend import local_environ
 from testsammlung.targets import DEFAULT_TARGET, LM_STUDIO_HOSTS
-from testsammlung.visitor_paths import Ask, Classify, Invent, Node, explore, write_nodes
+from testsammlung.visitor_paths import (
+    Ask,
+    Classify,
+    Invent,
+    Node,
+    explore,
+    read_nodes,
+    with_replay,
+    write_nodes,
+)
 from testsammlung.visitor_scenarios import load_personas
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -112,6 +123,7 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument("--szenarien", type=Path, default=DEFAULT_SCENARIOS)
     parser.add_argument("--wissensbasis", type=Path, default=BACKEND / "wissensbasis")
     parser.add_argument("--aus", type=Path)
+    parser.add_argument("--fortsetzen", action="store_true")
     args = parser.parse_args(argv)
 
     personas = load_personas(args.szenarien)
@@ -123,15 +135,26 @@ def main(argv: Sequence[str]) -> int:
 
     environ = local_environ(args.ziel, args.wissensbasis, BACKEND / "lebenslauf")
     log = RecordingLog()
-    bot = assemble_bot(environ, MemoryStore(), log)
+    store = MemoryStore()
+    bot = assemble_bot(environ, store, log)
     gate = IntentClassifier(
         language_model(environ, GATE_TEMPERATURE, GATE_MAX_TOKENS), load_intent_program()
     )
     visitor = language_model(environ, max_tokens=VISITOR_MAX_TOKENS)
 
-    nodes = explore(
-        personas, bot_asker(bot, log), gate_intent(gate), visitor_questions(visitor), args.tiefe
-    )
+    ask, classify, invent = bot_asker(bot, log), gate_intent(gate), visitor_questions(visitor)
+    if args.fortsetzen and out.exists():
+        previous = read_nodes(out)
+
+        def remember(node: Node) -> None:
+            # Was der Bot beim echten Fragen gespeichert hätte: Seine Folgefragen umgehen beim
+            # Anklicken den Türsteher.
+            for suggestion in node.gate:
+                store.write(suggestion_key(suggestion, SystemClock().today()), "1")
+
+        ask, classify, invent = with_replay(previous, ask, classify, invent, remember)
+        print(f"Setze fort: {len(previous)} Fragen aus {out} werden übernommen.", flush=True)
+    nodes = explore(personas, ask, classify, invent, args.tiefe)
     count = 0
 
     def printed(nodes: Iterator[Node]) -> Iterator[Node]:
