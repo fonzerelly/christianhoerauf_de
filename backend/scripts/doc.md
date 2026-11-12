@@ -119,6 +119,16 @@ als Option weiter (`--ziel dgx --runden 2`). Erwartete Wörter zählen als K5, v
 fehlt` als K6. Einzelheiten in `versuche/fragen.<NAME>.json`. Auf der DGX etwa 30 s je Antwort: alle
 128 Fragen gut eine Stunde je Runde. Unbekannter Name: Exit 2.
 
+## pruefe_besucherpfade.sh [aufzeichnen|bewerten] [OPTIONEN] (12.11.2026)
+
+Integrationstest „Besucherpfade“ (`docs/backend/INTEGRATIONSTEST.md`), nur LM Studio, nie Bedrock.
+Ohne Unterbefehl beide Schritte auf der DGX: `python -m testsammlung.visitor_recording --ziel dgx`
+mit allen Optionen (etwa `--tiefe 1 --persona personalerin`), danach `python -m
+testsammlung.visitor_review versuche/besucherpfade/aufzeichnung.dgx.jsonl --richter dgx`.
+`aufzeichnen …` und `bewerten …` starten nur den einen Schritt mit den Optionen dahinter, etwa auf
+dem Mac mini (dort zwischen den Schritten in LM Studio Gemma entladen und Qwen laden). Ergebnisse in
+`versuche/besucherpfade/`. Exit 0 ohne Muss-Verstoß, 1 mit, 2 bei falschem Aufruf.
+
 ## eiche_richter.sh, pruefe_sollwerte.sh
 
 Starten `python -m testsammlung.calibration` mit dem Unterbefehl `richter` oder `sollwerte`

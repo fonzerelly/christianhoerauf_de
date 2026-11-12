@@ -27,6 +27,11 @@ LM_STUDIO_HOSTS: dict[str, LmStudioHost] = {
 }
 # Der Richter, der Antworten und Folgefragen bewertet (Messung und Training der Antworten).
 JUDGE_HOST = LmStudioHost("http://192.168.178.60:1235/v1", "qwen/qwen3.8-27b")
+# Auch auf dem Mac mini liegt dasselbe Qwen; dort passt es aber nicht neben Gemma in den Speicher.
+JUDGE_HOSTS: dict[str, LmStudioHost] = {
+    "dgx": JUDGE_HOST,
+    "macmini": LmStudioHost("http://192.168.178.91:1234/v1", "qwen/qwen3.8-27b"),
+}
 # Kev (kev-4b), das Entscheidungsmodell: vergleicht in der Messung das Stichwort mit den Sollwerten.
 KEV_URL = "http://192.168.178.60:1235/v1/systemone"
 BEDROCK = "bedrock"
@@ -61,12 +66,16 @@ def build_target_model(
     return language_model(environ, temperature, max_tokens)
 
 
-def build_judge_model(*, timeout_seconds: float, max_tokens: int) -> OpenAiCompatibleModel:
-    """Qwen auf `JUDGE_HOST`: Temperatur 0, ohne Nachdenken (`reasoning_effort` „none“), kein
-    Schlüssel. Ohne Nachdenken urteilt Qwen in etwa 3 s statt 15 s, mit denselben Urteilen."""
+def build_judge_model(
+    *, timeout_seconds: float, max_tokens: int, host: LmStudioHost | None = None
+) -> OpenAiCompatibleModel:
+    """Qwen auf `host` (ohne Angabe `JUDGE_HOST`): Temperatur 0, ohne Nachdenken
+    (`reasoning_effort` „none“), kein Schlüssel. Ohne Nachdenken urteilt Qwen in etwa 3 s statt
+    15 s, mit denselben Urteilen."""
+    host = host or JUDGE_HOST
     return OpenAiCompatibleModel(
-        JUDGE_HOST.url,
-        JUDGE_HOST.model,
+        host.url,
+        host.model,
         token_provider=None,
         timeout_seconds=timeout_seconds,
         temperature=0.0,

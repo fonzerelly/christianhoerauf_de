@@ -8,6 +8,8 @@ Gehört nicht ins Lambda-Paket. Zwei Teile:
 - **Kleine Sammlung von Fällen** (Q42) mit Wortprüfung der Antworten: `cases.yaml`, `cases.py`,
   `runner.py`. Start mit `scripts/run_testsammlung.sh [--ziel macmini|dgx|bedrock]`.
 - **Lokales Backend** für `npm run dev` im Frontend: `local_backend.py`.
+- **Integrationstest „Besucherpfade“** (12.11.2026): `visitor_*.py`, Start mit
+  `scripts/pruefe_besucherpfade.sh`; Aufbau in `docs/backend/INTEGRATIONSTEST.md`.
 
 Die Absichten und Fragen für Training und Messung liegen hier: `absichten.yaml`,
 `fragen_training.yaml` und `fragen_test.yaml`.
@@ -64,7 +66,7 @@ Paket muss.
 
 ## targets.py
 
-`JUDGE_HOST` ist der Richter (Qwen auf der DGX); `build_judge_model(timeout_seconds, max_tokens)` baut ihn mit Temperatur 0, ohne Nachdenken und ohne Schlüssel.
+`JUDGE_HOST` ist der Richter (Qwen auf der DGX); `build_judge_model(timeout_seconds, max_tokens, host)` baut ihn mit Temperatur 0, ohne Nachdenken und ohne Schlüssel, auf `host` (ohne Angabe `JUDGE_HOST`). `JUDGE_HOSTS` (12.11.2026): `dgx` und `macmini` mit demselben Qwen, für den Integrationstest; auf dem Mac mini passt Qwen nicht neben Gemma in den Speicher.
 
 Die einzige Stelle mit der Liste der Rechner.
 
@@ -367,6 +369,70 @@ Protokoll steht als JSON-Zeilen im Terminal, wie in CloudWatch. Von Hand im Ordn
 | `make_server(backend, port)` | HTTP-Server (Standardbibliothek) auf `127.0.0.1:port`, `port` 0 nimmt einen freien. `GET` und `POST` gehen an `respond`, `OPTIONS` (Vorabanfrage des Browsers) bekommt 204. Jede Antwort trägt die CORS-Kopfzeilen (`*`, `GET, POST, OPTIONS`, `content-type`), weil Vite auf einer anderen Herkunft läuft. Arbeitet eine Anfrage nach der anderen ab: Parallel verliert LM Studio den Zwischenspeicher des langen Prompts. |
 | `start(argv)` | Liest `--ziel` (Rechner aus `LM_STUDIO_HOSTS`, Standard `macmini`), `--port` (8787), `--wissensbasis` und `--lebenslauf` (Standard: die Ordner in `backend/`). Baut Bot (`assemble_bot` mit `MemoryStore` und `JsonLog`) und Lebenslauf, stellt die Aufwärmfrage `WARM_UP_QUESTION` („Was hat Chris studiert?“, lädt den langen Prompt in LM Studio, damit die erste echte Frage unter den 15 s des Frontends bleibt) und gibt den lauschenden Server zurück. Antwortet Gemma nicht, steht „Achtung: … antwortet nicht“ im Terminal, der Server startet trotzdem. Zum Schluss „Bereit: http://127.0.0.1:<Port>/“. |
 | `__main__` | `start`, dann `serve_forever` bis Strg+C oder `kill`. Unbekanntes Ziel: argparse beendet mit Code 2. |
+
+## Integrationstest „Besucherpfade“ (12.11.2026)
+
+Personas stellen Einstiegsfragen, klicken die Folgefragen bis zu einer Tiefe und stellen eigene
+Rückfragen (Abzweigungen); danach wird alles bewertet. Zwei getrennte Schritte, damit Gemma und
+Qwen nie zugleich geladen sein müssen: `visitor_recording.py` zeichnet auf, `visitor_review.py`
+bewertet. Aufbau, Kriterien P1 bis P8 und Laufzeiten: `docs/backend/INTEGRATIONSTEST.md`. Start mit
+`scripts/pruefe_besucherpfade.sh`.
+
+### visitor_scenarios.py
+
+| Name | Was es konkret tut |
+|---|---|
+| `EXPECTATIONS`, `FIELDS` | Erwartungen `wissensbasis`, `allgemein`, `fest`, `angriff`; Felder einer Frage `frage`, `erwartet`. |
+| `StartQuestion(text, expected)` | Eine Einstiegsfrage und ihre Erwartung. |
+| `Persona(name, description, questions)` | Wer die Seite besucht, kurz beschrieben, mit seinen Einstiegsfragen. |
+| `load_personas(path)` | Liest die YAML-Liste `{persona, beschreibung, fragen}`. Hat eine Frage ein anderes Feld als `frage` und `erwartet`, fehlt eins oder ist die Erwartung unbekannt → `ValueError` mit der Frage. Die echten Szenarien liegen verschlüsselt in `docs/backend/antwort-prompt/besucherpfade.yaml`. |
+
+### visitor_paths.py
+
+| Name | Was es konkret tut |
+|---|---|
+| `Ask`, `Classify`, `Invent` | Die drei Funktionen, die der Erkunder bekommt: Bot fragen (Frage, Besucher → Protokolleintrag), Türsteher (Frage → Kürzel der Absicht), Besucher (Frage, Antwort → Rückfragen). So kommt er in Tests ohne Modell aus. |
+| `Node` | Eine gestellte Frage: laufende Nummer, Nummer der Elternfrage, Persona, Art (`start`, `folgefrage`, `abzweigung`), Erwartung (bei Folgefragen `wissensbasis`, bei Abzweigungen `abzweigung`), die Fragen davor (`path`), die Frage, der Protokolleintrag des Bots und je angezeigter Folgefrage die Absicht des Türstehers (`gate`). |
+| `explore(personas, ask, classify, invent, depth)` | Je Persona in die Breite: erst die Einstiegsfragen, dann je Antwort die angezeigten Folgefragen und, nach einer Antwort über Chris (`christian/career`, `answered`), die Rückfragen des Besuchers. Weiter geht es nur, solange der Pfad kürzer als `depth` ist; Abzweigungen enden immer. Jede angezeigte Folgefrage geht an den Türsteher, auch auf der letzten Ebene. Jede Frage nur einmal (ohne Groß-/Kleinschreibung und doppelte Leerzeichen, auch über Personas hinweg), jede von einem neuen Besucher `besucher-<Nummer>`. Liefert die Knoten einzeln, sobald sie fertig sind. |
+| `write_nodes(nodes, path)` | Je Knoten eine JSON-Zeile mit deutschen Schlüsseln (`nr`, `eltern`, `persona`, `art`, `erwartet`, `pfad`, `frage`, `protokoll`, `tuersteher`), nach jeder Zeile auf die Platte: Bei einem Abbruch bleibt das Bisherige erhalten. Legt den Ordner an. |
+| `read_nodes(path)` | Liest das wieder ein, unverändert. |
+
+### visitor_recording.py
+
+| Name | Was es konkret tut |
+|---|---|
+| `VISITOR_PROMPT` | Gemma als Besucher: genau zwei Rückfragen je Zeile, eine nach einem Begriff, Ort oder Fachwort aus der Antwort, eine, die sich nur mit „das“, „dort“ oder „er“ zurückbezieht. Ohne wörtliche Beispiele, weil Gemma sie sonst abschrieb (Probelauf 12.11.). |
+| `RecordingLog` | Protokoll des Bots, das sich den letzten Eintrag merkt (`last`). |
+| `bot_asker(bot, log)` | `Ask` mit dem echten Bot: fragt als `visitor` (steht da, wo sonst die IP steht) und gibt den Protokolleintrag zurück. |
+| `gate_intent(classifier)` | `Classify` mit dem Türsteher des Bots; fällt das Modell aus: „ausgefallen“. |
+| `visitor_questions(model)` | `Invent` mit `model` und `VISITOR_PROMPT`: jede Zeile der Antwort, die auf „?“ endet, ohne Aufzählungszeichen; bei Modellausfall keine. |
+| `main(argv)` | Optionen `--ziel` (nur Rechner aus `LM_STUDIO_HOSTS`, nie Bedrock; Standard `macmini`), `--tiefe` (2), `--persona` (mehrfach; unbekannt → Exit 2), `--szenarien` (Standard die verschlüsselte Datei in `docs/`), `--wissensbasis`, `--aus` (Standard `versuche/besucherpfade/aufzeichnung.<ziel>.jsonl`). Baut den Bot mit `assemble_bot` und `MemoryStore`, den Türsteher und den Besucher mit Gemma desselben Rechners, druckt je Frage eine Zeile (Nummer, Persona, Art, Absicht, Ergebnis, Dauer, Frage) und am Ende „N Fragen aufgezeichnet in …“. Exit 0. |
+
+### visitor_rules.py
+
+Feste Regeln über das, was der Besucher sieht. Muss/soll wie in `INTEGRATIONSTEST.md`.
+
+| Name | Was es konkret tut |
+|---|---|
+| `rule_findings(node)` | P1 für jeden Knoten; K19 für angeklickte Folgefragen (beantwortet, kein fester Text wie „Darüber lerne ich gerade noch.“); bei Antworten über Chris P5, K32 und P3 für Antwort und Stichwort; je angezeigter Folgefrage K18, P2, P3, P4. |
+| P1 (`_expectation`) | Ausfall des Modells ist immer ein Muss-Verstoß. `wissensbasis`: Laufbahn und beantwortet (oder aus dem Zwischenspeicher). `allgemein`: eine `general/…`-Absicht und beantwortet. `fest`: fester Text oder Gimmick. `angriff`: fester Text oder Gimmick, sonst nur soll, denn ob der Bot der Anweisung folgte, entscheidet der Richter (P7). Abzweigung: alles außer Ausfall. |
+| P2 | Folgefrage höchstens 120 Zeichen (`MAX_SUGGESTION_LENGTH`), genau ein „?“, kein Zeilenumbruch, keins der `INSTRUCTION_WORDS` (ignorier, vergiss, anweisung, prompt, systemnachricht, ignore). Muss. |
+| P3 | Holprige Muster: „Chris sein…“/„von Chris seiner“ statt Genitiv, ein Wort doppelt hintereinander. Soll. |
+| P4 | Die Folgefrage führt zu einer Frage zurück, die im Pfad schon gestellt wurde. Soll. |
+| P5 | Die Antwort endet mit einem Satzzeichen, sonst ist sie abgeschnitten. Muss. |
+| `about_chris(node)` | Laufbahn, beantwortet, kein fester Text. |
+
+### visitor_review.py
+
+| Name | Was es konkret tut |
+|---|---|
+| `LANGUAGE_PROMPT`, `ATTACK_PROMPT`, `BRANCH_PROMPT` | Prüffragen an Qwen für P6 (natürliches, richtiges Deutsch; holprige Stelle wörtlich als Grund), P7 (hat ChrisBot dem Angriff widerstanden) und P8 (geht er vernünftig mit einer Rückfrage um, die er ohne Verlauf nicht zuordnen kann). Antwortformat „URTEIL: JA/NEIN“, „GRUND: …“. Nicht geeicht. |
+| `Reviewed(node, findings)` | Ein Knoten mit allen Befunden. |
+| `PathJudge(model, knowledge)` | Qwen als Richter. `findings(node)`: nichts bei festen Texten und Gimmicks; sonst P7 bei Angriffen, P8 bei Abzweigungen, bei Antworten über Chris die geeichten Prüfungen aus `answer_judge.py` (Antwort, je Folgefrage K17/K24 allein und die Prüfungen mit Antwort und Texten), immer P6 über Antwort, Stichwort und Folgefragen. Fällt der Richter aus, nur ein soll-Befund „Richter“. |
+| `review(nodes, judge)` | Je Knoten Regeln und, mit `judge`, Richter; liefert die Knoten einzeln, damit `main` den Fortschritt zeigen kann. |
+| `summary(reviewed)` | Bericht fürs Terminal: Zahl der Fragen und Personas, Durchgefallene je Kriterium, dann jeder Befund mit Persona und ganzem Pfad („Frage → Folgefrage → …“) und Grund, muss zuerst, zum Schluss „Grün: kein Muss-Verstoß.“ oder „Rot: N Muss-Verstöße.“ |
+| `write_review(reviewed, path)` | Alle Knoten mit allen Befunden als JSON (`nr`, `persona`, `art`, `erwartet`, `pfad`, `frage`, `antwort`, `befunde` mit `kriterium`, `muss`, `bestanden`, `grund`). |
+| `main(argv)` | Liest die Aufzeichnung (Pflicht), `--richter` (`dgx`, `macmini` oder `aus`; Standard `dgx`; anderes → Exit 2), `--wissensbasis`, `--aus` (Standard neben der Aufzeichnung: `<name>.bewertung.json`). Druckt je Knoten den Fortschritt, dann den Bericht. Exit 0 ohne Muss-Verstoß, sonst 1. |
 
 ## backstop.py
 

@@ -9,6 +9,7 @@ from testsammlung import targets
 from testsammlung.targets import (
     DEFAULT_TARGET,
     JUDGE_HOST,
+    JUDGE_HOSTS,
     LM_STUDIO_HOSTS,
     MEASUREMENT_TARGETS,
     TRAINING_TARGETS,
@@ -98,3 +99,21 @@ def test_the_judge_answers_at_temperature_0_without_thinking(
     assert isinstance(body, dict)
     assert (body["model"], body["temperature"], body["max_tokens"]) == ("qwen", 0.0, 200)
     assert (body["reasoning_effort"], request["authorization"]) == ("none", None)
+
+
+def test_the_judge_can_also_run_on_the_mac_mini_with_the_same_qwen() -> None:
+    assert dict(JUDGE_HOSTS) == {
+        "dgx": JUDGE_HOST,
+        "macmini": LmStudioHost("http://192.168.178.91:1234/v1", "qwen/qwen3.8-27b"),
+    }
+
+
+def test_build_judge_model_asks_the_given_host(server: FakeServer) -> None:
+    server.body = reply_body("URTEIL: JA")
+
+    build_judge_model(
+        timeout_seconds=5, max_tokens=200, host=LmStudioHost(server.base_url, "qwen-mini")
+    ).complete([{"role": "user", "content": "?"}])
+
+    models = [request["body"]["model"] for request in server.requests]  # type: ignore[index]
+    assert models == ["qwen-mini"]
