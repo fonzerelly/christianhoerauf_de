@@ -34,3 +34,11 @@ def test_knowledge_base_prompt_refuses_with_the_fixed_text_of_career() -> None:
     assert intent_answer(Intent.CAREER, "de").text in prompt
     assert intent_answer(Intent.CAREER, "en").text in prompt
     assert "dritten Person" in prompt
+
+
+def test_rewrite_prompt_resolves_references_and_changes_nothing_else() -> None:
+    prompt = load_prompt("rewrite_question")
+
+    assert "„das“" in prompt
+    assert "unverändert" in prompt
+    assert "Beantworte die Frage nicht" in prompt

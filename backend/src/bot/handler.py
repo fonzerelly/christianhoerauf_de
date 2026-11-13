@@ -1,6 +1,7 @@
 """Einstieg des Lambdas. Hier wird alles zusammengesteckt (Plan, Schritt 5).
 
-Vertrag mit dem Frontend: `POST` mit JSON `{"question": "..."}`. Antwort `200` mit
+Vertrag mit dem Frontend: `POST` mit JSON `{"question": "...", "conversation"?: "<Gesprächs-ID>"}`
+(ADR 0005). Antwort `200` mit
 `{"text": ..., "gimmick"?: ..., "keyword"?: ..., "suggestions"?: [...]}`; ungültige Anfrage `400`
 mit `{"text": <feste Antwort>}`.
 Schemas: `schema/request.schema.json` und `schema/answer.schema.json`.
@@ -11,8 +12,10 @@ import binascii
 import json
 import logging
 import os
+import re
 import time
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -39,10 +42,18 @@ from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, IntentClassifier
 from bot.pipeline.prompts import knowledge_base_system_prompt, load_intent_program, load_prompt
+from bot.pipeline.question_rewriter import (
+    REWRITER_MAX_TOKENS,
+    REWRITER_TEMPERATURE,
+    QuestionRewriter,
+)
 from bot.ports.counter_store import CounterStore
 from bot.ports.log import Log
 
 MAX_QUESTION_LENGTH = 500
+# Die Gesprächs-ID: zufällig im Frontend erzeugt (etwa `crypto.randomUUID()`), nur Buchstaben,
+# Ziffern und Bindestriche, damit nichts anderes darin mitreist.
+_CONVERSATION = re.compile(r"[A-Za-z0-9-]{16,64}")
 # Im Lambda-Paket liegt die Wissensbasis neben `bot/` (scripts/build_package.sh).
 _PACKAGED_KNOWLEDGE_BASE = Path(__file__).resolve().parent.parent / "wissensbasis"
 # Daneben `lebenslauf/varianten.yaml` für den Lebenslauf-Endpunkt.
@@ -61,8 +72,14 @@ def _response(status: int, answer: Answer) -> dict[str, object]:
     }
 
 
-def _read_question(event: Mapping[str, Any]) -> str | None:
-    """Die Frage aus der Anfrage, oder `None`, wenn die Anfrage ungültig ist."""
+@dataclass(frozen=True)
+class _Request:
+    question: str
+    conversation: str | None
+
+
+def _read_request(event: Mapping[str, Any]) -> _Request | None:
+    """Frage und Gesprächs-ID aus der Anfrage, oder `None`, wenn die Anfrage ungültig ist."""
     if event.get("requestContext", {}).get("http", {}).get("method") != "POST":
         return None
     body = event.get("body")
@@ -72,26 +89,31 @@ def _read_question(event: Mapping[str, Any]) -> str | None:
         text = (
             base64.b64decode(body, validate=True).decode() if event.get("isBase64Encoded") else body
         )
-        question = json.loads(text).get("question")
+        data = json.loads(text)
+        question, conversation = data.get("question"), data.get("conversation")
     except ValueError, binascii.Error, AttributeError:
         return None
     if not isinstance(question, str) or not question.strip() or len(question) > MAX_QUESTION_LENGTH:
         return None
-    return question
+    if conversation is not None and not (
+        isinstance(conversation, str) and _CONVERSATION.fullmatch(conversation)
+    ):
+        return None
+    return _Request(question, conversation)
 
 
 def handle(event: Mapping[str, Any], bot: Bot) -> dict[str, object]:
     """Liest die Anfrage, lässt den Bot antworten und verpackt das Ergebnis als HTTP-Antwort.
     Auch bei unerwarteten Fehlern kommt eine feste Antwort im Vertragsformat zurück."""
-    question = _read_question(event)
-    if question is None:
+    request = _read_request(event)
+    if request is None:
         return _response(400, fixed_answer(FixedAnswerKind.INVALID_REQUEST, "de"))
     ip = event.get("requestContext", {}).get("http", {}).get("sourceIp", "unknown")
     try:
-        return _response(200, bot.ask(question, ip))
+        return _response(200, bot.ask(request.question, ip, request.conversation))
     except Exception:  # bewusst breit: der Besucher soll immer eine Antwort im Vertrag bekommen
         logging.exception("Unerwarteter Fehler bei der Antwort")
-        unavailable = fixed_answer(FixedAnswerKind.UNAVAILABLE, guess_language(question))
+        unavailable = fixed_answer(FixedAnswerKind.UNAVAILABLE, guess_language(request.question))
         return _response(200, unavailable)
 
 
@@ -169,6 +191,10 @@ def assemble_bot(environ: Mapping[str, str], store: CounterStore, log: Log) -> B
         secret,
         cache_version=cache_version(environ),
         knowledge_answerer=knowledge_answerer,
+        rewriter=QuestionRewriter(
+            make_model(temperature=REWRITER_TEMPERATURE, max_tokens=REWRITER_MAX_TOKENS),
+            load_prompt("rewrite_question"),
+        ),
     )
 
 

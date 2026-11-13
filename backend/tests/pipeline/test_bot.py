@@ -7,6 +7,7 @@ from bot.adapters.memory_store import MemoryStore
 from bot.domain.answer import Answer
 from bot.domain.cost_protection import (
     cache_key,
+    conversation_key,
     daily_counter_key,
     visitor_counter_key,
     visitor_tag,
@@ -17,6 +18,7 @@ from bot.domain.reaction import ReactionKind, reaction_for
 from bot.pipeline.bot import Bot
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier, IntentProgram
+from bot.pipeline.question_rewriter import Exchange, QuestionRewriter
 from bot.ports.language_model import LanguageModelError
 from tests.fakes import FakeClock, FakeLanguageModel, ListLog
 
@@ -54,12 +56,14 @@ class Setup:
         task_answers: list[str | Exception] | None = None,
         cache_version: str = "",
         knowledge_answers: list[str | Exception] | None = None,
+        rewrites: list[str | Exception] | None = None,
     ) -> None:
         replies = [gate(i) if isinstance(i, Intent) else i for i in intents]
         self.intent_model = FakeLanguageModel(replies)
         self.answer_model = FakeLanguageModel(answers or [])
         self.task_model = FakeLanguageModel(task_answers or [])
         self.knowledge_model = FakeLanguageModel(knowledge_answers or [])
+        self.rewrite_model = FakeLanguageModel(rewrites or [])
         # Ohne `knowledge_answers` gibt es keine Texte: der Bot bekommt keine Wissensbasis.
         knowledge_answerer = (
             None
@@ -78,6 +82,7 @@ class Setup:
             SECRET,
             cache_version=cache_version,
             knowledge_answerer=knowledge_answerer,
+            rewriter=QuestionRewriter(self.rewrite_model, "UMSCHREIBEN"),
         )
 
     def visitor_count_after_one_more(self) -> int:
@@ -416,3 +421,178 @@ def test_a_dropped_or_edited_follow_up_goes_through_the_gate() -> None:
 
     assert len(setup.intent_model.calls) == 3
     assert [record.get("suggested") for record in setup.log.records] == [None, None, None]
+
+
+def test_a_suggestion_skips_the_gate_only_for_the_visitor_it_was_suggested_to() -> None:
+    # Plan, „Folgefragen-Lücke“: Sonst käme jeder an diesem Tag mit ihr am Türsteher vorbei.
+    setup = Setup(
+        [Intent.CAREER, Intent.KNOWLEDGE],
+        answers=["Allgemein."],
+        knowledge_answers=[FIELDS_REPLY],
+    )
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP)
+
+    answer = setup.bot.ask("Was erlebte Chris mit der Polizei?", "198.51.100.1")
+
+    assert answer.text == "Allgemein."
+
+
+CONVERSATION = "4f1c2a9e-0b7d-4c55-9d3e-2a6b8f0c1d2e"
+STUDIED = "Chris studierte Medientechnologie in Ilmenau."
+
+
+def test_without_a_conversation_nothing_is_rewritten() -> None:
+    setup = Setup([Intent.CAREER, Intent.CAREER], knowledge_answers=[STUDIED, "Fünf Jahre."])
+    setup.bot.ask("Was hat Chris studiert?", IP)
+
+    setup.bot.ask("Wie lange hat das gedauert?", IP)
+
+    assert setup.rewrite_model.calls == []
+
+
+def test_the_first_question_of_a_conversation_is_not_rewritten() -> None:
+    setup = Setup([Intent.CAREER], knowledge_answers=[STUDIED])
+
+    setup.bot.ask("Was hat Chris studiert?", IP, CONVERSATION)
+
+    assert setup.rewrite_model.calls == []
+
+
+def test_a_follow_up_is_rewritten_with_the_last_exchange_and_answered_as_rewritten() -> None:
+    standalone = "Wie lange hat das Studium von Chris in Ilmenau gedauert?"
+    setup = Setup(
+        [Intent.CAREER, Intent.CAREER],
+        knowledge_answers=[STUDIED, "Fünf Jahre."],
+        rewrites=[standalone],
+    )
+    setup.bot.ask("Was hat Chris studiert?", IP, CONVERSATION)
+
+    answer = setup.bot.ask("Wie lange hat das gedauert?", IP, CONVERSATION)
+
+    assert answer.text == "Fünf Jahre."
+    assert [call[-1]["content"] for call in setup.rewrite_model.calls] == [
+        "Vorige Frage: Was hat Chris studiert?\n"
+        f"Antwort des Chatbots: {STUDIED}\n"
+        "Neue Frage: Wie lange hat das gedauert?"
+    ]
+    assert [call[-1]["content"] for call in setup.intent_model.calls][1:] == [standalone]
+    assert [call[-1]["content"] for call in setup.knowledge_model.calls][1:] == [standalone]
+    assert setup.store.read(cache_key(standalone, DAY)) is not None
+
+
+def test_the_log_shows_the_rewritten_question_only_when_it_changed() -> None:
+    setup = Setup(
+        [Intent.CAREER, Intent.CAREER, Intent.CAREER],
+        knowledge_answers=[STUDIED, "Fünf Jahre.", "Chris war bei Navigon."],
+        rewrites=["Wie lange studierte Chris in Ilmenau?", "Wo arbeitete Chris danach?"],
+    )
+    setup.bot.ask("Was hat Chris studiert?", IP, CONVERSATION)
+
+    setup.bot.ask("Wie lange?", IP, CONVERSATION)
+    setup.bot.ask("Wo arbeitete Chris danach?", IP, CONVERSATION)
+
+    assert setup.log.records[1].get("rewritten") == "Wie lange studierte Chris in Ilmenau?"
+    assert "rewritten" not in setup.log.records[2]
+
+
+def test_the_bot_remembers_the_standalone_question_and_its_answer() -> None:
+    setup = Setup(
+        [Intent.CAREER, Intent.CAREER],
+        knowledge_answers=[STUDIED, "Fünf Jahre."],
+        rewrites=["Wie lange studierte Chris in Ilmenau?"],
+    )
+    setup.bot.ask("Was hat Chris studiert?", IP, CONVERSATION)
+
+    setup.bot.ask("Wie lange?", IP, CONVERSATION)
+
+    remembered = setup.store.read(conversation_key(CONVERSATION))
+    assert remembered == Exchange("Wie lange studierte Chris in Ilmenau?", "Fünf Jahre.").to_json()
+
+
+def test_another_conversation_does_not_see_the_exchange() -> None:
+    setup = Setup([Intent.CAREER, Intent.CAREER], knowledge_answers=[STUDIED, "Keine Ahnung."])
+    setup.bot.ask("Was hat Chris studiert?", IP, CONVERSATION)
+
+    setup.bot.ask("Wie lange hat das gedauert?", IP, "anderes-gespraech-0000")
+
+    assert setup.rewrite_model.calls == []
+
+
+def test_a_fixed_text_does_not_replace_the_last_exchange() -> None:
+    # Nach „Das habe ich nicht verstanden.“ bezieht sich der Besucher weiter auf die Antwort davor.
+    setup = Setup(
+        [Intent.CAREER, Intent.GIBBERISH, Intent.CAREER],
+        knowledge_answers=[STUDIED, "Fünf Jahre."],
+        rewrites=["Wie lange asdf?", "Wie lange studierte Chris in Ilmenau?"],
+    )
+    setup.bot.ask("Was hat Chris studiert?", IP, CONVERSATION)
+    setup.bot.ask("asdf", IP, CONVERSATION)
+
+    setup.bot.ask("Wie lange?", IP, CONVERSATION)
+
+    contents = [call[-1]["content"] for call in setup.rewrite_model.calls]
+    assert ["Vorige Frage: Was hat Chris studiert?" in content for content in contents] == [
+        True,
+        True,
+    ]
+
+
+def test_a_clicked_suggestion_is_neither_rewritten_nor_gated_in_its_conversation() -> None:
+    setup = Setup([Intent.CAREER], knowledge_answers=[FIELDS_REPLY, "Chris wurde angehalten."])
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP, CONVERSATION)
+
+    answer = setup.bot.ask("Was erlebte Chris mit der Polizei?", IP, CONVERSATION)
+
+    assert answer.text == "Chris wurde angehalten."
+    assert setup.rewrite_model.calls == []
+    assert len(setup.intent_model.calls) == 1
+
+
+def test_a_suggestion_from_another_conversation_goes_through_rewriter_and_gate() -> None:
+    setup = Setup(
+        [Intent.CAREER, Intent.CAREER, Intent.KNOWLEDGE],
+        answers=["Allgemein."],
+        knowledge_answers=[FIELDS_REPLY, STUDIED],
+        rewrites=["Was erlebte Chris mit der Polizei?"],
+    )
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP, CONVERSATION)
+    setup.bot.ask("Was hat Chris studiert?", IP, "anderes-gespraech-0000")
+
+    answer = setup.bot.ask("Was erlebte Chris mit der Polizei?", IP, "anderes-gespraech-0000")
+
+    assert answer.text == "Allgemein."
+
+
+def test_suggestions_of_a_cached_answer_skip_the_gate_in_the_new_conversation() -> None:
+    # Müsste die Frage durch Umschreiber und Türsteher, hielte er sie für Allgemeinwissen.
+    setup = Setup(
+        [Intent.CAREER, Intent.KNOWLEDGE],
+        answers=["Allgemein."],
+        knowledge_answers=[FIELDS_REPLY, "Chris wurde angehalten."],
+        rewrites=["Was erlebte Chris mit der Polizei?"],
+    )
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP, CONVERSATION)
+    setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP, "anderes-gespraech-0000")
+
+    answer = setup.bot.ask("Was erlebte Chris mit der Polizei?", IP, "anderes-gespraech-0000")
+
+    assert (answer.text, len(setup.intent_model.calls)) == ("Chris wurde angehalten.", 1)
+
+
+def test_a_clicked_suggestion_answered_today_comes_from_the_cache() -> None:
+    setup = Setup(
+        [Intent.CAREER, Intent.KNOWLEDGE],
+        answers=["Allgemein."],
+        knowledge_answers=[FIELDS_REPLY, "Chris wurde angehalten."],
+        rewrites=["Was erlebte Chris mit der Polizei?"],
+    )
+    for conversation in (CONVERSATION, "anderes-gespraech-0000"):
+        setup.bot.ask("Was hat Chris bei Navigon gemacht?", IP, conversation)
+        setup.bot.ask("Was erlebte Chris mit der Polizei?", IP, conversation)
+
+    assert [record["outcome"] for record in setup.log.records] == [
+        "answered",
+        "answered",
+        "cache",
+        "cache",
+    ]

@@ -107,13 +107,46 @@ def test_invalid_utf8_in_base64_body_gets_400() -> None:
     assert handle(broken, make_bot([]))["statusCode"] == 400
 
 
-@pytest.mark.parametrize("body", [{"question": "x" * 500}, {"question": "Hä?"}])
+CONVERSATION = "4f1c2a9e-0b7d-4c55-9d3e-2a6b8f0c1d2e"
+
+
+@pytest.mark.parametrize(
+    "conversation",
+    [5, "", "zu-kurz", "x" * 65, "mit leerzeichen 12345678", "umlaut-gespräch-12345"],
+)
+def test_an_invalid_conversation_gets_400(conversation: object) -> None:
+    response = handle(event({"question": "Frage?", "conversation": conversation}), make_bot([]))
+
+    assert response["statusCode"] == 400
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"question": "x" * 500},
+        {"question": "Hä?"},
+        {"question": "Hä?", "conversation": CONVERSATION},
+        {"question": "Hä?", "conversation": "a" * 16},
+        {"question": "Hä?", "conversation": "a" * 64},
+    ],
+)
 def test_requests_accepted_by_the_handler_match_the_request_schema(body: dict[str, str]) -> None:
     REQUEST_SCHEMA.validate(body)
     assert handle(event(body), make_bot([KNOWLEDGE], ["Ok."]))["statusCode"] == 200
 
 
-@pytest.mark.parametrize("body", [{}, {"question": " "}, {"question": 5}, {"question": "x" * 501}])
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"question": " "},
+        {"question": 5},
+        {"question": "x" * 501},
+        {"question": "Hä?", "conversation": "zu-kurz"},
+        {"question": "Hä?", "conversation": "x" * 65},
+        {"question": "Hä?", "conversation": 5},
+    ],
+)
 def test_requests_rejected_by_the_handler_violate_the_request_schema(body: object) -> None:
     assert not REQUEST_SCHEMA.is_valid(body)
     assert handle(event(body), make_bot([]))["statusCode"] == 400
@@ -326,3 +359,31 @@ def test_build_bot_without_knowledge_texts_gives_career_its_fixed_text(
 
     assert body_of(response)["text"] == "Darüber lerne ich gerade noch."
     assert len(server.requests) == 1  # nur der Türsteher
+
+
+def test_a_second_question_in_the_same_conversation_is_rewritten_first(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer
+) -> None:
+    import bot.handler as module
+
+    monkeypatch.setattr(module, "DynamoDbStore", lambda *args, **kwargs: MemoryStore())
+    server.body = reply_body(KNOWLEDGE)
+    environ = {
+        "TABLE_NAME": "bot",
+        "VISITOR_SECRET": "geheim",
+        "LLM_BASE_URL": server.base_url,
+        "LLM_AUTH": "none",
+    }
+    bot = build_bot(environ)
+    handle(event({"question": "Wie hoch ist die Zugspitze?", "conversation": CONVERSATION}), bot)
+
+    handle(event({"question": "Und wo liegt sie?", "conversation": CONVERSATION}), bot)
+
+    bodies = [request["body"] for request in server.requests]
+    rewrites = [
+        body
+        for body in bodies
+        if isinstance(body, dict)
+        and body["messages"][0]["content"] == load_prompt("rewrite_question")
+    ]
+    assert [(body.get("temperature"), body.get("max_tokens")) for body in rewrites] == [(0.0, 150)]

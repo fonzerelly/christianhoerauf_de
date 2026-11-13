@@ -7,6 +7,7 @@ from bot.domain.cost_protection import (
     DAILY_LIMIT,
     VISITOR_LIMIT,
     cache_key,
+    conversation_key,
     daily_counter_key,
     daily_limit_reached,
     normalize_question,
@@ -96,12 +97,36 @@ def test_another_secret_gives_another_tag() -> None:
 def test_suggestion_key_ignores_case_and_spacing_but_not_the_day() -> None:
     question = "Was erlebte Chris mit der Polizei?"
 
-    assert suggestion_key(question, DAY) == suggestion_key(
-        "  was erlebte CHRIS mit der polizei?", DAY
+    assert suggestion_key(question, DAY, "gespraech-1") == suggestion_key(
+        "  was erlebte CHRIS mit der polizei?", DAY, "gespraech-1"
     )
-    assert suggestion_key(question, DAY) != suggestion_key(question, date(2026, 10, 23))
+    assert suggestion_key(question, DAY, "gespraech-1") != suggestion_key(
+        question, date(2026, 10, 23), "gespraech-1"
+    )
 
 
-def test_suggestion_key_is_not_the_cache_key_and_does_not_contain_the_question() -> None:
-    assert suggestion_key("geheim", DAY) != cache_key("geheim", DAY)
-    assert "geheim" not in suggestion_key("geheim", DAY)
+def test_suggestion_key_belongs_to_one_conversation() -> None:
+    question = "Was erlebte Chris mit der Polizei?"
+
+    assert suggestion_key(question, DAY, "gespraech-1") != suggestion_key(
+        question, DAY, "gespraech-2"
+    )
+
+
+def test_suggestion_key_is_not_the_cache_key_and_contains_neither_question_nor_conversation() -> (
+    None
+):
+    key = suggestion_key("geheim", DAY, "gespraech-1")
+
+    assert key != cache_key("geheim", DAY)
+    assert "geheim" not in key
+    assert "gespraech-1" not in key
+
+
+def test_conversation_key_is_the_same_for_the_same_conversation_only() -> None:
+    assert conversation_key("gespraech-1") == conversation_key("gespraech-1")
+    assert conversation_key("gespraech-1") != conversation_key("gespraech-2")
+
+
+def test_conversation_key_does_not_contain_the_conversation() -> None:
+    assert "gespraech-1" not in conversation_key("gespraech-1")

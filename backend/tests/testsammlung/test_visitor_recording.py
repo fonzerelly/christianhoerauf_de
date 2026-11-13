@@ -15,12 +15,12 @@ from bot.pipeline.prompts import load_intent_program
 from bot.ports.language_model import LanguageModelError
 from tests.conftest import FakeServer, reply_body
 from tests.fakes import FakeClock, FakeLanguageModel
-from tests.test_handler import KNOWLEDGE
+from tests.test_handler import CAREER, KNOWLEDGE
 from testsammlung.targets import LM_STUDIO_HOSTS, LmStudioHost
 from testsammlung.visitor_paths import Node, read_nodes, write_nodes
 from testsammlung.visitor_recording import (
+    BotAsker,
     RecordingLog,
-    bot_asker,
     gate_intent,
     main,
     visitor_questions,
@@ -41,10 +41,64 @@ def test_bot_asker_returns_the_record_the_bot_wrote_for_the_question() -> None:
         "geheim",
     )
 
-    record = bot_asker(bot, log)("Wie hoch ist die Zugspitze?", "besucher-1")
+    record = BotAsker(bot, MemoryStore(), log, FakeClock().today)(
+        "Wie hoch ist die Zugspitze?", "besucher-1", None
+    )
 
     assert record.get("question") == "Wie hoch ist die Zugspitze?"
     assert record.get("answer") == "Knapp 3000 m."
+
+
+BAKING = (
+    "[[ ## antwort ## ]]\nChris backt Brot.\n\n"
+    "[[ ## folgefragen ## ]]\nWas backt Chris am liebsten?"
+)
+
+
+def baking_bot(store: MemoryStore, log: RecordingLog, knowledge_answers: list[str]) -> Bot:
+    """Ein Bot, dessen Türsteher nur einmal antwortet: Jede weitere Frage, die durch ihn müsste,
+    scheitert mit „nicht erreichbar“."""
+    return Bot(
+        IntentClassifier(FakeLanguageModel([CAREER]), load_intent_program()),
+        GeneralAnswerer(FakeLanguageModel([]), "P"),
+        GeneralAnswerer(FakeLanguageModel([]), "T"),
+        store,
+        FakeClock(),
+        log,
+        "geheim",
+        knowledge_answerer=GeneralAnswerer(FakeLanguageModel(knowledge_answers), "W"),
+    )
+
+
+def test_a_suggestion_of_the_parent_skips_the_gate_when_its_child_clicks_it() -> None:
+    store, log = MemoryStore(), RecordingLog()
+    asker = BotAsker(baking_bot(store, log, [BAKING, "Brezen."]), store, log, FakeClock().today)
+    asker("Kann Chris backen?", "besucher-1", None)
+
+    record = asker("Was backt Chris am liebsten?", "besucher-2", "besucher-1")
+
+    assert (record.get("answer"), record.get("suggested")) == ("Brezen.", True)
+
+
+def test_a_remembered_node_passes_its_suggestions_on_like_an_asked_one() -> None:
+    store, log = MemoryStore(), RecordingLog()
+    asker = BotAsker(baking_bot(store, log, ["Brezen."]), store, log, FakeClock().today)
+    node = Node(
+        1,
+        None,
+        "baeckerin",
+        "start",
+        "wissensbasis",
+        (),
+        "Kann Chris backen?",
+        {"answer": "Ja.", "suggestions": ["Was backt Chris am liebsten?"]},
+        {},
+    )
+    asker.remember(node, "besucher-1")
+
+    record = asker("Was backt Chris am liebsten?", "besucher-2", "besucher-1")
+
+    assert (record.get("answer"), record.get("suggested")) == ("Brezen.", True)
 
 
 def test_gate_intent_gives_the_label_or_ausgefallen_when_the_model_fails() -> None:

@@ -5,6 +5,7 @@ from datetime import date
 from bot.domain.answer import Answer
 from bot.domain.cost_protection import (
     cache_key,
+    conversation_key,
     daily_counter_key,
     daily_limit_reached,
     suggestion_key,
@@ -21,6 +22,7 @@ from bot.domain.reply_check import check_reply
 from bot.pipeline.answer_fields import checked_answer_fields, read_answer_fields
 from bot.pipeline.general_answerer import GeneralAnswerer
 from bot.pipeline.intent_classifier import IntentClassifier
+from bot.pipeline.question_rewriter import Exchange, QuestionRewriter
 from bot.ports.clock import Clock
 from bot.ports.counter_store import CounterStore
 from bot.ports.language_model import LanguageModelError
@@ -36,6 +38,9 @@ class _Outcome:
     intent: Intent | None = None
     # Die Frage ist eine Folgefrage, die der Bot heute selbst vorgeschlagen hat.
     suggested: bool = False
+    # Die Frage, wie der Bot sie beantwortet hat: mit dem Verlauf umgeschrieben (ADR 0005), sonst
+    # `None` für „wie gestellt“.
+    rewritten: str | None = None
 
 
 class Bot:
@@ -52,6 +57,7 @@ class Bot:
         secret: str,
         cache_version: str = "",
         knowledge_answerer: GeneralAnswerer | None = None,
+        rewriter: QuestionRewriter | None = None,
     ) -> None:
         self._classifier = classifier
         self._cache_version = cache_version
@@ -63,17 +69,24 @@ class Bot:
         # dann ihren festen Text.
         if knowledge_answerer is not None:
             self._answerers[ReactionKind.KNOWLEDGE_BASE_ANSWER] = knowledge_answerer
+        self._rewriter = rewriter
         self._store = store
         self._clock = clock
         self._log = log
         self._secret = secret
 
-    def ask(self, question: str, ip: str) -> Answer:
-        """Beantwortet eine Frage und schreibt ein Protokoll (ohne echte IP, nur das Kürzel)."""
+    def ask(self, question: str, ip: str, conversation: str | None = None) -> Answer:
+        """Beantwortet eine Frage und schreibt ein Protokoll (ohne echte IP, nur das Kürzel).
+        Mit `conversation` (Gesprächs-ID, ADR 0005) merkt sich der Bot die letzte beantwortete
+        Frage und Antwort des Gesprächs und schreibt die nächste Frage damit eigenständig um."""
         started = self._clock.seconds()
         day = self._clock.today()
         tag = visitor_tag(ip, self._secret, day)
-        outcome = self._decide(question, tag, day)
+        # Folgefragen gelten nur im Gespräch, in dem sie vorgeschlagen wurden; ohne Gesprächs-ID
+        # nur für denselben Besucher.
+        scope = conversation or tag
+        outcome = self._decide(question, tag, scope, day, conversation)
+        self._remember(outcome, question, scope, day, conversation)
         record: dict[str, object] = {
             "question": question,
             "intent": outcome.intent.value if outcome.intent else None,
@@ -89,34 +102,81 @@ class Bot:
             record["suggestions"] = list(outcome.answer.suggestions)
         if outcome.suggested:
             record["suggested"] = True
+        if outcome.rewritten is not None:
+            record["rewritten"] = outcome.rewritten
         self._log.write(record)
         return outcome.answer
 
-    def _decide(self, question: str, tag: str, day: date) -> _Outcome:
+    def _remember(
+        self, outcome: _Outcome, question: str, scope: str, day: date, conversation: str | None
+    ) -> None:
+        """Nach einer Antwort des Modells, ob neu oder aus dem Zwischenspeicher: ihre Folgefragen,
+        damit sie beim Anklicken in diesem Gespräch nicht am Türsteher scheitern, und mit
+        Gesprächs-ID die Frage (eigenständig) und die Antwort für die nächste Frage. Feste Texte
+        lassen den letzten Austausch stehen: Nach „Das habe ich nicht verstanden.“ bezieht sich der
+        Besucher weiter auf die Antwort davor."""
+        if outcome.name not in ("answered", "cache"):
+            return
+        for suggestion in outcome.answer.suggestions:
+            self._store.write(suggestion_key(suggestion, day, scope), "1")
+        if conversation is not None:
+            exchange = Exchange(outcome.rewritten or question, outcome.answer.text)
+            self._store.write(conversation_key(conversation), exchange.to_json())
+
+    def _decide(
+        self, question: str, tag: str, scope: str, day: date, conversation: str | None
+    ) -> _Outcome:
         language = guess_language(question)
         # 1. Kostenschutz vor jedem Modellaufruf.
         if daily_limit_reached(self._store.increment(daily_counter_key(day))):
             return self._fixed(FixedAnswerKind.LIMIT_REACHED, language, "limit")
-        # 2. Zwischenspeicher: gleiche Frage heute schon beantwortet.
-        cached = self._store.read(cache_key(question, day, self._cache_version))
-        if cached is not None:
-            return _Outcome(Answer.from_dict(json.loads(cached)), "cache")
-        # 3. Absicht bestimmen. Eine Folgefrage, die der Bot heute selbst vorgeschlagen hat, gehört
-        #    zur Laufbahn, ohne den Türsteher: Er stufte manche falsch ein (Messung 07.11.2026).
-        if self._store.read(suggestion_key(question, day)) is not None:
+        # 2. Eine Folgefrage, die der Bot heute in diesem Gespräch selbst vorgeschlagen hat, steht
+        #    für sich und gehört zur Laufbahn: kein Umschreiben, kein Türsteher. Er stufte manche
+        #    falsch ein (Messung 07.11.2026).
+        if self._store.read(suggestion_key(question, day, scope)) is not None:
+            cached = self._cached(question, day)
+            if cached is not None:
+                return cached
             outcome = self._react(question, tag, day, language, Intent.CAREER)
             return replace(outcome, suggested=True)
+        # 3. Mit dem Verlauf eigenständig machen (ADR 0005). Ab hier gilt die umgeschriebene Frage.
+        asked = question
+        question = self._standalone(question, conversation)
+        rewritten = question if question != asked else None
+        # 4. Zwischenspeicher: gleiche Frage heute schon beantwortet.
+        cached = self._cached(question, day)
+        if cached is not None:
+            return replace(cached, rewritten=rewritten)
+        # 5. Absicht bestimmen.
         try:
             intent = self._classifier.classify(question)
         except LanguageModelError:
             return self._fixed(FixedAnswerKind.UNAVAILABLE, language, "unavailable")
-        return self._react(question, tag, day, language, intent)
+        outcome = self._react(question, tag, day, language, intent)
+        return replace(outcome, rewritten=rewritten)
+
+    def _cached(self, question: str, day: date) -> _Outcome | None:
+        """Die heute schon gegebene Antwort auf diese Frage, sonst `None`."""
+        cached = self._store.read(cache_key(question, day, self._cache_version))
+        if cached is None:
+            return None
+        return _Outcome(Answer.from_dict(json.loads(cached)), "cache")
+
+    def _standalone(self, question: str, conversation: str | None) -> str:
+        """Die Frage, mit dem letzten Austausch des Gesprächs umgeschrieben; ohne Gespräch, ohne
+        Austausch oder ohne Umschreiber unverändert."""
+        if conversation is None or self._rewriter is None:
+            return question
+        remembered = self._store.read(conversation_key(conversation))
+        if remembered is None:
+            return question
+        return self._rewriter.rewrite(question, Exchange.from_json(remembered))
 
     def _react(
         self, question: str, tag: str, day: date, language: Language, intent: Intent
     ) -> _Outcome:
-        """Schritt 4 von `_decide`: die Reaktion auf die Absicht."""
-        # 4. Reaktion: fester Text oder Gimmick ohne weiteren Modellaufruf, sonst das Modell.
+        """Letzter Schritt von `_decide`: die Reaktion auf die Absicht."""
+        # Reaktion: fester Text oder Gimmick ohne weiteren Modellaufruf, sonst das Modell.
         #    Ein Gimmick bringt seinen festen Text mit: für den Screenreader und für ein Frontend,
         #    das das Gimmick nicht kennt.
         reaction = reaction_for(intent)
@@ -151,9 +211,6 @@ class Bot:
         if reaction is not ReactionKind.GENERAL_ANSWER:
             key = cache_key(question, day, self._cache_version)
             self._store.write(key, json.dumps(answer.to_dict(), ensure_ascii=False))
-        # Die Folgefragen merken, damit sie beim Anklicken nicht am Türsteher scheitern.
-        for suggestion in answer.suggestions:
-            self._store.write(suggestion_key(suggestion, day), "1")
         return _Outcome(answer, "answered", intent)
 
     @staticmethod

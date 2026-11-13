@@ -14,8 +14,9 @@ from pathlib import Path
 
 from testsammlung.visitor_scenarios import Persona
 
-# Fragt den Bot (Frage, Besucher) und gibt seinen Protokolleintrag zurück.
-Ask = Callable[[str, str], Mapping[str, object]]
+# Fragt den Bot (Frage, Besucher, Besucher der Elternfrage oder `None`) und gibt seinen
+# Protokolleintrag zurück.
+Ask = Callable[[str, str, str | None], Mapping[str, object]]
 # Die Absicht, die der Türsteher einer Frage gibt, als Kürzel („christian/career“).
 Classify = Callable[[str], str]
 # Die Rückfragen, die ein Besucher nach (Frage, Antwort) stellen würde.
@@ -78,7 +79,8 @@ def explore(
                 continue
             seen.add(_normalized(pending.question))
             number += 1
-            record = ask(pending.question, f"besucher-{number}")
+            parent = None if pending.parent is None else f"besucher-{pending.parent}"
+            record = ask(pending.question, f"besucher-{number}", parent)
             suggestions = [str(text) for text in _list(record.get("suggestions"))]
             node = Node(
                 number,
@@ -167,13 +169,14 @@ def with_replay(
     ask: Ask,
     classify: Classify,
     invent: Invent,
-    remember: Callable[[Node], None],
+    remember: Callable[[Node, str], None],
 ) -> tuple[Ask, Classify, Invent]:
     """Zum Fortsetzen eines abgebrochenen Laufs: `ask`, `classify` und `invent`, die für Fragen aus
     `previous` (der bisherigen Aufzeichnung) deren Ergebnis zurückgeben, statt ein Modell zu fragen.
     Weil dieselben Ergebnisse herauskommen, läuft `explore` dieselben Pfade in derselben Reihenfolge
-    nach und fragt erst danach neu. Für jede so übernommene Frage ruft es `remember` auf: Dort muss
-    der Aufrufer nachholen, was der Bot sich beim echten Fragen gemerkt hätte (die Folgefragen)."""
+    nach und fragt erst danach neu. Für jede so übernommene Frage ruft es `remember` mit dem Knoten
+    und dem Besucher auf, als der sie jetzt gestellt wäre: Dort muss der Aufrufer nachholen, was
+    beim echten Fragen hängen geblieben wäre (die Folgefragen)."""
     by_question = {_normalized(node.question): node for node in previous}
     gate = {suggestion: intent for node in previous for suggestion, intent in node.gate.items()}
     branches: dict[int, list[str]] = {}
@@ -181,11 +184,11 @@ def with_replay(
         if node.kind == "abzweigung" and node.parent is not None:
             branches.setdefault(node.parent, []).append(node.question)
 
-    def replayed_ask(question: str, visitor: str) -> Mapping[str, object]:
+    def replayed_ask(question: str, visitor: str, parent: str | None) -> Mapping[str, object]:
         old = by_question.get(_normalized(question))
         if old is None:
-            return ask(question, visitor)
-        remember(old)
+            return ask(question, visitor, parent)
+        remember(old, visitor)
         return old.record
 
     def replayed_classify(question: str) -> str:

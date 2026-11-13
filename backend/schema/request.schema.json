@@ -5,6 +5,11 @@
   "type": "object",
   "required": ["question"],
   "properties": {
-    "question": { "type": "string", "pattern": "\\S", "maxLength": 500 }
+    "question": { "type": "string", "pattern": "\\S", "maxLength": 500 },
+    "conversation": {
+      "description": "Gesprächs-ID (ADR 0005): zufällig im Frontend erzeugt, gleich für alle Fragen eines Seitenaufrufs.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9-]{16,64}$"
+    }
   }
 }

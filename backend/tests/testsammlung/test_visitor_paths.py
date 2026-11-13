@@ -28,10 +28,12 @@ class FakeSite:
         self.answers = answers
         self.branches = branches or {}
         self.asked: list[tuple[str, str]] = []
+        self.parents: list[str | None] = []
         self.classified: list[str] = []
 
-    def ask(self, question: str, visitor: str) -> Mapping[str, object]:
+    def ask(self, question: str, visitor: str, parent: str | None) -> Mapping[str, object]:
         self.asked.append((question, visitor))
+        self.parents.append(parent)
         return {"question": question, **self.answers[question]}
 
     def classify(self, question: str) -> str:
@@ -110,6 +112,8 @@ def test_every_question_is_asked_once_and_by_a_new_visitor() -> None:
 
     assert [node.question for node in nodes] == ["Kann Chris backen?", "Was backt Chris?"]
     assert [visitor for _, visitor in site.asked] == ["besucher-1", "besucher-2"]
+    # Der Besucher der Elternfrage, damit die Aufzeichnung ihre Folgefragen weiterreichen kann.
+    assert site.parents == [None, "besucher-1"]
 
 
 def test_the_visitor_asks_back_after_answers_about_chris_but_those_branches_end_there() -> None:
@@ -169,14 +173,18 @@ def test_resuming_replays_recorded_questions_and_asks_only_the_rest() -> None:
     replayed: list[str] = []
 
     ask, classify, invent = with_replay(
-        full[:1], site.ask, site.classify, site.invent, lambda node: replayed.append(node.question)
+        full[:1],
+        site.ask,
+        site.classify,
+        site.invent,
+        lambda node, visitor: replayed.append(f"{node.question} {visitor}"),
     )
     resumed = list(explore(personas, ask, classify, invent, depth=2))
 
     assert resumed == full[:1] + [node for node in full[1:] if node.kind != "abzweigung"]
     assert [question for question, _ in site.asked] == ["Wo studierte Chris?"]
     assert site.classified == []  # die Folgefrage von Frage 1 stuft die Aufzeichnung schon ein
-    assert replayed == ["Was hat Chris studiert?"]
+    assert replayed == ["Was hat Chris studiert? besucher-1"]
 
 
 def test_resuming_takes_the_recorded_branches_of_a_replayed_answer() -> None:
@@ -189,7 +197,7 @@ def test_resuming_takes_the_recorded_branches_of_a_replayed_answer() -> None:
     site = FakeSite(answers)
 
     ask, classify, invent = with_replay(
-        full, site.ask, site.classify, site.invent, lambda node: None
+        full, site.ask, site.classify, site.invent, lambda node, visitor: None
     )
 
     assert list(explore(personas, ask, classify, invent, depth=2)) == full

@@ -11,7 +11,8 @@ Aufruf: python -m testsammlung.visitor_recording [--ziel dgx] [--tiefe 2] [--per
 import argparse
 import re
 import sys
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from datetime import date
 from pathlib import Path
 
 from bot.adapters.memory_store import MemoryStore
@@ -21,6 +22,7 @@ from bot.handler import assemble_bot, language_model
 from bot.pipeline.bot import Bot
 from bot.pipeline.intent_classifier import GATE_MAX_TOKENS, GATE_TEMPERATURE, IntentClassifier
 from bot.pipeline.prompts import load_intent_program
+from bot.ports.counter_store import CounterStore
 from bot.ports.language_model import LanguageModel, LanguageModelError
 from testsammlung.local_backend import local_environ
 from testsammlung.targets import DEFAULT_TARGET, LM_STUDIO_HOSTS
@@ -68,15 +70,49 @@ class RecordingLog:
         self.last = record
 
 
-def bot_asker(bot: Bot, log: RecordingLog) -> Ask:
-    """Stellt dem Bot eine Frage als `visitor` und gibt seinen Protokolleintrag zurück. Der
-    Besucher steht dort, wo der Bot sonst die IP-Adresse bekommt."""
+class BotAsker:
+    """Stellt dem Bot eine Frage als `visitor` und gibt seinen Protokolleintrag zurück (`Ask`).
 
-    def ask(question: str, visitor: str) -> Mapping[str, object]:
-        bot.ask(question, visitor)
-        return log.last
+    Der Besucher steht dort, wo der Bot sonst die IP-Adresse bekommt, und jede Frage hat ihr eigenes
+    Gespräch. Folgefragen gelten nur im Gespräch, in dem der Bot sie vorgeschlagen hat (ADR 0005);
+    deshalb reicht der Frager die Folgefragen der Elternfrage an das Gespräch der Kindfrage weiter,
+    wie bei einem Besucher, der im selben Gespräch klickt. Den Verlauf reicht er nicht weiter:
+    Umgeschrieben wird in der Aufzeichnung nichts."""
 
-    return ask
+    def __init__(
+        self, bot: Bot, store: CounterStore, log: RecordingLog, today: Callable[[], date]
+    ) -> None:
+        self._bot = bot
+        self._store = store
+        self._log = log
+        self._today = today
+        self._suggestions: dict[str, list[str]] = {}
+
+    def __call__(self, question: str, visitor: str, parent: str | None) -> Mapping[str, object]:
+        """Fragt im Gespräch von `visitor`, mit den Folgefragen der Frage von `parent`."""
+        for suggestion in self._suggestions.get(parent or "", []):
+            key = suggestion_key(suggestion, self._today(), conversation_of(visitor))
+            self._store.write(key, "1")
+        self._bot.ask(question, visitor, conversation_of(visitor))
+        record = self._log.last
+        self.remember_suggestions(visitor, record)
+        return record
+
+    def remember(self, node: Node, visitor: str) -> None:
+        """Für eine aus der Aufzeichnung übernommene Frage: ihre Folgefragen, als hätte `visitor`
+        sie gerade bekommen."""
+        self.remember_suggestions(visitor, node.record)
+
+    def remember_suggestions(self, visitor: str, record: Mapping[str, object]) -> None:
+        suggestions = record.get("suggestions")
+        self._suggestions[visitor] = (
+            [str(text) for text in suggestions] if isinstance(suggestions, list) else []
+        )
+
+
+def conversation_of(visitor: str) -> str:
+    """Die Gesprächs-ID einer Frage der Aufzeichnung."""
+    return f"besucherpfad-{visitor}"
 
 
 def gate_intent(classifier: IntentClassifier) -> Classify:
@@ -142,17 +178,13 @@ def main(argv: Sequence[str]) -> int:
     )
     visitor = language_model(environ, max_tokens=VISITOR_MAX_TOKENS)
 
-    ask, classify, invent = bot_asker(bot, log), gate_intent(gate), visitor_questions(visitor)
+    asker = BotAsker(bot, store, log, SystemClock().today)
+    ask: Ask = asker
+    classify, invent = gate_intent(gate), visitor_questions(visitor)
     if args.fortsetzen and out.exists():
         previous = read_nodes(out)
-
-        def remember(node: Node) -> None:
-            # Was der Bot beim echten Fragen gespeichert hätte: Seine Folgefragen umgehen beim
-            # Anklicken den Türsteher.
-            for suggestion in node.gate:
-                store.write(suggestion_key(suggestion, SystemClock().today()), "1")
-
-        ask, classify, invent = with_replay(previous, ask, classify, invent, remember)
+        # Übernommene Fragen reichen ihre Folgefragen weiter wie gestellte.
+        ask, classify, invent = with_replay(previous, ask, classify, invent, asker.remember)
         print(f"Setze fort: {len(previous)} Fragen aus {out} werden übernommen.", flush=True)
     nodes = explore(personas, ask, classify, invent, args.tiefe)
     count = 0

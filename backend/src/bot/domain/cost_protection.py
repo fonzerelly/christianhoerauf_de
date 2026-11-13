@@ -45,9 +45,20 @@ def visitor_tag(ip: str, secret: str, day: date) -> str:
     return hmac.new(daily_salt, ip.encode(), hashlib.sha256).hexdigest()[:_TAG_LENGTH]
 
 
-def suggestion_key(question: str, day: date) -> str:
-    """Schlüssel für eine Folgefrage, die der Bot heute vorgeschlagen hat; wie beim
-    Zwischenspeicher nur ein Hash. Ohne Version: Eine Folgefrage bleibt nach einem neuen Ausrollen
-    eine Frage des Bots."""
-    digest = hashlib.sha256(normalize_question(question).encode()).hexdigest()
+def suggestion_key(question: str, day: date, conversation: str) -> str:
+    """Schlüssel für eine Folgefrage, die der Bot heute in diesem Gespräch vorgeschlagen hat; wie
+    beim Zwischenspeicher nur ein Hash. `conversation` ist die Gesprächs-ID oder, ohne sie, das
+    Besucherkürzel: Nur wem sie vorgeschlagen wurde, kommt mit ihr am Türsteher vorbei (Plan,
+    „Folgefragen-Lücke“). Ohne Version: Eine Folgefrage bleibt nach einem neuen Ausrollen eine
+    Frage des Bots."""
+    text = f"{conversation}\n{normalize_question(question)}"
+    digest = hashlib.sha256(text.encode()).hexdigest()
     return f"suggestion:{day.isoformat()}:{digest}"
+
+
+def conversation_key(conversation: str) -> str:
+    """Schlüssel, unter dem der Bot sich die letzte Frage und Antwort eines Gesprächs merkt
+    (ADR 0005). Nur ein Hash der Gesprächs-ID, ohne Tag: Ein Gespräch darf über Mitternacht gehen,
+    es verfällt mit dem Speicher."""
+    digest = hashlib.sha256(conversation.encode()).hexdigest()
+    return f"conversation:{digest}"
