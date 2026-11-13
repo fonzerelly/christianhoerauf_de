@@ -211,3 +211,120 @@ def test_main_resumes_and_judges_only_the_nodes_not_yet_reviewed(
     ] == ["alt"]
     assert len(server.requests) == 1  # nur die zweite Frage geht an den Richter
     assert len(partial.read_text("utf-8").splitlines()) == 2
+
+
+def branch_node() -> Node:
+    return node(
+        kind="abzweigung",
+        expected="abzweigung",
+        intent="christian/career",
+        answer="In Ansbach lehrte Chris Webentwicklung.",
+        keyword=None,
+        suggestions=(),
+        path=("Was hat Chris unterrichtet?",),
+        question="Hat er das auch in Ansbach gemacht?",
+    )
+
+
+def test_the_branch_check_sees_the_texts_about_chris_first() -> None:
+    model = FakeLanguageModel([YES] * 10)
+
+    PathJudge(model, "Chris lehrte in Ansbach.").findings(branch_node(), only={"P8"})
+
+    assert len(model.calls) == 1
+    (system, _) = model.calls[0]
+    assert system["content"].startswith("Texte über Chris:\n\nChris lehrte in Ansbach.")
+    assert "worauf sie sich bezieht" in system["content"]
+
+
+def test_review_renews_only_the_given_criteria_of_taken_over_nodes() -> None:
+    clumsy = node(suggestions=("Was war das Thema von Chris seiner Arbeit?",))
+    done = {
+        1: (
+            Finding("K1", True, False, "alt"),
+            Finding("P8", False, False, "alt"),
+            Finding("P3", False, True, ""),
+        )
+    }
+    model = FakeLanguageModel([YES])
+
+    (reviewed,) = review([clumsy], PathJudge(model, "Texte"), done, renew=frozenset({"P3"}))
+
+    assert [(f.criterion, f.passed, f.note) for f in reviewed.findings if f.criterion != "P3"] == [
+        ("K1", False, "alt"),
+        ("P8", False, "alt"),
+    ]
+    # neu geprüft: Antwort, Stichwort, Folgefrage
+    assert [f.passed for f in reviewed.findings if f.criterion == "P3"] == [True, True, False]
+    assert model.calls == []  # P3 ist eine Regel, der Richter bleibt still
+
+
+def test_main_takes_over_an_earlier_review_and_renews_p8(
+    monkeypatch: pytest.MonkeyPatch, server: FakeServer, tmp_path: Path
+) -> None:
+    monkeypatch.setitem(JUDGE_HOSTS, "attrappe", LmStudioHost(server.base_url, "qwen"))
+    server.body = reply_body(YES)
+    file = tmp_path / "aufzeichnung.dgx.jsonl"
+    write_nodes([branch_node()], file)
+    earlier = tmp_path / "frueher.teil.jsonl"
+    earlier.write_text(
+        json.dumps(
+            {
+                "nr": 1,
+                "befunde": [
+                    {"kriterium": "P8", "muss": False, "bestanden": False, "grund": "erfunden"}
+                ],
+            }
+        )
+        + "\n",
+        "utf-8",
+    )
+    out = tmp_path / "neu.json"
+
+    main(
+        [
+            str(file),
+            "--richter",
+            "attrappe",
+            "--wissensbasis",
+            str(tmp_path),
+            "--uebernehmen",
+            str(earlier),
+            "--neu",
+            "P8",
+            "--aus",
+            str(out),
+        ]
+    )
+
+    written = json.loads(out.read_text("utf-8"))
+    assert [f["grund"] for f in written[0]["befunde"] if f["kriterium"] == "P8"] == ["passt"]
+    assert len(server.requests) == 1
+
+
+def test_main_refuses_to_take_over_its_own_partial_file(tmp_path: Path) -> None:
+    file = tmp_path / "aufzeichnung.dgx.jsonl"
+    write_nodes([branch_node()], file)
+
+    with pytest.raises(SystemExit) as raised:
+        main(
+            [
+                str(file),
+                "--richter",
+                "aus",
+                "--uebernehmen",
+                str(tmp_path / "aufzeichnung.dgx.bewertung.teil.jsonl"),
+                "--neu",
+                "P8",
+            ]
+        )
+
+    assert raised.value.code == 2
+
+
+def test_without_judge_renewing_checks_only_the_rules() -> None:
+    done = {1: (Finding("P8", False, False, "alt"),)}
+
+    (reviewed,) = review([branch_node()], None, done, renew=frozenset({"P8", "P1"}))
+
+    assert [f.criterion for f in reviewed.findings] == ["P1"]
