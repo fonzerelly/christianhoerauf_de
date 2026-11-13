@@ -20,7 +20,11 @@ CANNOT_HELP_TEXTS = (
 MAX_KEYWORD_WORDS = 2
 MAX_KEYWORD_LENGTH = 24
 MAX_SUGGESTIONS = 3
-MAX_SUGGESTION_LENGTH = 300
+# Eine angeklickte Folgefrage umgeht den Türsteher. Damit niemand dem Bot über sie eine Anweisung
+# unterschiebt, ist sie kurz und ohne Anweisungswörter (Plan, „Folgefragen-Lücke“, 13.11.2026).
+# Echte Folgefragen waren im Integrationstest höchstens 103 Zeichen lang.
+MAX_SUGGESTION_LENGTH = 120
+INSTRUCTION_WORDS = ("ignorier", "vergiss", "anweisung", "prompt", "systemnachricht", "ignore")
 
 _MARKER = re.compile(r"^\[\[ ## (\w+) ## \]\]")
 _LIST_MARKER = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s*")
@@ -94,14 +98,18 @@ def keyword_problem(keyword: str) -> str | None:
 
 
 def suggestion_problem(suggestion: str, earlier: Sequence[str]) -> str | None:
-    """Warum die Folgefrage nicht taugt (K15, K16), oder `None`. `earlier` sind die Folgefragen
-    davor, die bestanden haben."""
+    """Warum die Folgefrage nicht taugt (K15, K16, Form gegen untergeschobene Anweisungen), oder
+    `None`. `earlier` sind die Folgefragen davor, die bestanden haben. Ein zweites „?“ ist erlaubt:
+    Ein Projekt heißt „Wer war's?“."""
     if not suggestion.endswith("?"):
         return "endet nicht mit „?“"
     if not contains_word(suggestion, "Chris"):
         return "nennt „Chris“ nicht"
     if len(suggestion) > MAX_SUGGESTION_LENGTH:
         return f"länger als {MAX_SUGGESTION_LENGTH} Zeichen"
+    for word in INSTRUCTION_WORDS:
+        if word in suggestion.lower():
+            return f"Anweisungswort „{word}“"
     if suggestion.lower() in (other.lower() for other in earlier):
         return "doppelt"
     return None

@@ -76,7 +76,7 @@ Training der Antworten; der Code-Schritt des Plans „Stichwort und Folgefragen�
 | `_split_fields(reply)` | Text je Feldname bis zur nächsten Marke, unter `""` der Text davor; ohne Marke leer. |
 | `is_fixed_text(answer)` | Ob die Antwort einer der vier festen Texte ist. |
 | `keyword_problem(keyword)` | Grund, warum das Stichwort nicht taugt, sonst `None`: mehr als zwei Wörter, über 24 Zeichen, enthält „Chris“ als eigenes Wort („ChrisBot“ ist erlaubt), ein Wort nicht darstellbar. Seit 06.11.2026 eine kurze Überschrift, die nicht in der Antwort stehen muss; ob sie passt, prüft der Richter (K13, K33). |
-| `suggestion_problem(suggestion, earlier)` | Grund, warum die Folgefrage nicht taugt, sonst `None`: endet nicht mit „?“, nennt „Chris“ nicht als eigenes Wort (also auch nicht „ChrisBot“), über 300 Zeichen, doppelt zu `earlier`. |
+| `suggestion_problem(suggestion, earlier)` | Grund, warum die Folgefrage nicht taugt, sonst `None`: endet nicht mit „?“, nennt „Chris“ nicht als eigenes Wort (also auch nicht „ChrisBot“), über 120 Zeichen (bis 13.11.2026: 300), enthält ein Anweisungswort aus `INSTRUCTION_WORDS` („ignorier“, „vergiss“, „anweisung“, „prompt“, „systemnachricht“, „ignore“; seit 13.11.2026, Folgefragen-Lücke), doppelt zu `earlier`. Ein zweites „?“ ist erlaubt, weil ein Projekt „Wer war's?“ heißt. |
 | `checked_answer_fields(fields)` | Behält nur, was besteht, höchstens drei Folgefragen in Reihenfolge. Bei festem Text nur die Antwort. |
 | `contains_word(text, word)` | Ob `word` als eigenes Wort in `text` steht (Groß/klein egal, Bindestrich zählt zum Wort). |
 
