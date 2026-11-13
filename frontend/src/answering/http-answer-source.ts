@@ -21,6 +21,8 @@ export type HttpFetch = (
 export interface HttpAnswerSourceSettings {
   /** Adresse des Backends. */
   readonly url: string;
+  /** Gesprächs-ID (Backend-ADR 0005): einmal je Seitenaufruf erzeugt, mit jeder Frage geschickt. */
+  readonly conversation: string;
   readonly fetchFunction: HttpFetch;
   readonly timeoutMillis: number;
   /** Liefert ein Signal, das nach so vielen Millisekunden abbricht (im Browser `AbortSignal.timeout`). */
@@ -89,7 +91,7 @@ function unreachable(keyword: string): Answer {
 }
 
 /**
- * Fragt das Backend per `POST` mit `{"question": "..."}` und liest `{"text", "gimmick"?,
+ * Fragt das Backend per `POST` mit `{"question": "...", "conversation": "..."}` und liest `{"text", "gimmick"?,
  * "keyword"?, "suggestions"?}`. Bei Status 400 gilt der Text der Antwort (das Backend sagt, was an
  * der Frage nicht stimmt). Sonst gilt bei einem Fehler `UNREACHABLE_ANSWER` mit einem Stichwort:
  * dem HTTP-Code bei anderem Status, `TIMEOUT` nach der Zeitüberschreitung, `OFFLINE` ohne
@@ -105,7 +107,7 @@ export class HttpAnswerSource implements AnswerSource {
       response = await this.settings.fetchFunction(this.settings.url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, conversation: this.settings.conversation }),
         signal,
       });
     } catch {

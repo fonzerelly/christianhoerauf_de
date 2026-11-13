@@ -10,6 +10,7 @@ import { FrameTimer } from "./animation/frame-timer";
 import { PerformanceClock } from "./animation/performance-clock";
 import { fetchJson } from "./answering/fetch-json";
 import type { AnswerSource } from "./answering/answer-source";
+import { newConversationId } from "./answering/conversation-id";
 import { HttpAnswerSource } from "./answering/http-answer-source";
 import { StaticContentAnswerSource } from "./answering/static-content-answer-source";
 import { TUNING } from "./config/tuning";
@@ -182,6 +183,9 @@ const answerSource: AnswerSource =
     ? staticAnswers
     : new HttpAnswerSource({
         url: answerUrl,
+        // Eine Gesprächs-ID je Seitenaufruf: Der Server merkt sich darunter die letzte Frage und
+        // Antwort und versteht so Nachfragen wie „Wo war das?“ (Backend-ADR 0005).
+        conversation: newConversationId(crypto),
         // Als eigene Funktion: `fetch` muss mit `window` als `this` laufen, sonst „Illegal invocation“.
         fetchFunction: (url, init) => fetch(url, init),
         timeoutMillis: ANSWER_TIMEOUT_MILLIS,

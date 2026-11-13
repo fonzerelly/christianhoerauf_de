@@ -3,6 +3,7 @@ import { HttpAnswerSource, UNREACHABLE_ANSWER } from "./http-answer-source";
 import type { HttpFetch, HttpRequest } from "./http-answer-source";
 
 const URL = "https://example.test/ask";
+const CONVERSATION = "4f1c2a9e-0b7d-4c55-9d3e-2a6b8f0c1d2e";
 
 /** Eine Antwort des Servers mit Status und JSON-Inhalt. */
 function respond(status: number, body: unknown) {
@@ -20,6 +21,7 @@ function build(
 ) {
   const source = new HttpAnswerSource({
     url: URL,
+    conversation: CONVERSATION,
     fetchFunction,
     timeoutMillis: 15000,
     timeoutSignal,
@@ -34,7 +36,7 @@ describe("HttpAnswerSource", () => {
     );
   });
 
-  it("schickt die Frage als JSON per POST an die Adresse", async () => {
+  it("schickt die Frage mit der Gesprächs-ID als JSON per POST an die Adresse", async () => {
     const requests: { url: string; request: HttpRequest }[] = [];
     const { source } = build((url, request) => {
       requests.push({ url, request });
@@ -47,7 +49,9 @@ describe("HttpAnswerSource", () => {
     expect(requests[0]?.url).toBe(URL);
     expect(requests[0]?.request.method).toBe("POST");
     expect(requests[0]?.request.headers).toEqual({ "Content-Type": "application/json" });
-    expect(requests[0]?.request.body).toBe('{"question":"Wie spät ist es?"}');
+    expect(requests[0]?.request.body).toBe(
+      `{"question":"Wie spät ist es?","conversation":"${CONVERSATION}"}`,
+    );
   });
 
   it("liefert den Text der Antwort", async () => {
